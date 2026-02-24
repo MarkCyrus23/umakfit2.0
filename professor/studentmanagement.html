@@ -2403,88 +2403,138 @@
         window.sections = [];
         let professorEmail = window.currentUser.email;
         
-        // Get professor's full name from multiple sources
-        let professorFullName = '';
+        // Collect ALL possible name variations
+        const nameVariations = new Set();
         
-        // Try from currentProfessor first
+        // From currentProfessor object
         if (window.currentProfessor) {
-            professorFullName = window.currentProfessor.fullName || window.currentProfessor.name || '';
+            ['fullName','name','displayName'].forEach(field => {
+                if (window.currentProfessor[field]) {
+                    nameVariations.add(window.currentProfessor[field].toUpperCase().trim());
+                }
+            });
         }
         
-        // If not found, try professors collection
-        if (!professorFullName) {
- const profQuery = query(collection(db, 'professors'), where('email', '==', professorEmail));
-const profSnap = await getDocs(profQuery);
-if (!profSnap.empty) {           // ✅ FIXED
-    const profData = profSnap.docs[0].data();
-                professorFullName = profData.fullName || profData.name || '';
-            }
+        // From Firebase Auth user
+        if (window.currentUser.displayName) {
+            nameVariations.add(window.currentUser.displayName.toUpperCase().trim());
         }
         
-        // If still not found, try users collection
-        if (!professorFullName) {
-            const usersQuery = query(collection(db, 'users'), where('email', '==', professorEmail));
-            const usersSnap = await getDocs(usersQuery);
-            if (!usersSnap.empty) {
-                const userData = usersSnap.docs[0].data();
-                professorFullName = userData.fullName || userData.name || '';
-            }
-        }
+        // From professors collection
+        const profSnap = await getDocs(query(collection(db, 'professors'), where('email', '==', professorEmail)));
+        profSnap.forEach(d => {
+            ['fullName','name','displayName'].forEach(field => {
+                if (d.data()[field]) nameVariations.add(d.data()[field].toUpperCase().trim());
+            });
+        });
         
-        // Last resort: use email username
-        if (!professorFullName) {
-            professorFullName = professorEmail.split('@')[0].toUpperCase();
-        }
+        // From users collection
+        const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', professorEmail)));
+        usersSnap.forEach(d => {
+            ['fullName','name','displayName'].forEach(field => {
+                if (d.data()[field]) nameVariations.add(d.data()[field].toUpperCase().trim());
+            });
+        });
         
-        console.log('👤 Looking for sections of professor:', professorFullName);
+        // Email username as fallback
+        nameVariations.add(professorEmail.split('@')[0].toUpperCase().trim());
         
+        // Remove empty strings
+        nameVariations.delete('');
+        
+        console.log('👤 Professor name variations:', Array.from(nameVariations));
+        
+        // Build word tokens from all name variations for word-level matching
+        const nameTokens = new Set();
+        nameVariations.forEach(name => {
+            name.split(/[\s,\.]+/).forEach(word => {
+                if (word.length >= 3) nameTokens.add(word);
+            });
+        });
+        console.log('🔤 Name tokens:', Array.from(nameTokens));
+        
+        // Load ALL sections from Firestore
         const sectionsSnapshot = await getDocs(collection(db, 'sections'));
-        let matchCount = 0;
+        console.log('Total sections in Firestore:', sectionsSnapshot.size);
         
         sectionsSnapshot.forEach(sectionDoc => {
             const data = sectionDoc.data();
-            const dbProfessor = (data.professor || '').toString().trim().toUpperCase();
-            const professorNameUpper = professorFullName.toUpperCase();
+            const dbProfessorRaw = (data.professor || '').toString().trim();
+            const dbProfessor = dbProfessorRaw.toUpperCase();
+            const dbProfessorEmail = (data.professorEmail || '').toString().trim().toLowerCase();
             
-            // EXACT MATCHING LOGIC
             let isMatch = false;
+            let matchReason = '';
             
-            // Check exact match with professor name
-            if (dbProfessor === professorNameUpper) {
+            // 1. Email match (most reliable)
+            if (dbProfessorEmail && dbProfessorEmail === professorEmail.toLowerCase()) {
                 isMatch = true;
-                console.log(`✅ Exact match: ${data.name} - Professor: ${data.professor}`);
+                matchReason = 'email';
             }
             
-            // Check if professor email matches
-            if (!isMatch && data.professorEmail === professorEmail) {
-                isMatch = true;
-                console.log(`✅ Email match: ${data.name} - Email: ${data.professorEmail}`);
-            }
-            
-            // Check if professor name contains last name (for "LASTNAME, FIRSTNAME" format)
-            if (!isMatch && professorNameUpper) {
-                const nameParts = professorNameUpper.split(',');
-                if (nameParts.length > 1) {
-                    const lastName = nameParts[0].trim();
-                    if (dbProfessor.includes(lastName)) {
+            // 2. Exact full name match
+            if (!isMatch) {
+                for (const nameVar of nameVariations) {
+                    if (!nameVar || nameVar.length < 3) continue;
+                    if (dbProfessor === nameVar) {
                         isMatch = true;
-                        console.log(`✅ Last name match: ${data.name} - contains ${lastName}`);
-                    }
-                } else {
-                    // Try partial matching as last resort
-                    if (dbProfessor.includes(professorNameUpper) || professorNameUpper.includes(dbProfessor)) {
-                        isMatch = true;
-                        console.log(`✅ Partial match: ${data.name} - ${data.professor} matches ${professorFullName}`);
+                        matchReason = `exact: "${dbProfessorRaw}"`;
+                        break;
                     }
                 }
             }
             
+            // 3. Contains match
+            if (!isMatch) {
+                for (const nameVar of nameVariations) {
+                    if (!nameVar || nameVar.length < 3) continue;
+                    if (dbProfessor.includes(nameVar) || nameVar.includes(dbProfessor)) {
+                        isMatch = true;
+                        matchReason = `contains: "${dbProfessorRaw}" ~ "${nameVar}"`;
+                        break;
+                    }
+                }
+            }
+            
+            // 4. Last name match (CSV format: "LASTNAME, FIRSTNAME M.")
+            if (!isMatch) {
+                for (const nameVar of nameVariations) {
+                    if (!nameVar || nameVar.length < 3) continue;
+                    const lastName = nameVar.split(',')[0].trim();
+                    if (lastName.length >= 3 && dbProfessor.includes(lastName)) {
+                        isMatch = true;
+                        matchReason = `lastname: "${dbProfessorRaw}" contains "${lastName}"`;
+                        break;
+                    }
+                }
+            }
+            
+            // 5. Word token match (any significant word matches)
+            if (!isMatch && dbProfessor.length >= 3) {
+                const dbWords = dbProfessor.split(/[\s,\.]+/).filter(w => w.length >= 3);
+                for (const dbWord of dbWords) {
+                    if (nameTokens.has(dbWord)) {
+                        isMatch = true;
+                        matchReason = `word-token: "${dbWord}" in "${dbProfessorRaw}"`;
+                        break;
+                    }
+                }
+            }
+            
+            // 6. Email username match
+            if (!isMatch) {
+                const emailUsername = professorEmail.split('@')[0].toUpperCase();
+                if (emailUsername.length > 3 && dbProfessor.includes(emailUsername)) {
+                    isMatch = true;
+                    matchReason = `email-username: "${emailUsername}"`;
+                }
+            }
+            
             if (isMatch) {
-                matchCount++;
+                console.log(`✅ Section matched [${matchReason}]: ${data.name}`);
                 
                 const studentCount = Array.isArray(data.students) ? data.students.length : 0;
                 
-                // Format schedule
                 let schedule = 'Not Set';
                 if (data.time && data.day && data.room) {
                     schedule = `${data.time} / ${data.day} / ${data.room}`;
@@ -2492,15 +2542,10 @@ if (!profSnap.empty) {           // ✅ FIXED
                     schedule = data.schedule;
                 }
                 
-                // Get academic year
                 let academicYear = '2025-2026';
-                if (data.academicYear) {
-                    academicYear = data.academicYear;
-                } else if (data.schoolYear) {
-                    academicYear = data.schoolYear;
-                } else if (data.year) {
-                    academicYear = data.year;
-                }
+                if (data.academicYear) academicYear = data.academicYear;
+                else if (data.schoolYear) academicYear = data.schoolYear;
+                else if (data.year) academicYear = data.year;
                 
                 window.sections.push({
                     id: sectionDoc.id,
@@ -2514,28 +2559,35 @@ if (!profSnap.empty) {           // ✅ FIXED
                     days: data.day || data.days || '',
                     room: data.room || '',
                     semester: data.semester || '',
-                    fullSemester: data.fullSemester || '',
                     status: 'active',
                     professorName: data.professor || '',
                     description: data.description || '',
                     students: data.students || []
                 });
+            } else {
+                console.log(`❌ No match: "${dbProfessorRaw}" (section: ${data.name})`);
             }
         });
         
-        console.log(`📊 Total sections loaded: ${window.sections.length} (matched ${matchCount} sections)`);
+        console.log(`📊 Total sections found: ${window.sections.length}`);
         window.filteredSections = [...window.sections];
         
-        // Update the sections table
         if (window.sections.length === 0) {
+            const checkedNames = Array.from(nameVariations).join(', ');
             document.getElementById('sectionsTableBody').innerHTML = `
                 <tr>
                     <td colspan="7">
                         <div class="empty-state">
                             <div class="empty-icon">⚠️</div>
-                            <div class="empty-title">No Sections Assigned</div>
-                            <div class="empty-text">You have not been assigned to any sections yet.</div>
-                            <div class="empty-text text-xs mt-2">Professor name: ${professorFullName}</div>
+                            <div class="font-semibold text-gray-700 mb-1">No Sections Assigned</div>
+                            <div class="text-gray-500 text-sm">You have not been assigned to any sections yet.</div>
+                            <div class="text-gray-400 text-xs mt-3 p-3 bg-gray-50 rounded-lg text-left">
+                                <strong>Debug Info:</strong><br>
+                                Email: ${professorEmail}<br>
+                                Names checked: ${checkedNames}<br>
+                                <br>
+                                <em>Please check browser Console (F12) for detailed matching logs.</em>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -2545,7 +2597,6 @@ if (!profSnap.empty) {           // ✅ FIXED
             populateSectionFilters();
         }
         
-        // Update section count
         document.getElementById('sectionCount').textContent = window.sections.length;
         
     } catch (error) {
@@ -2555,8 +2606,8 @@ if (!profSnap.empty) {           // ✅ FIXED
                 <td colspan="7">
                     <div class="empty-state">
                         <div class="empty-icon">❌</div>
-                        <div class="empty-title">Error Loading Sections</div>
-                        <div class="empty-text">${error.message}</div>
+                        <div class="font-semibold text-gray-700 mb-1">Error Loading Sections</div>
+                        <div class="text-gray-500 text-sm">${error.message}</div>
                     </div>
                 </td>
             </tr>
@@ -3075,37 +3126,47 @@ if (!profSnap.empty) {           // ✅ FIXED
 
         // Populate section filters
         function populateSectionFilters() {
-            const sectionFilter = document.getElementById('filterSection');
-            if (!sectionFilter) return;
-            
-            sectionFilter.innerHTML = '';
-            
-            window.sections.forEach((section, index) => {
-                const option = document.createElement('option');
-                option.value = section.name;
-                option.textContent = `${section.name} (${section.studentCount} students)`;
-                if (index === 0) option.selected = true;
-                sectionFilter.appendChild(option);
-            });
-            
-            const overdueFilter = document.getElementById('filterOverdueSection');
-            if (overdueFilter) {
-                overdueFilter.innerHTML = '';
-                window.sections.forEach((section, index) => {
-                    const option = document.createElement('option');
-                    option.value = section.name;
-                    option.textContent = section.name;
-                    if (index === 0) option.selected = true;
-                    overdueFilter.appendChild(option);
-                });
-            }
+    const sectionFilter = document.getElementById('filterSection');
+    if (!sectionFilter) return;
     
-            // Trigger filter so the table shows the first section by default
-            filterStudents();
-            filterOverdueStudents();
-            
-            console.log(`✓ Populated ${sectionFilter.options.length} professor sections`);
-        }
+    sectionFilter.innerHTML = '';
+    
+    // Add "All Sections" as default
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = 'All Sections';
+    sectionFilter.appendChild(allOption);
+    
+    window.sections.forEach((section) => {
+        const option = document.createElement('option');
+        option.value = section.name;
+        option.textContent = `${section.name} (${section.studentCount} students)`;
+        sectionFilter.appendChild(option);
+    });
+    
+    const overdueFilter = document.getElementById('filterOverdueSection');
+    if (overdueFilter) {
+        overdueFilter.innerHTML = '';
+        
+        const allOverdueOption = document.createElement('option');
+        allOverdueOption.value = '';
+        allOverdueOption.textContent = 'All Sections';
+        overdueFilter.appendChild(allOverdueOption);
+        
+        window.sections.forEach((section) => {
+            const option = document.createElement('option');
+            option.value = section.name;
+            option.textContent = section.name;
+            overdueFilter.appendChild(option);
+        });
+    }
+
+    // Show all students by default
+    filterStudents();
+    filterOverdueStudents();
+    
+    console.log(`✓ Populated ${sectionFilter.options.length - 1} sections in filters`);
+}
 
         // View section details
         window.viewSectionDetails = async function(sectionId) {

@@ -18,7 +18,9 @@
         "ignore": [
           "user-select",
           "backdrop-filter",
-          "-webkit-overflow-scrolling"
+          "-webkit-overflow-scrolling",
+          "scrollbar-gutter",
+          "scrollbar-gutter: stable"
         ]
       }
     ],

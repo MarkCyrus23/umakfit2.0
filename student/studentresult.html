@@ -1640,7 +1640,7 @@ Write naturally as one paragraph. Be specific and helpful. No markdown.`;
                 }
             }
                     // Only show duration if timerValue exists
-                    if (data.timerValue) {
+                    if (data.timerValue && data.timerValue.trim() !== '' && !/^[0:\.]+$/.test(data.timerValue.trim())) {
                         const statBadges = document.getElementById('statBadges');
                         const durationBadge = document.createElement('div');
                         durationBadge.className = 'stat-badge';
