@@ -837,7 +837,11 @@
                         throw new Error('Access denied. Secretary account required.');
                     }
 
-                    currentSecretary = { id: usersSnapshot.docs[0].id, ...userData, name: userData.name || userData.email || 'Secretary' };
+                    const rawName = userData.name || userData.displayName || user.displayName || user.email || 'Secretary';
+                    const secretaryName = rawName.includes('@') 
+                        ? rawName.split('@')[0].replace(/\./g, ' ').replace(/[a-z0-9]+/gi, w => w.charAt(0).toUpperCase() + w.slice(1)).trim()
+                        : rawName;
+                    currentSecretary = { id: usersSnapshot.docs[0].id, ...userData, name: secretaryName };
 
                     const displayName = currentSecretary.name;
                     const email       = currentSecretary.email;
