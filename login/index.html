@@ -729,126 +729,200 @@
             } catch (error) {}
         }
 
-        // IMPROVED PROFESSOR CHECK FUNCTION
-        async function checkProfessorStatus(user) {
+        // IMPROVED CHECK FUNCTIONS THAT CHECK BOTH ROLE COLLECTIONS AND USERS COLLECTION
+
+        async function checkDeanStatus(user) {
             try {
-                console.log('Checking professor status for:', user.email);
+                const userEmail = user.email.toLowerCase();
                 
-                // First check professors collection by UID
-                const professorRef = window.doc(window.db, 'professors', user.uid);
-                const professorSnap = await window.getDoc(professorRef);
-                if (professorSnap.exists()) {
-                    console.log('Professor found by UID:', professorSnap.data());
-                    return professorSnap.data();
+                // Check deans collection by UID
+                const deanRef = window.doc(window.db, 'deans', user.uid);
+                const deanSnap = await window.getDoc(deanRef);
+                if (deanSnap.exists()) {
+                    console.log('Dean found in deans collection by UID');
+                    return deanSnap.data();
                 }
                 
-                // Then check professors collection by email
-                const professorsQuery = window.query(
-                    window.collection(window.db, 'professors'), 
-                    window.where('email', '==', user.email.toLowerCase())
+                // Check deans collection by email
+                const deansQuery = window.query(
+                    window.collection(window.db, 'deans'), 
+                    window.where('email', '==', userEmail)
                 );
-                const professorsSnapshot = await window.getDocs(professorsQuery);
-                if (!professorsSnapshot.empty) {
-                    console.log('Professor found by email:', professorsSnapshot.docs[0].data());
-                    return professorsSnapshot.docs[0].data();
+                const deansSnapshot = await window.getDocs(deansQuery);
+                if (!deansSnapshot.empty) {
+                    console.log('Dean found in deans collection by email');
+                    return deansSnapshot.docs[0].data();
                 }
                 
-                // Check users collection for role = 'professor'
-                const userEmailKey = user.email.toLowerCase().replace(/\./g, '_');
-                const userDocRef = window.doc(window.db, 'users', userEmailKey);
-                const userDocSnap = await window.getDoc(userDocRef);
-                
-                if (userDocSnap.exists() && userDocSnap.data().role === 'professor') {
-                    console.log('Professor found in users collection:', userDocSnap.data());
+                // Check users collection for role = 'dean' by email
+                const usersQuery = window.query(
+                    window.collection(window.db, 'users'), 
+                    window.where('email', '==', userEmail),
+                    window.where('role', '==', 'dean')
+                );
+                const usersSnapshot = await window.getDocs(usersQuery);
+                if (!usersSnapshot.empty) {
+                    console.log('Dean found in users collection');
                     return {
-                        id: user.uid,
-                        email: user.email.toLowerCase(),
-                        role: 'professor',
+                        id: usersSnapshot.docs[0].id,
+                        email: userEmail,
+                        role: 'dean',
+                        ...usersSnapshot.docs[0].data()
+                    };
+                }
+                
+                // Check by document ID with email format
+                const userDocRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
+                const userDocSnap = await window.getDoc(userDocRef);
+                if (userDocSnap.exists() && userDocSnap.data().role === 'dean') {
+                    console.log('Dean found in users collection by document ID');
+                    return {
+                        id: userDocSnap.id,
+                        email: userEmail,
+                        role: 'dean',
                         ...userDocSnap.data()
                     };
                 }
                 
-                // Also check users collection by email and role query
-                const usersQuery = window.query(
-                    window.collection(window.db, 'users'), 
-                    window.where('email', '==', user.email.toLowerCase()),
-                    window.where('role', '==', 'professor')
-                );
-                const usersSnapshot = await window.getDocs(usersQuery);
-                if (!usersSnapshot.empty) {
-                    console.log('Professor found in users query:', usersSnapshot.docs[0].data());
-                    return usersSnapshot.docs[0].data();
-                }
-                
-                console.log('No professor record found');
-                
+                return null;
             } catch (error) {
-                console.error('Error checking professor status:', error);
+                console.error('Error checking dean status:', error);
+                return null;
             }
-            return null;
         }
 
         async function checkSecretaryStatus(user) {
             try {
-                // First check secretaries collection by UID
+                const userEmail = user.email.toLowerCase();
+                
+                // Check secretaries collection by UID
                 const secretaryRef = window.doc(window.db, 'secretaries', user.uid);
                 const secretarySnap = await window.getDoc(secretaryRef);
-                if (secretarySnap.exists()) return secretarySnap.data();
+                if (secretarySnap.exists()) {
+                    console.log('Secretary found in secretaries collection by UID');
+                    return secretarySnap.data();
+                }
                 
-                // Then check secretaries collection by email
-                const secretariesQuery = window.query(window.collection(window.db, 'secretaries'), window.where('email', '==', user.email.toLowerCase()));
+                // Check secretaries collection by email
+                const secretariesQuery = window.query(
+                    window.collection(window.db, 'secretaries'), 
+                    window.where('email', '==', userEmail)
+                );
                 const secretariesSnapshot = await window.getDocs(secretariesQuery);
-                if (!secretariesSnapshot.empty) return secretariesSnapshot.docs[0].data();
+                if (!secretariesSnapshot.empty) {
+                    console.log('Secretary found in secretaries collection by email');
+                    return secretariesSnapshot.docs[0].data();
+                }
                 
-                // Check users collection for role = 'secretary'
-                const userEmailKey = user.email.toLowerCase().replace(/\./g, '_');
-                const userDocRef = window.doc(window.db, 'users', userEmailKey);
-                const userDocSnap = await window.getDoc(userDocRef);
-                
-                if (userDocSnap.exists() && userDocSnap.data().role === 'secretary') {
+                // Check users collection for role = 'secretary' by email
+                const usersQuery = window.query(
+                    window.collection(window.db, 'users'), 
+                    window.where('email', '==', userEmail),
+                    window.where('role', '==', 'secretary')
+                );
+                const usersSnapshot = await window.getDocs(usersQuery);
+                if (!usersSnapshot.empty) {
+                    console.log('Secretary found in users collection');
                     return {
-                        id: user.uid,
-                        email: user.email.toLowerCase(),
+                        id: usersSnapshot.docs[0].id,
+                        email: userEmail,
+                        role: 'secretary',
+                        ...usersSnapshot.docs[0].data()
+                    };
+                }
+                
+                // Check by document ID with email format
+                const userDocRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
+                const userDocSnap = await window.getDoc(userDocRef);
+                if (userDocSnap.exists() && userDocSnap.data().role === 'secretary') {
+                    console.log('Secretary found in users collection by document ID');
+                    return {
+                        id: userDocSnap.id,
+                        email: userEmail,
                         role: 'secretary',
                         ...userDocSnap.data()
                     };
                 }
                 
-                // Also check users collection by email field query
+                return null;
+            } catch (error) {
+                console.error('Error checking secretary status:', error);
+                return null;
+            }
+        }
+
+        async function checkProfessorStatus(user) {
+            try {
+                const userEmail = user.email.toLowerCase();
+                
+                // Check professors collection by UID
+                const professorRef = window.doc(window.db, 'professors', user.uid);
+                const professorSnap = await window.getDoc(professorRef);
+                if (professorSnap.exists()) {
+                    console.log('Professor found in professors collection by UID');
+                    return professorSnap.data();
+                }
+                
+                // Check professors collection by email
+                const professorsQuery = window.query(
+                    window.collection(window.db, 'professors'), 
+                    window.where('email', '==', userEmail)
+                );
+                const professorsSnapshot = await window.getDocs(professorsQuery);
+                if (!professorsSnapshot.empty) {
+                    console.log('Professor found in professors collection by email');
+                    return professorsSnapshot.docs[0].data();
+                }
+                
+                // Check users collection for role = 'professor' by email
                 const usersQuery = window.query(
                     window.collection(window.db, 'users'), 
-                    window.where('email', '==', user.email.toLowerCase()),
-                    window.where('role', '==', 'secretary')
+                    window.where('email', '==', userEmail),
+                    window.where('role', '==', 'professor')
                 );
                 const usersSnapshot = await window.getDocs(usersQuery);
                 if (!usersSnapshot.empty) {
-                    return usersSnapshot.docs[0].data();
+                    console.log('Professor found in users collection');
+                    return {
+                        id: usersSnapshot.docs[0].id,
+                        email: userEmail,
+                        role: 'professor',
+                        ...usersSnapshot.docs[0].data()
+                    };
                 }
                 
-            } catch (error) {
-                console.log('Error checking secretary status:', error);
-            }
-            return null;
-        }
-
-        async function checkDeanStatus(user) {
-            try {
-                const deanRef = window.doc(window.db, 'deans', user.uid);
-                const deanSnap = await window.getDoc(deanRef);
-                if (deanSnap.exists()) return deanSnap.data();
+                // Check by document ID with email format
+                const userDocRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
+                const userDocSnap = await window.getDoc(userDocRef);
+                if (userDocSnap.exists() && userDocSnap.data().role === 'professor') {
+                    console.log('Professor found in users collection by document ID');
+                    return {
+                        id: userDocSnap.id,
+                        email: userEmail,
+                        role: 'professor',
+                        ...userDocSnap.data()
+                    };
+                }
                 
-                const deansQuery = window.query(window.collection(window.db, 'deans'), window.where('email', '==', user.email.toLowerCase()));
-                const deansSnapshot = await window.getDocs(deansQuery);
-                if (!deansSnapshot.empty) return deansSnapshot.docs[0].data();
-            } catch (error) {}
-            return null;
+                return null;
+            } catch (error) {
+                console.error('Error checking professor status:', error);
+                return null;
+            }
         }
 
         async function checkStudentStatus(user) {
             try {
-                const studentsQuery = window.query(window.collection(window.db, 'students'), window.where('email', '==', user.email.toLowerCase()));
+                const userEmail = user.email.toLowerCase();
+                
+                // Check students collection by email
+                const studentsQuery = window.query(
+                    window.collection(window.db, 'students'), 
+                    window.where('email', '==', userEmail)
+                );
                 const studentsSnapshot = await window.getDocs(studentsQuery);
                 if (!studentsSnapshot.empty) {
+                    console.log('Student found in students collection');
                     const studentDoc = studentsSnapshot.docs[0];
                     const studentData = studentDoc.data();
                     return { 
@@ -858,54 +932,75 @@
                         privacyAccepted: studentData.privacyAccepted || false
                     };
                 }
-            } catch (error) {}
-            return null;
+                
+                // Check users collection for role = 'student' by email
+                const usersQuery = window.query(
+                    window.collection(window.db, 'users'), 
+                    window.where('email', '==', userEmail),
+                    window.where('role', '==', 'student')
+                );
+                const usersSnapshot = await window.getDocs(usersQuery);
+                if (!usersSnapshot.empty) {
+                    console.log('Student found in users collection');
+                    const userData = usersSnapshot.docs[0].data();
+                    return {
+                        id: usersSnapshot.docs[0].id,
+                        email: userEmail,
+                        role: 'student',
+                        emailVerified: userData.emailVerified || false,
+                        privacyAccepted: userData.privacyAccepted || false,
+                        ...userData
+                    };
+                }
+                
+                // Check by document ID with email format
+                const userDocRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
+                const userDocSnap = await window.getDoc(userDocRef);
+                if (userDocSnap.exists() && userDocSnap.data().role === 'student') {
+                    console.log('Student found in users collection by document ID');
+                    const userData = userDocSnap.data();
+                    return {
+                        id: userDocSnap.id,
+                        email: userEmail,
+                        role: 'student',
+                        emailVerified: userData.emailVerified || false,
+                        privacyAccepted: userData.privacyAccepted || false,
+                        ...userData
+                    };
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Error checking student status:', error);
+                return null;
+            }
         }
 
-        // IMPROVED ACCOUNT STATUS CHECK
+        // ACCOUNT STATUS CHECK
         async function checkAccountStatus(user) {
             try {
                 const userEmail = user.email.toLowerCase();
                 
-                // Check users collection
-                const emailLookupRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
-                const emailLookupSnap = await window.getDoc(emailLookupRef);
-                if (emailLookupSnap.exists() && emailLookupSnap.data().status === 'inactive') {
+                // Check in users collection for status
+                const userDocRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
+                const userDocSnap = await window.getDoc(userDocRef);
+                if (userDocSnap.exists() && userDocSnap.data().status === 'inactive') {
                     console.log('Account is inactive in users collection');
                     return false;
                 }
                 
-                // Check professors collection
-                const professorQuery = window.query(
-                    window.collection(window.db, 'professors'), 
-                    window.where('email', '==', userEmail)
-                );
-                const professorSnapshot = await window.getDocs(professorQuery);
-                if (!professorSnapshot.empty && professorSnapshot.docs[0].data().status === 'inactive') {
-                    console.log('Professor account is inactive');
-                    return false;
-                }
-                
-                // Check secretaries collection
-                const secretaryQuery = window.query(
-                    window.collection(window.db, 'secretaries'), 
-                    window.where('email', '==', userEmail)
-                );
-                const secretarySnapshot = await window.getDocs(secretaryQuery);
-                if (!secretarySnapshot.empty && secretarySnapshot.docs[0].data().status === 'inactive') {
-                    console.log('Secretary account is inactive');
-                    return false;
-                }
-                
-                // Check deans collection
-                const deanQuery = window.query(
-                    window.collection(window.db, 'deans'), 
-                    window.where('email', '==', userEmail)
-                );
-                const deanSnapshot = await window.getDocs(deanQuery);
-                if (!deanSnapshot.empty && deanSnapshot.docs[0].data().status === 'inactive') {
-                    console.log('Dean account is inactive');
-                    return false;
+                // Check in role-specific collections for status
+                const collections = ['deans', 'secretaries', 'professors', 'students'];
+                for (const collectionName of collections) {
+                    const roleQuery = window.query(
+                        window.collection(window.db, collectionName), 
+                        window.where('email', '==', userEmail)
+                    );
+                    const roleSnapshot = await window.getDocs(roleQuery);
+                    if (!roleSnapshot.empty && roleSnapshot.docs[0].data().status === 'inactive') {
+                        console.log(`Account is inactive in ${collectionName} collection`);
+                        return false;
+                    }
                 }
                 
                 return true;
@@ -915,55 +1010,12 @@
             }
         }
 
-        // DEBUG FUNCTION FOR PROFESSOR LOGIN
-        async function debugProfessorLogin(user) {
-            console.log('=== DEBUG: Professor Login Issue ===');
-            console.log('User email:', user.email);
-            console.log('User UID:', user.uid);
-            
-            try {
-                // Check all possible locations for professor data
-                const collections = ['professors', 'users'];
-                
-                for (const collectionName of collections) {
-                    console.log(`\nChecking ${collectionName} collection:`);
-                    
-                    // Check by UID
-                    const byUidRef = window.doc(window.db, collectionName, user.uid);
-                    const byUidSnap = await window.getDoc(byUidRef);
-                    console.log(`- By UID (${user.uid}):`, byUidSnap.exists() ? byUidSnap.data() : 'Not found');
-                    
-                    // Check by email
-                    const byEmailQuery = window.query(
-                        window.collection(window.db, collectionName), 
-                        window.where('email', '==', user.email.toLowerCase())
-                    );
-                    const byEmailSnap = await window.getDocs(byEmailQuery);
-                    console.log(`- By email (${user.email}):`, 
-                        !byEmailSnap.empty ? byEmailSnap.docs[0].data() : 'Not found');
-                    
-                    // Check by role field if exists
-                    const byRoleQuery = window.query(
-                        window.collection(window.db, collectionName), 
-                        window.where('role', '==', 'professor'),
-                        window.where('email', '==', user.email.toLowerCase())
-                    );
-                    const byRoleSnap = await window.getDocs(byRoleQuery);
-                    console.log(`- By role and email:`, 
-                        !byRoleSnap.empty ? byRoleSnap.docs[0].data() : 'Not found');
-                }
-                
-                console.log('\n=== End Debug ===');
-            } catch (error) {
-                console.error('Debug error:', error);
-            }
-        }
-
-        // IMPROVED MAIN USER STATUS CHECK
+        // MAIN USER STATUS CHECK
         async function checkUserStatus(user) {
             try {
                 console.log('Checking status for user:', user.email);
                 
+                // Check if account is active
                 const isAccountActive = await checkAccountStatus(user);
                 if (!isAccountActive) {
                     console.log('Account is inactive');
@@ -973,6 +1025,7 @@
                     return;
                 }
 
+                // Setup presence
                 await setupUserPresence(user);
                 
                 // Check DEAN first (highest priority)
@@ -995,7 +1048,7 @@
                     return;
                 }
                 
-                // Check PROFESSOR third - FIXED AND IMPROVED
+                // Check PROFESSOR third
                 const professorData = await checkProfessorStatus(user);
                 if (professorData) {
                     console.log('User is a Professor:', professorData);
@@ -1011,6 +1064,7 @@
                     console.log('User is a Student:', studentData);
                     await updatePresenceRole(user.uid, 'student');
                     
+                    // Check student specific requirements
                     if (studentData.emailVerified && studentData.privacyAccepted) {
                         showLoading('Login successful! Loading your dashboard...');
                         setTimeout(() => { window.location.href = '../student/studentDashboard.html'; }, 1000);
@@ -1024,9 +1078,21 @@
                     return;
                 }
                 
-                // If no role found
-                console.log('No role found for user');
-                showError('Your account is not yet registered in the system. Please contact your college secretary.');
+                // If no role found in any collection
+                console.log('No role found for user in any collection');
+                
+                // One final check: check if user exists in users collection without role
+                const userEmailKey = user.email.toLowerCase().replace(/\./g, '_');
+                const userDocRef = window.doc(window.db, 'users', userEmailKey);
+                const userDocSnap = await window.getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    console.log('User found in users collection but with invalid role:', userDocSnap.data());
+                    showError('Your account role is not properly configured. Please contact your college secretary.');
+                } else {
+                    showError('Your account is not yet registered in the system. Please contact your college secretary.');
+                }
+                
                 await window.signOut(window.auth);
                 hideLoading();
                 
@@ -1038,7 +1104,41 @@
             }
         }
 
-        // IMPROVED GOOGLE SIGN IN HANDLER
+        // DEBUG FUNCTION FOR TROUBLESHOOTING
+        async function debugUserLogin(user) {
+            console.log('=== DEBUG: User Login Issue ===');
+            console.log('User email:', user.email);
+            console.log('User UID:', user.uid);
+            
+            try {
+                // Check all possible collections
+                const collections = ['deans', 'secretaries', 'professors', 'students', 'users'];
+                
+                for (const collectionName of collections) {
+                    console.log(`\nChecking ${collectionName} collection:`);
+                    
+                    // Check by UID
+                    const byUidRef = window.doc(window.db, collectionName, user.uid);
+                    const byUidSnap = await window.getDoc(byUidRef);
+                    console.log(`- By UID (${user.uid}):`, byUidSnap.exists() ? byUidSnap.data() : 'Not found');
+                    
+                    // Check by email
+                    const byEmailQuery = window.query(
+                        window.collection(window.db, collectionName), 
+                        window.where('email', '==', user.email.toLowerCase())
+                    );
+                    const byEmailSnap = await window.getDocs(byEmailQuery);
+                    console.log(`- By email (${user.email}):`, 
+                        !byEmailSnap.empty ? byEmailSnap.docs[0].data() : 'Not found');
+                }
+                
+                console.log('\n=== End Debug ===');
+            } catch (error) {
+                console.error('Debug error:', error);
+            }
+        }
+
+        // GOOGLE SIGN IN HANDLER
         async function handleGoogleSignIn() {
             showLoading('Connecting to Google...');
 
@@ -1055,6 +1155,7 @@
 
                 const result = await window.signInWithPopup(window.auth, window.googleProvider);
                 
+                // Check email domain
                 if (!result.user.email.endsWith('@umak.edu.ph')) {
                     await window.signOut(window.auth);
                     hideLoading();
@@ -1062,19 +1163,17 @@
                     return;
                 }
                 
-                // Try to login normally
+                // Run debug to help troubleshoot
+                await debugUserLogin(result.user);
+                
+                // Check user status
                 await checkUserStatus(result.user);
 
             } catch (error) {
                 console.error('Sign in error:', error);
                 hideLoading();
                 
-                // If there's a user object in the error, try to debug
-                if (error.user || (error.credential && error.credential.user)) {
-                    const user = error.user || error.credential.user;
-                    await debugProfessorLogin(user);
-                }
-                
+                // Handle specific error codes
                 let errorMessage = 'Failed to sign in with Google';
                 if (error.code === 'auth/popup-closed-by-user') {
                     errorMessage = 'Sign in was cancelled. Please try again.';
@@ -1082,6 +1181,8 @@
                     errorMessage = 'Popup blocked. Please allow popups for this site.';
                 } else if (error.code === 'auth/account-exists-with-different-credential') {
                     errorMessage = 'An account already exists with the same email but different sign-in credentials.';
+                } else if (error.code === 'auth/invalid-domain') {
+                    errorMessage = 'Please use your UMak Gmail account (@umak.edu.ph)';
                 }
                 showError(errorMessage);
             }
@@ -1089,7 +1190,7 @@
 
         // Expose functions to global scope
         window.handleGoogleSignIn = handleGoogleSignIn;
-        window.debugProfessorLogin = debugProfessorLogin;
+        window.debugUserLogin = debugUserLogin;
     </script>
 </body>
 </html>
