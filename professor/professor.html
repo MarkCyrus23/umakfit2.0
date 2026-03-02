@@ -511,6 +511,9 @@
     let professorSections = [], allSections = [], filteredSections = [];
     let professorStudents = [], totalActivities = 0, allActivities = [];
     let activeSectionFilter = null, unsubActivities = null;
+    
+    // Track active listeners for cleanup during logout
+    const activeListeners = [];
 
     onAuthStateChanged(auth, async user => {
         if (user) {
@@ -662,6 +665,7 @@
                 document.getElementById('statActivities').textContent = totalActivities;
                 if (activeSectionFilter) updateStatsForFilter(activeSectionFilter);
             }, err => console.error('Activities listener error:', err));
+            if (unsubActivities) activeListeners.push(unsubActivities);
         } catch(err) { console.error('loadActivities error:', err); }
     }
 
@@ -783,7 +787,7 @@
         });
     }
 
-    // Logout popup (matching student dashboard design)
+    // Logout popup with proper cleanup
     function showLogoutConfirmPopup() {
         const existing = document.getElementById('logoutOverlay');
         if (existing) existing.remove();
@@ -872,40 +876,63 @@
 
         document.body.appendChild(overlay);
 
+        // Close profile dropdown if open
         const profileDropdown = document.getElementById('profileDropdown');
         if (profileDropdown) profileDropdown.classList.remove('show');
 
+        // Cancel button
         document.getElementById('logoutCancelBtn').addEventListener('click', () => {
             overlay.remove();
         });
 
+        // Click outside to close
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) overlay.remove();
         });
 
+        // Confirm logout
         document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
             const confirmBtn = document.getElementById('logoutConfirmBtn');
+            const originalText = confirmBtn.textContent;
             confirmBtn.textContent = 'Logging out...';
             confirmBtn.disabled = true;
             confirmBtn.style.opacity = '0.7';
 
             try {
-                activeListeners.forEach(u => u());
-                if (refreshTimer) clearInterval(refreshTimer);
+                // Clean up listeners
+                activeListeners.forEach(unsub => {
+                    if (typeof unsub === 'function') {
+                        try { unsub(); } catch (e) { console.warn('Error unsubscribing listener:', e); }
+                    }
+                });
+                
+                // Clear any intervals
+                if (window.headerDateInterval) clearInterval(window.headerDateInterval);
+                
+                // Sign out from Firebase
                 await signOut(auth);
+                
+                // Redirect to login page
                 window.location.href = '/login/index.html';
             } catch (error) {
                 console.error('Logout error:', error);
                 overlay.remove();
-                alert('Error logging out. Please try again.');
+                // Show error alert using your existing showAlert function
+                window.showAlert('Error logging out. Please try again.', 'error');
             }
         });
     }
 
     window.handleLogout = async function(e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (e) { 
+            e.preventDefault(); 
+            e.stopPropagation();
+        }
         showLogoutConfirmPopup();
     };
+    
+    // Store the header date interval for cleanup
+    window.headerDateInterval = setInterval(updateHeaderDate, 60000);
 </script>
 </body>
 </html>

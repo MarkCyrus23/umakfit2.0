@@ -44,7 +44,7 @@
             color: var(--white);
         }
 
-        /* ─── LOADING OVERLAY (unchanged functionality) ─── */
+        /* ─── LOADING OVERLAY ─── */
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -224,17 +224,7 @@
             font-size: 1.1rem; transition: all 0.2s;
         }
         .drawer-close-btn:hover { background: rgba(255,255,255,0.13); color: white; }
-            .drawer-top {
-            position: relative;
-            z-index: 10;
-        }
 
-        .drawer-close-btn {
-            position: relative;
-            z-index: 11;
-            pointer-events: all !important;
-            -webkit-tap-highlight-color: transparent;
-        }
         .drawer-nav-section { padding: 1.25rem 1rem; flex: 1; }
 
         .drawer-section-label {
@@ -375,7 +365,6 @@
             padding-top: 40px;
         }
 
-        /* Right column also needs to center its card */
         .login-layout > div:last-child {
             display: flex;
             flex-direction: column;
@@ -397,7 +386,6 @@
             font-size: 0.75rem; font-weight: 600;
             letter-spacing: 0.08em; text-transform: uppercase;
             margin-bottom: 0.8rem;
-            /* FIX: align to start so it doesn't stretch full width */
             align-self: flex-start;
         }
 
@@ -466,21 +454,6 @@
         .lf-text {
             font-size: 0.875rem; color: rgba(255,255,255,0.65);
             font-weight: 500;
-        }
-
-        .left-stat-row {
-            display: none;
-        }
-
-        .l-stat-num {
-            font-family: 'Space Mono', monospace;
-            font-weight: 700; font-size: 1.3rem;
-            color: var(--gold-light); display: block;
-        }
-
-        .l-stat-label {
-            font-size: 0.7rem; color: rgba(255,255,255,0.35);
-            text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px;
         }
 
         /* ─── LOGIN CARD ─── */
@@ -570,7 +543,7 @@
             letter-spacing: 0.04em;
         }
 
-        /* Error message (id preserved for JS) */
+        /* Error message */
         #errorMessage {
             background: #FEF2F2;
             border-left: 3px solid #EF4444;
@@ -682,122 +655,11 @@
             }
             .login-left { display: none; }
         }
-
-        /* ─── FOOTER ─── */
-        footer {
-            background: #060E1A;
-            border-top: 1px solid rgba(255,255,255,0.07);
-            padding: clamp(3rem, 5vw, 4.5rem) clamp(1.5rem, 5vw, 4rem) 2rem;
-            position: relative; z-index: 2;
-        }
-
-        .footer-grid {
-            max-width: 1200px; margin: 0 auto;
-            display: grid; grid-template-columns: 1.4fr 1fr 1fr;
-            gap: 4rem; margin-bottom: 3rem;
-        }
-
-        .footer-logo-area { margin-bottom: 1rem; }
-
-        .footer-desc {
-            font-size: 0.85rem; color: rgba(255,255,255,0.4);
-            line-height: 1.8; font-weight: 300; max-width: 300px;
-        }
-
-        .footer-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.2rem; }
-
-        .footer-tag {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.5);
-            font-size: 0.7rem; padding: 4px 10px;
-            border-radius: 100px; font-weight: 500;
-        }
-
-        .footer-heading {
-            font-size: 0.75rem; text-transform: uppercase;
-            letter-spacing: 0.12em; font-weight: 700;
-            color: var(--gold); margin-bottom: 1.2rem;
-        }
-
-        .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
-
-        .footer-links a {
-            color: rgba(255,255,255,0.45);
-            text-decoration: none; font-size: 0.875rem;
-            transition: color 0.2s; display: flex;
-            align-items: center; gap: 6px;
-        }
-
-        .footer-links a:hover { color: rgba(255,255,255,0.85); }
-
-        .footer-links a::before {
-            content: '→'; font-size: 0.75rem; color: var(--gold);
-            opacity: 0; transform: translateX(-4px); transition: all 0.2s;
-        }
-
-        .footer-links a:hover::before { opacity: 1; transform: translateX(0); }
-
-        .contact-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 0.8rem; }
-
-        .contact-icon {
-            width: 28px; height: 28px;
-            background: rgba(200,153,42,0.12);
-            border: 1px solid rgba(200,153,42,0.2);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.7rem; flex-shrink: 0; margin-top: 2px;
-        }
-
-        .contact-text { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.5; }
-        .contact-text a { color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.2s; }
-        .contact-text a:hover { color: var(--gold-light); }
-
-        .social-row { display: flex; gap: 8px; margin-top: 1rem; }
-
-        .social-btn {
-            width: 34px; height: 34px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
-            color: rgba(255,255,255,0.5); text-decoration: none;
-            font-size: 0.8rem; transition: all 0.2s;
-        }
-
-        .social-btn:hover {
-            background: rgba(200,153,42,0.15);
-            border-color: rgba(200,153,42,0.3);
-            color: var(--gold-light);
-        }
-
-        .footer-bottom {
-            max-width: 1200px; margin: 0 auto;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.07);
-            display: flex; align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap; gap: 1rem;
-        }
-
-        .footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.25); }
-
-        .footer-bottom-links { display: flex; gap: 1.5rem; }
-
-        .footer-bottom-links a {
-            font-size: 0.78rem; color: rgba(255,255,255,0.3);
-            text-decoration: none; transition: color 0.2s;
-        }
-
-        .footer-bottom-links a:hover { color: rgba(255,255,255,0.6); }
-
-        @media (max-width: 900px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 580px) { .footer-grid { grid-template-columns: 1fr; gap: 2rem; } .footer-bottom-links { flex-wrap: wrap; } }
     </style>
 </head>
 <body>
 
-    <!-- ─── LOADING OVERLAY (id and structure preserved exactly) ─── -->
+    <!-- ─── LOADING OVERLAY ─── -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
         <div class="loading-text" id="loadingText">Checking your account status...</div>
@@ -835,7 +697,6 @@
                 <div class="logo-mark"><img src="UMakfit Logo (2).png" alt="UMakFIT Logo"></div>
                 <span class="logo-text">UMakFIT</span>
             </a>
-           
         </div>
         <div class="drawer-nav-section">
             <div class="drawer-section-label">Navigation</div>
@@ -868,7 +729,6 @@
         <div class="orb orb-3"></div>
 
         <div class="login-layout">
-
             <!-- LEFT BRANDING PANEL -->
             <div class="login-left">
                 <div class="left-badge">Official Platform</div>
@@ -898,21 +758,6 @@
                         <div class="lf-text">Export professional fitness reports</div>
                     </div>
                 </div>
-
-                <div class="left-stat-row">
-                    <div>
-                        <span class="l-stat-num">6+</span>
-                        <div class="l-stat-label">Fitness Tests</div>
-                    </div>
-                    <div>
-                        <span class="l-stat-num">CHK</span>
-                        <div class="l-stat-label">Official Platform</div>
-                    </div>
-                    <div>
-                        <span class="l-stat-num">100%</span>
-                        <div class="l-stat-label">Science-Backed</div>
-                    </div>
-                </div>
             </div>
 
             <!-- LOGIN CARD -->
@@ -934,10 +779,10 @@
                         <span>University of Makati</span>
                     </div>
 
-                    <!-- Error Message (id preserved for JS) -->
+                    <!-- Error Message -->
                     <div id="errorMessage" class="hidden"></div>
 
-                    <!-- Google Sign In Button (onclick preserved exactly) -->
+                    <!-- Google Sign In Button -->
                     <button class="google-btn" onclick="handleGoogleSignIn()">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
                         <span class="google-btn-text">Continue with UMak Gmail</span>
@@ -969,94 +814,13 @@
                     </p>
                 </div>
             </div>
-
         </div>
     </div>
 
-
-
-
-    <!-- ─── SCRIPTS ─── -->
-    <script>
-        // Mobile Drawer
-        var hamburger = document.getElementById('hamburger');
-        var mobileDrawer = document.getElementById('mobileDrawer');
-        var drawerOverlay = document.getElementById('drawerOverlay');
-        var drawerCloseBtn = document.getElementById('drawerClose');
-
-       function openDrawer() {
-    mobileDrawer.classList.add('open');
-    drawerOverlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeDrawer() {
-    mobileDrawer.classList.remove('open');
-    drawerOverlay.classList.remove('open');
-    document.body.style.overflow = '';
-}
-
-if (hamburger) hamburger.addEventListener('click', function() {
-    if (mobileDrawer.classList.contains('open')) {
-        closeDrawer();
-    } else {
-        openDrawer();
-    }
-});
-if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
-
-        document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
-            link.addEventListener('click', closeDrawer);
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // Logo fallback
-            document.querySelectorAll('img[alt="UMakFIT Logo"]').forEach(img => {
-                img.onerror = function() {
-                    this.style.display = 'none';
-                    const wrapper = this.parentElement;
-                    if (wrapper) {
-                        wrapper.innerHTML = '<span style="color:#E8BA4A;font-weight:800;font-size:32px;">U</span>';
-                    }
-                };
-            });
-
-            // Clear session on load
-            try {
-                if (window.signOut) window.signOut(window.auth).catch(() => {});
-            } catch(e) {}
-        });
-
-        // Loading functions (id references preserved)
-        function showLoading(message = 'Checking your account status...') {
-            const overlay = document.getElementById('loadingOverlay');
-            const text = document.getElementById('loadingText');
-            if (overlay && text) {
-                overlay.classList.remove('hidden');
-                text.textContent = message;
-            }
-        }
-
-        function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) overlay.classList.add('hidden');
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            if (errorDiv) {
-                errorDiv.textContent = message;
-                errorDiv.classList.remove('hidden');
-                setTimeout(() => errorDiv.classList.add('hidden'), 5000);
-            }
-        }
-    </script>
-
-    <!-- ─── FIREBASE (module — completely unchanged) ─── -->
+    <!-- ─── FIREBASE MODULE ─── -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getDatabase, ref, set, onDisconnect, serverTimestamp, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
@@ -1085,6 +849,8 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
         window.database = database;
         window.googleProvider = googleProvider;
         window.signInWithPopup = signInWithPopup;
+        window.signInWithRedirect = signInWithRedirect;
+        window.getRedirectResult = getRedirectResult;
         window.signOut = signOut;
         window.doc = doc;
         window.setDoc = setDoc;
@@ -1100,12 +866,96 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
         window.onValue = onValue;
     </script>
 
-    <!-- ─── ALL AUTH LOGIC (completely unchanged from original) ─── -->
+    <!-- ─── COMPLETE AUTH LOGIC ─── -->
     <script>
+        // Mobile Drawer Functionality
+        (function() {
+            const hamburger = document.getElementById('hamburger');
+            const mobileDrawer = document.getElementById('mobileDrawer');
+            const drawerOverlay = document.getElementById('drawerOverlay');
+
+            function openDrawer() {
+                mobileDrawer.classList.add('open');
+                drawerOverlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeDrawer() {
+                mobileDrawer.classList.remove('open');
+                drawerOverlay.classList.remove('open');
+                document.body.style.overflow = '';
+            }
+
+            if (hamburger) {
+                hamburger.addEventListener('click', function() {
+                    if (mobileDrawer.classList.contains('open')) {
+                        closeDrawer();
+                    } else {
+                        openDrawer();
+                    }
+                });
+            }
+
+            if (drawerOverlay) {
+                drawerOverlay.addEventListener('click', closeDrawer);
+            }
+
+            document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
+                link.addEventListener('click', closeDrawer);
+            });
+        })();
+
+        // Logo fallback
+        document.querySelectorAll('img[alt="UMakFIT Logo"]').forEach(img => {
+            img.onerror = function() {
+                this.style.display = 'none';
+                const wrapper = this.parentElement;
+                if (wrapper) {
+                    const span = document.createElement('span');
+                    span.style.color = '#E8BA4A';
+                    span.style.fontWeight = '800';
+                    span.style.fontSize = '32px';
+                    span.textContent = 'U';
+                    wrapper.appendChild(span);
+                }
+            };
+        });
+
+        // Loading functions
+        function showLoading(message = 'Checking your account status...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const text = document.getElementById('loadingText');
+            if (overlay && text) {
+                overlay.classList.remove('hidden');
+                text.textContent = message;
+            }
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+                setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+            }
+        }
+
+        // Detect if device is mobile or iOS
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // User presence functions
         async function setupUserPresence(user) {
             try {
                 let userRole = 'student';
                 const userEmail = user.email.toLowerCase();
+                
                 try {
                     const emailLookupRef = window.doc(window.db, 'users', userEmail.replace(/\./g, '_'));
                     const emailLookupSnap = await window.getDoc(emailLookupRef);
@@ -1129,7 +979,9 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                         window.onDisconnect(userPresenceRef).remove();
                     }
                 });
-            } catch (error) {}
+            } catch (error) {
+                console.error('Error setting up presence:', error);
+            }
         }
 
         async function updatePresenceRole(userId, role) {
@@ -1144,6 +996,7 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
             } catch (error) {}
         }
 
+        // Role checking functions
         async function checkDeanStatus(user) {
             try {
                 const userEmail = user.email.toLowerCase();
@@ -1164,7 +1017,10 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                 if (userDocSnap.exists() && userDocSnap.data().role === 'dean') return { id: userDocSnap.id, email: userEmail, role: 'dean', ...userDocSnap.data() };
                 
                 return null;
-            } catch (error) { console.error('Error checking dean status:', error); return null; }
+            } catch (error) { 
+                console.error('Error checking dean status:', error); 
+                return null; 
+            }
         }
 
         async function checkSecretaryStatus(user) {
@@ -1187,7 +1043,10 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                 if (userDocSnap.exists() && userDocSnap.data().role === 'secretary') return { id: userDocSnap.id, email: userEmail, role: 'secretary', ...userDocSnap.data() };
                 
                 return null;
-            } catch (error) { console.error('Error checking secretary status:', error); return null; }
+            } catch (error) { 
+                console.error('Error checking secretary status:', error); 
+                return null; 
+            }
         }
 
         async function checkProfessorStatus(user) {
@@ -1210,7 +1069,10 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                 if (userDocSnap.exists() && userDocSnap.data().role === 'professor') return { id: userDocSnap.id, email: userEmail, role: 'professor', ...userDocSnap.data() };
                 
                 return null;
-            } catch (error) { console.error('Error checking professor status:', error); return null; }
+            } catch (error) { 
+                console.error('Error checking professor status:', error); 
+                return null; 
+            }
         }
 
         async function checkStudentStatus(user) {
@@ -1239,7 +1101,10 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                 }
                 
                 return null;
-            } catch (error) { console.error('Error checking student status:', error); return null; }
+            } catch (error) { 
+                console.error('Error checking student status:', error); 
+                return null; 
+            }
         }
 
         async function checkAccountStatus(user) {
@@ -1256,12 +1121,46 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                     if (!roleSnapshot.empty && roleSnapshot.docs[0].data().status === 'inactive') return false;
                 }
                 return true;
-            } catch (error) { console.error('Error checking account status:', error); return true; }
+            } catch (error) { 
+                console.error('Error checking account status:', error); 
+                return true; 
+            }
         }
 
-        async function checkUserStatus(user) {
+        async function debugUserLogin(user) {
+            console.log('=== DEBUG: User Login Issue ===');
+            console.log('User email:', user.email);
+            console.log('User UID:', user.uid);
             try {
-                console.log('Checking status for user:', user.email);
+                const collections = ['deans', 'secretaries', 'professors', 'students', 'users'];
+                for (const collectionName of collections) {
+                    console.log(`\nChecking ${collectionName} collection:`);
+                    const byUidRef = window.doc(window.db, collectionName, user.uid);
+                    const byUidSnap = await window.getDoc(byUidRef);
+                    console.log(`- By UID (${user.uid}):`, byUidSnap.exists() ? byUidSnap.data() : 'Not found');
+                    
+                    const byEmailQuery = window.query(window.collection(window.db, collectionName), window.where('email', '==', user.email.toLowerCase()));
+                    const byEmailSnap = await window.getDocs(byEmailQuery);
+                    console.log(`- By email (${user.email}):`, !byEmailSnap.empty ? byEmailSnap.docs[0].data() : 'Not found');
+                }
+                console.log('\n=== End Debug ===');
+            } catch (error) { 
+                console.error('Debug error:', error); 
+            }
+        }
+
+        // Process user after successful login
+        async function processUserAfterLogin(user) {
+            try {
+                if (!user.email.endsWith('@umak.edu.ph')) {
+                    await window.signOut(window.auth);
+                    hideLoading();
+                    showError('Please use your UMak Gmail account (@umak.edu.ph)');
+                    return;
+                }
+                
+                await debugUserLogin(user);
+                
                 const isAccountActive = await checkAccountStatus(user);
                 if (!isAccountActive) {
                     await window.signOut(window.auth);
@@ -1326,69 +1225,112 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                 hideLoading();
                 
             } catch (error) {
-                console.error('Error in checkUserStatus:', error);
+                console.error('Error in processUserAfterLogin:', error);
                 showError('Error checking account status. Please try again.');
                 await window.signOut(window.auth);
                 hideLoading();
             }
         }
 
-        async function debugUserLogin(user) {
-            console.log('=== DEBUG: User Login Issue ===');
-            console.log('User email:', user.email);
-            console.log('User UID:', user.uid);
+        // Check for redirect result when page loads
+        async function checkRedirectResult() {
             try {
-                const collections = ['deans', 'secretaries', 'professors', 'students', 'users'];
-                for (const collectionName of collections) {
-                    console.log(`\nChecking ${collectionName} collection:`);
-                    const byUidRef = window.doc(window.db, collectionName, user.uid);
-                    const byUidSnap = await window.getDoc(byUidRef);
-                    console.log(`- By UID (${user.uid}):`, byUidSnap.exists() ? byUidSnap.data() : 'Not found');
-                    const byEmailQuery = window.query(window.collection(window.db, collectionName), window.where('email', '==', user.email.toLowerCase()));
-                    const byEmailSnap = await window.getDocs(byEmailQuery);
-                    console.log(`- By email (${user.email}):`, !byEmailSnap.empty ? byEmailSnap.docs[0].data() : 'Not found');
+                const result = await window.getRedirectResult(window.auth);
+                if (result && result.user) {
+                    console.log('Redirect sign-in successful:', result.user.email);
+                    showLoading('Sign in successful! Checking your account...');
+                    await processUserAfterLogin(result.user);
                 }
-                console.log('\n=== End Debug ===');
-            } catch (error) { console.error('Debug error:', error); }
+            } catch (error) {
+                console.error('Redirect result error:', error);
+                hideLoading();
+                if (error.code !== 'auth/no-current-user') {
+                    if (error.code === 'auth/account-exists-with-different-credential') {
+                        showError('An account already exists with the same email but different sign-in credentials.');
+                    } else if (error.code === 'auth/invalid-domain') {
+                        showError('Please use your UMak Gmail account (@umak.edu.ph)');
+                    } else {
+                        showError('Error during sign in. Please try again.');
+                    }
+                }
+            }
         }
 
+        // Main sign-in function
         async function handleGoogleSignIn() {
             showLoading('Connecting to Google...');
+            
             try {
+                // Sign out first to ensure clean state
                 try { await window.signOut(window.auth); } catch (e) {}
 
+                // Set custom parameters
                 window.googleProvider.setCustomParameters({
                     prompt: 'select_account',
                     hd: 'umak.edu.ph'
                 });
 
-                const result = await window.signInWithPopup(window.auth, window.googleProvider);
+                const isMobile = isMobileDevice();
                 
-                if (!result.user.email.endsWith('@umak.edu.ph')) {
-                    await window.signOut(window.auth);
-                    hideLoading();
-                    showError('Please use your UMak Gmail account (@umak.edu.ph)');
-                    return;
+                if (isMobile) {
+                    // For mobile/iOS, use redirect method
+                    console.log('Mobile device detected, using redirect sign-in');
+                    await window.signInWithRedirect(window.auth, window.googleProvider);
+                    // Page will redirect to Google, then back - result handled by checkRedirectResult()
+                } else {
+                    // For desktop, try popup first
+                    try {
+                        const result = await window.signInWithPopup(window.auth, window.googleProvider);
+                        await processUserAfterLogin(result.user);
+                    } catch (popupError) {
+                        console.error('Popup error:', popupError);
+                        
+                        // If popup blocked, fallback to redirect
+                        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user') {
+                            console.log('Popup issue, falling back to redirect');
+                            showLoading('Opening Google sign-in...');
+                            await window.signInWithRedirect(window.auth, window.googleProvider);
+                        } else {
+                            throw popupError;
+                        }
+                    }
                 }
-                
-                await debugUserLogin(result.user);
-                await checkUserStatus(result.user);
-
             } catch (error) {
                 console.error('Sign in error:', error);
                 hideLoading();
+                
                 let errorMessage = 'Failed to sign in with Google';
-                if (error.code === 'auth/popup-closed-by-user') errorMessage = 'Sign in was cancelled. Please try again.';
-                else if (error.code === 'auth/popup-blocked') errorMessage = 'Popup blocked. Please allow popups for this site.';
-                else if (error.code === 'auth/account-exists-with-different-credential') errorMessage = 'An account already exists with the same email but different sign-in credentials.';
-                else if (error.code === 'auth/invalid-domain') errorMessage = 'Please use your UMak Gmail account (@umak.edu.ph)';
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign in was cancelled. Please try again.';
+                } else if (error.code === 'auth/popup-blocked') {
+                    errorMessage = 'Popup blocked. Please allow popups for this site or try again.';
+                } else if (error.code === 'auth/account-exists-with-different-credential') {
+                    errorMessage = 'An account already exists with the same email but different sign-in credentials.';
+                } else if (error.code === 'auth/invalid-domain') {
+                    errorMessage = 'Please use your UMak Gmail account (@umak.edu.ph)';
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    errorMessage = 'Sign in was cancelled. Please try again.';
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMessage = 'Network error. Please check your internet connection.';
+                }
                 showError(errorMessage);
             }
         }
 
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for redirect result
+            checkRedirectResult();
+            
+            // Clear any existing sessions
+            try {
+                window.signOut(window.auth).catch(() => {});
+            } catch(e) {}
+        });
+
+        // Make functions globally available
         window.handleGoogleSignIn = handleGoogleSignIn;
         window.debugUserLogin = debugUserLogin;
     </script>
-
 </body>
 </html>
