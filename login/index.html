@@ -1022,10 +1022,11 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                 };
             });
 
-            // Clear session on load
+            // Clear session on load (skip if returning from auth redirect)
             try {
-                if (window.signOut) window.signOut(window.auth).catch(() => {});
-            } catch(e) {}
+                const pendingRedirect = sessionStorage.getItem('umakfit_pending_redirect') === '1';
+                if (!pendingRedirect && window.signOut && window.auth) window.signOut(window.auth).catch(() => {});
+            } catch (e) {}
         });
 
         // Loading functions (id references preserved)
@@ -1056,7 +1057,7 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
     <!-- ─── FIREBASE (module — completely unchanged) ─── -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getDatabase, ref, set, onDisconnect, serverTimestamp, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
@@ -1085,6 +1086,8 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
         window.database = database;
         window.googleProvider = googleProvider;
         window.signInWithPopup = signInWithPopup;
+        window.signInWithRedirect = signInWithRedirect;
+        window.getRedirectResult = getRedirectResult;
         window.signOut = signOut;
         window.doc = doc;
         window.setDoc = setDoc;
@@ -1361,6 +1364,47 @@ if (studentData) {
             } catch (error) { console.error('Debug error:', error); }
         }
 
+        function isIOSDevice() {
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/i.test(ua);
+            const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+            return isIOS || isIPadOS;
+        }
+
+        async function processRedirectSignInResult() {
+            try {
+                if (!window.getRedirectResult || !window.auth) return;
+
+                const result = await window.getRedirectResult(window.auth);
+                if (!result || !result.user) {
+                    try {
+                        if (sessionStorage.getItem('umakfit_pending_redirect') === '1') {
+                            sessionStorage.removeItem('umakfit_pending_redirect');
+                        }
+                    } catch (e) {}
+                    return;
+                }
+
+                try { sessionStorage.removeItem('umakfit_pending_redirect'); } catch (e) {}
+
+                showLoading('Login successful! Checking your account...');
+
+                if (!result.user.email.endsWith('@umak.edu.ph')) {
+                    await window.signOut(window.auth);
+                    hideLoading();
+                    showError('Please use your UMak Gmail account (@umak.edu.ph)');
+                    return;
+                }
+
+                await debugUserLogin(result.user);
+                await checkUserStatus(result.user);
+            } catch (error) {
+                console.error('Redirect sign-in error:', error);
+                try { sessionStorage.removeItem('umakfit_pending_redirect'); } catch (e) {}
+                hideLoading();
+            }
+        }
+
         async function handleGoogleSignIn() {
             showLoading('Connecting to Google...');
             try {
@@ -1370,6 +1414,13 @@ if (studentData) {
                     prompt: 'select_account',
                     hd: 'umak.edu.ph'
                 });
+
+                if (isIOSDevice() && window.signInWithRedirect) {
+                    try { sessionStorage.setItem('umakfit_pending_redirect', '1'); } catch (e) {}
+                    showLoading('Redirecting to Google...');
+                    await window.signInWithRedirect(window.auth, window.googleProvider);
+                    return;
+                }
 
                 const result = await window.signInWithPopup(window.auth, window.googleProvider);
                 
@@ -1385,10 +1436,22 @@ if (studentData) {
 
             } catch (error) {
                 console.error('Sign in error:', error);
+                if (
+                    (error && error.code === 'auth/popup-blocked') ||
+                    (error && error.code === 'auth/operation-not-supported-in-this-environment')
+                ) {
+                    if (window.signInWithRedirect) {
+                        try { sessionStorage.setItem('umakfit_pending_redirect', '1'); } catch (e) {}
+                        showLoading('Redirecting to Google...');
+                        await window.signInWithRedirect(window.auth, window.googleProvider);
+                        return;
+                    }
+                }
+
                 hideLoading();
                 let errorMessage = 'Failed to sign in with Google';
                 if (error.code === 'auth/popup-closed-by-user') errorMessage = 'Sign in was cancelled. Please try again.';
-                else if (error.code === 'auth/popup-blocked') errorMessage = 'Popup blocked. Please allow popups for this site.';
+                else if (error.code === 'auth/popup-blocked') errorMessage = 'Popup blocked. Redirecting instead...';
                 else if (error.code === 'auth/account-exists-with-different-credential') errorMessage = 'An account already exists with the same email but different sign-in credentials.';
                 else if (error.code === 'auth/invalid-domain') errorMessage = 'Please use your UMak Gmail account (@umak.edu.ph)';
                 showError(errorMessage);
@@ -1397,6 +1460,11 @@ if (studentData) {
 
         window.handleGoogleSignIn = handleGoogleSignIn;
         window.debugUserLogin = debugUserLogin;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', processRedirectSignInResult, { once: true });
+        } else {
+            processRedirectSignInResult();
+        }
     </script>
 
 </body>
