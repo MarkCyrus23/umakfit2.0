@@ -1021,12 +1021,6 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
                     }
                 };
             });
-
-            // Clear session on load (skip if returning from auth redirect)
-            try {
-                const pendingRedirect = sessionStorage.getItem('umakfit_pending_redirect') === '1';
-                if (!pendingRedirect && window.signOut && window.auth) window.signOut(window.auth).catch(() => {});
-            } catch (e) {}
         });
 
         // Loading functions (id references preserved)
