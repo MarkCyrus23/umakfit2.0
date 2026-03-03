@@ -983,40 +983,6 @@
         var mobileDrawer = document.getElementById('mobileDrawer');
         var drawerOverlay = document.getElementById('drawerOverlay');
         var drawerCloseBtn = document.getElementById('drawerClose');
-        var __umakfitAuthHandled = false;
-
-        function formatAuthError(error) {
-            try {
-                const code = error && (error.code || error.name) ? String(error.code || error.name) : '';
-                const msg = error && error.message ? String(error.message) : '';
-                const bits = [];
-                if (code) bits.push(code);
-                if (msg) bits.push(msg);
-                return bits.length ? bits.join(' — ') : 'Unknown error';
-            } catch (e) {
-                return 'Unknown error';
-            }
-        }
-
-        function domainHintForAuthError(error) {
-            const code = (error && error.code) ? String(error.code) : '';
-            if (code === 'auth/unauthorized-domain') {
-                return `\n\nFix: add this domain to Firebase Console → Authentication → Settings → Authorized domains:\n${location.hostname}`;
-            }
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                return `\n\nNote: Google login requires HTTPS. Current protocol: ${location.protocol}`;
-            }
-            return '';
-        }
-
-        async function waitForFirebaseAuthReady(timeoutMs = 8000) {
-            const start = Date.now();
-            while (Date.now() - start < timeoutMs) {
-                if (window.auth && window.getRedirectResult && window.signInWithRedirect) return true;
-                await new Promise(r => setTimeout(r, 50));
-            }
-            return false;
-        }
 
        function openDrawer() {
     mobileDrawer.classList.add('open');
@@ -1043,91 +1009,24 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
             link.addEventListener('click', closeDrawer);
         });
 
-       document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
 
-    // Surface unexpected errors to the UI (helps debugging hosted environments).
-    window.addEventListener('unhandledrejection', (event) => {
-        try {
-            const err = event && event.reason ? event.reason : event;
-            showError(`Unhandled error: ${formatAuthError(err)}${domainHintForAuthError(err)}`);
-            hideLoading();
-        } catch (e) {}
-    });
-    window.addEventListener('error', (event) => {
-        try {
-            const err = event && event.error ? event.error : event;
-            showError(`Error: ${formatAuthError(err)}${domainHintForAuthError(err)}`);
-            hideLoading();
-        } catch (e) {}
-    });
+            // Logo fallback
+            document.querySelectorAll('img[alt="UMakFIT Logo"]').forEach(img => {
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    const wrapper = this.parentElement;
+                    if (wrapper) {
+                        wrapper.innerHTML = '<span style="color:#E8BA4A;font-weight:800;font-size:32px;">U</span>';
+                    }
+                };
+            });
 
-    // Logo fallback
-    document.querySelectorAll('img[alt="UMakFIT Logo"]').forEach(img => {
-        img.onerror = function() {
-            this.style.display = 'none';
-            const wrapper = this.parentElement;
-            if (wrapper) {
-                wrapper.innerHTML = '<span style="color:#E8BA4A;font-weight:800;font-size:32px;">U</span>';
-            }
-        };
-    });
-
-    // 🔥 HANDLE REDIRECT RESULT (DO NOT SIGN OUT HERE)
-    (async () => {
-        try {
-            const ready = await waitForFirebaseAuthReady();
-            if (!ready) {
-                showError('Firebase did not finish loading. Please refresh and try again.');
-                hideLoading();
-                return;
-            }
-
-            const result = await window.getRedirectResult(window.auth);
-
-            if (result && result.user) {
-                __umakfitAuthHandled = true;
-
-                showLoading('Checking your account...');
-
-                if (!result.user.email.endsWith('@umak.edu.ph')) {
-                    await window.signOut(window.auth);
-                    hideLoading();
-                    showError('Please use your UMak Gmail account (@umak.edu.ph)');
-                    return;
-                }
-
-                await checkUserStatus(result.user);
-                return;
-            }
-
-        } catch (error) {
-            console.error('Redirect login error:', error);
-            hideLoading();
-            showError(`Login failed: ${formatAuthError(error)}${domainHintForAuthError(error)}`);
-        }
-    })();
-
-    // If redirect result is empty but user is already signed in, proceed anyway.
-    if (window.auth && window.onAuthStateChanged) {
-        window.onAuthStateChanged(window.auth, async (user) => {
-            if (!user) return;
-            if (__umakfitAuthHandled) return;
-            __umakfitAuthHandled = true;
-
-            showLoading('Checking your account...');
-            const email = (user.email || '').toLowerCase();
-            if (!email.endsWith('@umak.edu.ph')) {
-                try { await window.signOut(window.auth); } catch (e) {}
-                hideLoading();
-                showError('Please use your UMak Gmail account (@umak.edu.ph)');
-                return;
-            }
-
-            await checkUserStatus(user);
+            // Clear session on load
+            try {
+                if (window.signOut) window.signOut(window.auth).catch(() => {});
+            } catch(e) {}
         });
-    }
-
-});
 
         // Loading functions (id references preserved)
         function showLoading(message = 'Checking your account status...') {
@@ -1157,7 +1056,7 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
     <!-- ─── FIREBASE (module — completely unchanged) ─── -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getDatabase, ref, set, onDisconnect, serverTimestamp, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
@@ -1176,12 +1075,6 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
         const database = getDatabase(app);
         const googleProvider = new GoogleAuthProvider();
 
-        // Auth persistence fallback for iOS/Safari and strict environments.
-        setPersistence(auth, browserLocalPersistence)
-            .catch(() => setPersistence(auth, browserSessionPersistence))
-            .catch(() => setPersistence(auth, inMemoryPersistence))
-            .catch(() => {});
-
         googleProvider.setCustomParameters({
             prompt: 'select_account',
             hd: 'umak.edu.ph'
@@ -1191,10 +1084,8 @@ if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
         window.db = db;
         window.database = database;
         window.googleProvider = googleProvider;
-        window.signInWithRedirect = signInWithRedirect;
-        window.getRedirectResult = getRedirectResult;
+        window.signInWithPopup = signInWithPopup;
         window.signOut = signOut;
-        window.onAuthStateChanged = onAuthStateChanged;
         window.doc = doc;
         window.setDoc = setDoc;
         window.getDoc = getDoc;
@@ -1424,7 +1315,7 @@ if (studentData) {
     } else if (studentData.emailVerified && !studentData.privacyAccepted) {
         showLoading('Please accept the privacy policy...');
         setTimeout(() => {
-            window.location.href = 'dataprivacy.html';
+            window.location.href = 'privacy-policy.html';
         }, 1000);
     }
 
@@ -1470,24 +1361,39 @@ if (studentData) {
             } catch (error) { console.error('Debug error:', error); }
         }
 
-       async function handleGoogleSignIn() {
-    showLoading('Redirecting to Google...');
-    try {
-        try { await window.signOut(window.auth); } catch (e) {}
+        async function handleGoogleSignIn() {
+            showLoading('Connecting to Google...');
+            try {
+                try { await window.signOut(window.auth); } catch (e) {}
 
-        window.googleProvider.setCustomParameters({
-            prompt: 'select_account',
-            hd: 'umak.edu.ph'
-        });
+                window.googleProvider.setCustomParameters({
+                    prompt: 'select_account',
+                    hd: 'umak.edu.ph'
+                });
 
-        await window.signInWithRedirect(window.auth, window.googleProvider);
+                const result = await window.signInWithPopup(window.auth, window.googleProvider);
+                
+                if (!result.user.email.endsWith('@umak.edu.ph')) {
+                    await window.signOut(window.auth);
+                    hideLoading();
+                    showError('Please use your UMak Gmail account (@umak.edu.ph)');
+                    return;
+                }
+                
+                await debugUserLogin(result.user);
+                await checkUserStatus(result.user);
 
-    } catch (error) {
-        console.error('Sign in error:', error);
-        hideLoading();
-        showError(`Failed to redirect: ${formatAuthError(error)}${domainHintForAuthError(error)}`);
-    }
-}
+            } catch (error) {
+                console.error('Sign in error:', error);
+                hideLoading();
+                let errorMessage = 'Failed to sign in with Google';
+                if (error.code === 'auth/popup-closed-by-user') errorMessage = 'Sign in was cancelled. Please try again.';
+                else if (error.code === 'auth/popup-blocked') errorMessage = 'Popup blocked. Please allow popups for this site.';
+                else if (error.code === 'auth/account-exists-with-different-credential') errorMessage = 'An account already exists with the same email but different sign-in credentials.';
+                else if (error.code === 'auth/invalid-domain') errorMessage = 'Please use your UMak Gmail account (@umak.edu.ph)';
+                showError(errorMessage);
+            }
+        }
 
         window.handleGoogleSignIn = handleGoogleSignIn;
         window.debugUserLogin = debugUserLogin;
