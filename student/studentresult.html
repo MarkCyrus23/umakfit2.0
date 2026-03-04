@@ -1483,19 +1483,15 @@ async function generateRecommendation(testName, result, score, timerValue) {
 
     console.log('🤖 Calling Gemini API for recommendation...');
     
-    const GEMINI_API_KEY = "AIzaSyBOQLj-vcdSLwlmbXtzEXso0ZbFm57cpC8";
+    const GEMINI_API_KEY = "AIzaSyBR6rZq_Zu89b2JncN3KXrgDNqHlKSthao";
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     
-    const prompt = `You are a fitness coach. A student scored ${score}/100 on ${testName} with result: ${result}.
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-Write 4-5 complete sentences explaining HOW to improve:
-1. Specific exercises with sets/reps/frequency
-2. Proper technique tips
-3. Progression strategy  
-4. Expected improvement timeline
+const prompt = `You are a fitness coach. Today is ${today}. A student just finished the ${testName} test and scored ${score}/100 with result: ${result}.
 
-Write naturally as one paragraph. Be specific and helpful. No markdown.`;
+Write exactly 2-3 sentences of what they should do TODAY to improve. Be very specific to the test they just took. Only give advice that can be done today, right now, after finishing the test. No markdown. No preamble. Start directly with the action.`;
 
     const maxRetries = 3;
     const baseDelay = 3000; // Start with 3 seconds
@@ -1511,7 +1507,7 @@ Write naturally as one paragraph. Be specific and helpful. No markdown.`;
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 400,
+                        maxOutputTokens: 1024,
                     }
                 })
             });
