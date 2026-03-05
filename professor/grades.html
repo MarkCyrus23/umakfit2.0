@@ -222,7 +222,8 @@
                 letter-spacing: 0 !important;
             }
         }
-
+            .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+            .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
         /* Extra small screens (390px and below) */
         @media (max-width: 420px) {
             main > div {
@@ -263,7 +264,10 @@
                 font-size: 11px !important;
                 padding: 10px 8px !important;
             }
+
+
         }
+        
     </style>
 </head>
 <body class="font-sans bg-surface text-text-primary min-h-screen m-0 p-0">
@@ -443,8 +447,7 @@
 
     <!-- SIDEBAR -->
     <aside id="mainSidebar"
-        class="sidebar-transition fixed top-[70px] left-0 w-[260px] h-[calc(100vh-70px)] bg-navy-mid border-r border-white/[0.06] flex flex-col overflow-y-auto overflow-x-hidden z-[400] py-6">
-
+    class="sidebar-transition sidebar-scroll fixed top-[70px] left-0 w-[260px] h-[calc(100vh-70px)] bg-navy-mid border-r border-white/[0.06] flex flex-col overflow-y-auto overflow-x-hidden z-[400] py-6">
         <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mb-2">Main</div>
         <a href="professor.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
             <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-tachometer-alt"></i></div>
