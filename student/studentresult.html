@@ -1772,29 +1772,28 @@
             }
         }
 
-// Add this at the top of your script, after the Firebase config
-const RECOMMENDATION_CACHE = new Map();
-const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
-async function generateRecommendation(testName, result, score, timerValue) {
-    if (score >= 100) {
-        return `Congratulations on achieving a perfect score of 100/100 on your ${testName} test! Your hard work and dedication have paid off. Continue maintaining this excellent level of fitness through consistent training, and consider challenging yourself with advanced variations or helping your classmates improve their performance.`;
+const RECOMMENDATION_CACHE = new Map();
+const CACHE_DURATION = 1000 * 60 * 60; 
+
+async function generateRecommendation(testName, result, category, timerValue) {
+    if (category === 'Excellent' || category === 'Good') {
+        return null;
     }
 
-    console.log('🤖 Calling Gemini API for recommendation...');
+    console.log('Calling Gemini API for recommendation...');
     
-    const GEMINI_API_KEY = "AIzaSyBR6rZq_Zu89b2JncN3KXrgDNqHlKSthao";
+    const GEMINI_API_KEY = "AIzaSyALlIXgJmU7m8PRA4GwAfcRyQWjJdRaQiA";
 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-const prompt = `You are a fitness coach. Today is ${today}. A student just finished the ${testName} test and scored ${score}/100 with result: ${result}.
+    const prompt = `You are a fitness coach. Today is ${today}. A student just finished the ${testName} test and got a result of ${result}, which is classified as "${category}".
 
-Write exactly 2-3 sentences of what they should do TODAY to improve. Be very specific to the test they just took. Only give advice that can be done today, right now, after finishing the test. No markdown. No preamble. Start directly with the action.`;
-
+    Write exactly 2-3 sentences of specific things they should do TODAY to improve their ${testName} performance. Base your advice directly on their actual result (${result}) and their classification (${category}). Only give advice that can be done today, right now. No markdown, no preamble, no greetings. Start directly with the action.`;
     const maxRetries = 3;
-    const baseDelay = 3000; // Start with 3 seconds
+    const baseDelay = 3000; 
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -1853,7 +1852,7 @@ Write exactly 2-3 sentences of what they should do TODAY to improve. Be very spe
                 throw error;
             }
             
-            // Exponential backoff
+            
             const waitTime = baseDelay * Math.pow(2, attempt - 1);
             console.log(`⏳ Waiting ${waitTime/1000}s before retry...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -2090,43 +2089,48 @@ function showErrorPopup(message, onClose) {
                     document.getElementById('loadingScreen').style.display = 'none';
                     document.getElementById('mainContent').style.display = 'block';
                     
-                    if (score < 100) {
-                document.getElementById('recommendationContent').innerHTML = `
-                    <div class="loading-recommendation">
-                        <div class="loading-spinner"></div>
-                        <span>Generating personalized recommendations for you...</span>
-                    </div>
-                `;
-                
-                try {
-                    const recommendation = await generateRecommendation(
-                        data.testName,
-                        data.result,
-                        score,
-                        data.timerValue
-                    );
-                    
-                    document.getElementById('recommendationContent').innerHTML = `
-                        <p class="recommendation-text">${recommendation}</p>
-                    `;
-                } catch (error) {
-                    console.error('Failed to generate recommendation:', error);
-                    document.getElementById('recommendationContent').innerHTML = `
-                        <div style="color: #dc2626; text-align: center; padding: 1rem;">
-                            <i class="bi bi-exclamation-triangle" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
-                            <p style="font-weight: 600;">Unable to generate AI recommendation</p>
-                            <p style="font-size: 0.875rem; margin-top: 0.5rem;">Error: ${error.message}</p>
-                            <button onclick="location.reload()" 
-                                    style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
-                                Try Again
-                            </button>
-                        </div>
-                    `;
-                }
-            } else {
-                // Perfect score - hide recommendation section
-                document.getElementById('recommendationSection').style.display = 'none';
-            }
+                   const displayCategory = normCategory || 'Average';
+                    const shouldGenerate = ['Average', 'Below Average', 'Poor'].includes(displayCategory);
+                    if (shouldGenerate) {
+                        document.getElementById('recommendationContent').innerHTML = `
+                            <div class="loading-recommendation">
+                                <div class="loading-spinner"></div>
+                                <span>Generating personalized recommendations for you...</span>
+                            </div>
+                        `;
+                        
+                        try {
+                            const recommendation = await generateRecommendation(
+                                data.testName,
+                                data.result,
+                                displayCategory,
+                                data.timerValue
+                            );
+                            
+                            if (recommendation) {
+                                document.getElementById('recommendationContent').innerHTML = `
+                                    <p class="recommendation-text">${recommendation}</p>
+                                `;
+                            } else {
+                                document.getElementById('recommendationSection').style.display = 'none';
+                            }
+                        } catch (error) {
+                            console.error('Failed to generate recommendation:', error);
+                            document.getElementById('recommendationContent').innerHTML = `
+                                <div style="color: #dc2626; text-align: center; padding: 1rem;">
+                                    <i class="bi bi-exclamation-triangle" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                                    <p style="font-weight: 600;">Unable to generate AI recommendation</p>
+                                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Error: ${error.message}</p>
+                                    <button onclick="location.reload()" 
+                                            style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
+                                        Try Again
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        document.getElementById('recommendationSection').style.display = 'none';
+                    }
                     
                     
 
