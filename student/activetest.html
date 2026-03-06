@@ -1341,7 +1341,7 @@
                     <div class="timer-label" id="timerLabel">⏱️ STOPWATCH</div>
                     <div class="timer-display">
                         <div class="timer-digits">
-                            <span id="minutes">00</span>:<span id="seconds">00</span><span class="timer-milliseconds">.<span id="milliseconds">00</span></span>
+                            <span id="minutes">03</span>:<span id="seconds">00</span><span class="timer-milliseconds">.<span id="milliseconds">00</span></span>
                         </div>
                     </div>
 
@@ -1371,17 +1371,7 @@
                     <!-- Dynamic inputs will be inserted here based on test type -->
                 </div>
 
-                <!-- Notes Section -->
-                <div class="input-section">
-                    <div class="input-group-custom">
-                        <label class="input-label">📝 Additional Notes (Optional)</label>
-                        <textarea class="notes-textarea" id="notesField" placeholder="Add any observations, difficulties, or comments about your test performance..."></textarea>
-                        <div class="input-hint">
-                            <i class="bi bi-lightbulb"></i>
-                            These notes will help your instructor understand your test experience
-                        </div>
-                    </div>
-                </div>
+                
 
                 <!-- Submit Section -->
                 <div class="submit-section">
@@ -1848,9 +1838,16 @@
             if (!isRunning) {
                 window.activeTestId = await createActiveTestDocument();
                 
-                isRunning = true;
+               isRunning = true;
                 isPaused = false;
                 startTime = Date.now() - elapsedTime;
+                // For step test, show initial countdown immediately
+                if (isStepTest()) {
+                    document.getElementById('minutes').textContent = '03';
+                    document.getElementById('seconds').textContent = '00';
+                    document.getElementById('milliseconds').textContent = '00';
+                }
+
                 timerInterval = setInterval(updateTimer, 1000);
                 
                 if (isStepTest()) startMetronome();
@@ -2008,28 +2005,187 @@ window.resetTimer = function() {
     });
 };
 
-        function updateTimer() {
-            elapsedTime = Date.now() - startTime;
-            
-            const totalSeconds = Math.floor(elapsedTime / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            const milliseconds = Math.floor((elapsedTime % 1000) / 10);
-            
-            document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
-            document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
-            document.getElementById('milliseconds').textContent = String(milliseconds).padStart(2, '0');
-            
-            const progress = Math.min(10 + Math.floor(totalSeconds / 2), 95);
-            
-            updateActiveTestProgress(progress, {
-                timeElapsed: `${minutes}:${seconds.toString().padStart(2, '0')}`,
-                formAnalysis: {
-                    formScore: Math.min(70 + Math.floor(totalSeconds / 5), 95),
-                    feedback: getSimulatedFeedback(progress)
-                }
-            });
+       const STEP_TEST_DURATION = 180; // 3 minutes in seconds
+
+function updateTimer() {
+    elapsedTime = Date.now() - startTime;
+    
+    const totalSeconds = Math.floor(elapsedTime / 1000);
+
+    if (isStepTest()) {
+        // Countdown from 3:00
+        const remaining = Math.max(STEP_TEST_DURATION - totalSeconds, 0);
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+
+        document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+        document.getElementById('milliseconds').textContent = '00';
+
+        // Auto-stop when countdown reaches 0
+        if (remaining <= 0) {
+            window.stopTimer();
+            showBPTimerSection();
+            return;
         }
+    } else {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const milliseconds = Math.floor((elapsedTime % 1000) / 10);
+
+        document.getElementById('minutes').textContent = String(minutes).padStart(2, '00');
+        document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+        document.getElementById('milliseconds').textContent = String(milliseconds).padStart(2, '0');
+    }
+
+    const progress = Math.min(10 + Math.floor(totalSeconds / 2), 95);
+    updateActiveTestProgress(progress, {
+        timeElapsed: `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`,
+        formAnalysis: {
+            formScore: Math.min(70 + Math.floor(totalSeconds / 5), 95),
+            feedback: getSimulatedFeedback(progress)
+        }
+    });
+}
+
+        function showBPTimerSection() {
+    const existing = document.getElementById('bpTimerSection');
+    if (existing) existing.remove();
+
+    let bpInterval = null;
+    let bpDone = false;
+    let bpRunning = false;
+    let bpElapsed = 0;
+    let bpStartTime = 0;
+    const BP_DURATION = 60;
+
+    const section = document.createElement('div');
+    section.id = 'bpTimerSection';
+    section.style.cssText = `
+        margin-top: 2rem;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #7dd3fc;
+        border-radius: 16px;
+        padding: 1.75rem;
+        text-align: center;
+    `;
+
+    section.innerHTML = `
+        <div style="font-size: 1.1rem; font-weight: 700; color: #0c4a6e; margin-bottom: 0.5rem;">
+            ❤️ Recovery Heart Rate Timer
+        </div>
+        <div style="font-size: 0.875rem; color: #075985; margin-bottom: 1.25rem;">
+            Rest for 5 seconds, then measure your pulse on your wrist for 60 seconds.
+        </div>
+        <div style="
+            font-size: 3.5rem; font-weight: 700; color: #0c4a6e;
+            letter-spacing: 3px; margin-bottom: 1rem;
+            font-family: 'Inter', sans-serif;
+        " id="bpCountdown">1:00</div>
+        <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
+            <button id="bpStartBtn" style="
+                background: #0ea5e9; color: white;
+                border: none; border-radius: 10px;
+                padding: 10px 28px; font-size: 14px;
+                font-weight: 600; cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                display: inline-flex; align-items: center; gap: 8px;
+            ">
+                <i class="bi bi-play-fill"></i> Start 1-Min Timer
+            </button>
+            <button id="bpResetBtn" style="
+                background: white; color: #475569;
+                border: 2px solid #e2e8f0; border-radius: 10px;
+                padding: 10px 28px; font-size: 14px;
+                font-weight: 600; cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                display: inline-flex; align-items: center; gap: 8px;
+            ">
+                <i class="bi bi-arrow-clockwise"></i> Reset
+            </button>
+        </div>
+        <div id="bpDoneMsg" style="display:none; color: #065f46; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.75rem;">
+            ✅ Time's up! Enter your heart rate below.
+        </div>
+    `;
+
+        const inputSection = document.getElementById('inputSection');
+        inputSection.parentNode.insertBefore(section, inputSection);
+
+        // Lock heart rate input until BP timer is done
+        const hrInput = document.getElementById('heartRateInput');
+        if (hrInput) {
+            hrInput.disabled = true;
+            hrInput.placeholder = 'Wait for the 1-min timer to finish...';
+            hrInput.style.opacity = '0.5';
+            hrInput.style.cursor = 'not-allowed';
+        }
+
+        function resetBPTimer() {
+            clearInterval(bpInterval);
+            bpInterval = null;
+            bpDone = false;
+            bpRunning = false;
+            bpElapsed = 0;
+
+            document.getElementById('bpCountdown').textContent = '1:00';
+            document.getElementById('bpCountdown').style.color = '#0c4a6e';
+            document.getElementById('bpDoneMsg').style.display = 'none';
+
+            const startBtn = document.getElementById('bpStartBtn');
+            startBtn.disabled = false;
+            startBtn.style.opacity = '1';
+            startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Start 1-Min Timer';
+
+            // Re-lock heart rate input
+            if (hrInput) {
+                hrInput.disabled = true;
+                hrInput.value = '';
+                hrInput.placeholder = 'Wait for the 1-min timer to finish...';
+                hrInput.style.opacity = '0.5';
+                hrInput.style.cursor = 'not-allowed';
+            }
+        }
+
+        document.getElementById('bpStartBtn').addEventListener('click', () => {
+            if (bpDone || bpRunning) return;
+            bpRunning = true;
+
+            const startBtn = document.getElementById('bpStartBtn');
+            startBtn.disabled = true;
+            startBtn.style.opacity = '0.6';
+
+            bpStartTime = Date.now();
+            bpInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - bpStartTime) / 1000);
+                const remaining = Math.max(BP_DURATION - elapsed, 0);
+                const m = Math.floor(remaining / 60);
+                const s = remaining % 60;
+                document.getElementById('bpCountdown').textContent = `${m}:${String(s).padStart(2, '0')}`;
+
+                if (remaining <= 0) {
+                    clearInterval(bpInterval);
+                    bpDone = true;
+                    bpRunning = false;
+                    document.getElementById('bpDoneMsg').style.display = 'block';
+                    document.getElementById('bpCountdown').style.color = '#059669';
+
+                    // Unlock heart rate input
+                    if (hrInput) {
+                        hrInput.disabled = false;
+                        hrInput.placeholder = 'Enter your 60-second heart rate';
+                        hrInput.style.opacity = '1';
+                        hrInput.style.cursor = 'text';
+                        hrInput.focus();
+                    }
+                }
+            }, 1000);
+        });
+
+        document.getElementById('bpResetBtn').addEventListener('click', () => {
+            resetBPTimer();
+        });
+    }
 
         function getSimulatedFeedback(progress) {
             if (progress < 30) return "Starting strong, maintain good form";
@@ -2128,13 +2284,17 @@ window.resetTimer = function() {
                 html = `
                     <div class="input-group-custom">
                         <label class="input-label">❤️ Recovery Heart Rate (bpm) <span style="color: #ef4444;">*</span></label>
-                        <input type="number" class="input-field" id="heartRateInput" placeholder="Enter 60-second heart rate after test" min="40" max="220" required>
+                        <input type="number" class="input-field" id="heartRateInput" placeholder="Wait for the 3-min timer to finish..." min="40" max="220" required disabled style="opacity:0.5; cursor:not-allowed;">
                         <div class="input-hint">
                             <i class="bi bi-info-circle"></i>
                             Complete 3 minutes stepping, rest 5 seconds, then count pulse for 60 seconds
                         </div>
                     </div>
                 `;
+                // Set timer display to 3:00 for step test
+                document.getElementById('minutes').textContent = '03';
+                document.getElementById('seconds').textContent = '00';
+                document.getElementById('milliseconds').textContent = '00';
             }
             else if (normalizedName.includes('mile') || normalizedName.includes('run') || normalizedName.includes('1-mile')) {
                 const targetHint = '';
@@ -2591,7 +2751,7 @@ function showErrorOnLoad(message) {
             } else if (normalizedName.includes('plank')) {
                 instructionsText.textContent = 'Click START to begin the timer. Hold a plank position with your body straight from head to heels, supporting yourself on your forearms and toes. When you can no longer maintain proper form, click STOP. Your time will be automatically recorded.';
             } else if (normalizedName.includes('step test') || normalizedName.includes('3-minute')) {
-                instructionsText.textContent = 'Click START to begin the 3-minute timer. A metronome will play at 90 BPM—follow the beat while stepping up and down on the platform. After exactly 3 minutes, click STOP and immediately measure your heart rate. Record your heart rate below.';
+                instructionsText.textContent = 'Click START to begin the 3-minute countdown timer. A metronome will beep at 90 BPM — step up and down on the platform following the beat. The timer will automatically stop after 3 minutes. Then use the 1-minute recovery timer that appears and count your pulse on your wrist. Enter your total heartbeat count below once the recovery timer ends.';
             } else if (normalizedName.includes('mile') || normalizedName.includes('run')) {
                 instructionsText.textContent = 'Click START to begin the timer and complete the run as fast as you can. When you finish, click STOP immediately. Your completion time will be automatically recorded.';
             } else if (normalizedName.includes('sit-and-reach') || normalizedName.includes('sit and reach')) {
