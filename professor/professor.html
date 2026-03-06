@@ -332,36 +332,34 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Profile Card -->
-            <div class="bg-white rounded-2xl border border-border shadow-sm mb-7 overflow-hidden">
-                <div class="px-8 py-6">
-                    <div class="flex items-center gap-5 flex-wrap">
-                        <div id="profilePicLg" class="w-14 h-14 rounded-full border-2 border-border bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-xl flex-shrink-0 overflow-hidden">P</div>
-                        <div class="flex flex-wrap gap-5 flex-1">
-                            <div class="mr-10">
-                                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">Full Name</div>
-                                <div class="text-sm font-semibold text-text-primary" id="profName">Loading...</div>
-                            </div>
-                            <div class="mr-10">
-                                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">Email</div>
-                                <div class="text-[13px] font-semibold text-text-primary" id="profEmail">Loading...</div>
-                            </div>
-                            <div class="mr-10">
-                                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">Assigned Sections</div>
-                                <div class="text-sm font-semibold text-text-primary" id="profSectionsCount">0</div>
-                            </div>
-                            <div>
-                                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">Role</div>
-                                <div class="inline-flex items-center gap-1.5 bg-info-bg text-info border border-info/30 text-xs font-semibold px-3 py-1 rounded-full">
-                                    <i class="fas fa-chalkboard-teacher"></i> Faculty Member
-                                </div>
-                            </div>
-                        </div>
+<!-- Profile Card -->
+<div class="bg-white rounded-2xl border border-border shadow-sm mb-7 overflow-hidden">
+    <div class="px-8 py-6">
+        <div class="flex items-center gap-5 flex-wrap">
+            <div id="profilePicLg" class="w-14 h-14 rounded-full border-2 border-border bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-xl flex-shrink-0 overflow-hidden">P</div>
+            <div class="flex flex-wrap gap-5 flex-1">
+                <div class="mr-10">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">FULL NAME</div>
+                    <div class="text-sm font-semibold text-text-primary" id="profFullName">Loading...</div>
+                </div>
+                <div class="mr-10">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">EMAIL</div>
+                    <div class="text-[13px] font-semibold text-text-primary" id="profEmail">Loading...</div>
+                </div>
+                <div class="mr-10">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">ASSIGNED SECTIONS</div>
+                    <div class="text-sm font-semibold text-text-primary" id="profSectionsCount">0</div>
+                </div>
+                <div>
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.7px] mb-1">ROLE</div>
+                    <div class="inline-flex items-center gap-1.5 bg-info-bg text-info border border-info/30 text-xs font-semibold px-3 py-1 rounded-full">
+                        <i class="fas fa-chalkboard-teacher"></i> Faculty Member
                     </div>
                 </div>
             </div>
-
+        </div>
+    </div>
+</div>
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
                 <div onclick="scrollToSections()" class="stat-card bg-white rounded-2xl p-5 border border-border border-t-4 border-t-[#7c3aed] shadow-sm cursor-pointer">
@@ -472,6 +470,7 @@
                                 <a href="addlesson.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-book-open mr-2"></i>Lessons</a>
                                 <a href="monitoringactivities.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-bar mr-2"></i>Monitoring</a>
                                 <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-graduation-cap mr-2"></i>Grades</a>
+                            <a href="sectionranklist.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-trophy mr-2"></i>Section Rank</a>
                             </div>
                         </div>
                     </div>
@@ -620,37 +619,96 @@
             window.location.href = '/login/index.html';
         }
     });
+function setupUI(user) {
+    // Build full name from individual fields first (most reliable)
+    const firstName    = currentProfessor.firstName    || '';
+    const middleInitial = currentProfessor.middleInitial || '';
+    const lastName     = currentProfessor.lastName     || '';
 
-    function setupUI(user) {
-        const profName = currentProfessor.fullName || currentProfessor.name || user.displayName || 'Professor';
-        const email    = currentProfessor.email || user.email;
-        const initial  = profName.charAt(0).toUpperCase();
-        const photoURL = user.photoURL || null;
-        const shortName = profName.split(',')[0]?.trim() || profName;
-
-        document.getElementById('headerName').textContent      = shortName;
-        document.getElementById('dashWelcomeName').textContent = `Welcome, ${shortName}`;
-        document.getElementById('dropdownName').textContent    = profName;
-        document.getElementById('dropdownEmail').textContent   = email;
-
-        const avatarSmall = document.getElementById('profileAvatarSmall');
-        const avatarLg    = document.getElementById('profileDropdownAvatar');
-        const picLg       = document.getElementById('profilePicLg');
-
-        if (photoURL) {
-            avatarSmall.innerHTML = `<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
-            avatarLg.innerHTML    = `<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover">`;
-            picLg.innerHTML       = `<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
-        } else {
-            avatarSmall.textContent = initial;
-            avatarLg.textContent    = initial;
-            picLg.textContent       = initial;
-        }
-
-        document.getElementById('profName').textContent  = profName;
-        document.getElementById('profEmail').textContent = email;
+    let fullName;
+    if (firstName && lastName) {
+        // Construct: "MENDOZA, MARK CYRUS"  (Last, First Middle)
+fullName = `${firstName}${middleInitial ? ' ' + middleInitial : ''} ${lastName}`.trim();
+    } else {
+        // Fallback to stored name / displayName
+        fullName = currentProfessor.fullName
+                || currentProfessor.name
+                || user.displayName
+                || 'Professor';
     }
 
+    // First name for the "Welcome," greeting
+    const greetName = firstName || fullName.split(/[\s,]+/)[0] || 'Professor';
+
+    const email    = currentProfessor.email || user.email;
+    const initial  = (lastName || fullName).charAt(0).toUpperCase();
+    const photoURL = user.photoURL || null;
+
+    // Welcome banner
+    document.getElementById('dashWelcomeName').textContent = `Welcome, ${greetName}`;
+
+    // Header pill (top-right) — show full name
+    document.getElementById('headerName').textContent = fullName;
+
+    // Profile dropdown card — full name
+    document.getElementById('dropdownName').textContent  = fullName;
+    document.getElementById('dropdownEmail').textContent = email;
+
+    // Profile info card — full name
+    document.getElementById('profFullName').textContent = fullName;
+    document.getElementById('profEmail').textContent    = email;
+
+    // Avatars
+    const avatarSmall = document.getElementById('profileAvatarSmall');
+    const avatarLg    = document.getElementById('profileDropdownAvatar');
+    const picLg       = document.getElementById('profilePicLg');
+
+    if (photoURL) {
+        const img = `<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
+        avatarSmall.innerHTML = img;
+        avatarLg.innerHTML    = img;
+        picLg.innerHTML       = img;
+    } else {
+        avatarSmall.textContent = initial;
+        avatarLg.textContent    = initial;
+        picLg.textContent       = initial;
+    }
+}
+async function loadProfessorData(user) {
+    const email = user.email.toLowerCase();
+    
+    // Try to get from professors collection first
+    const q1 = await getDocs(query(collection(db,'professors'), where('email','==',email)));
+    if (!q1.empty) { 
+        const profData = q1.docs[0].data();
+        currentProfessor = { 
+            id: q1.docs[0].id, 
+            ...profData,
+            // Make sure fullName is set properly
+            fullName: profData.fullName || profData.name || user.displayName || 'Professor'
+        }; 
+        return; 
+    }
+    
+    // Try users collection as fallback
+    const q2 = await getDocs(query(collection(db,'users'), where('email','==',email), where('role','==','professor')));
+    if (!q2.empty) { 
+        const userData = q2.docs[0].data();
+        currentProfessor = { 
+            id: q2.docs[0].id, 
+            ...userData,
+            fullName: userData.fullName || userData.name || user.displayName || 'Professor'
+        };
+        return; 
+    }
+    
+    // Ultimate fallback
+    currentProfessor = { 
+        name: user.displayName || 'Professor', 
+        fullName: user.displayName || 'Professor',
+        email: user.email 
+    };
+}
     async function loadSections() {
         try {
             professorSections = []; professorStudents = [];

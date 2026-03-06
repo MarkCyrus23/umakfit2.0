@@ -107,11 +107,14 @@
         .rank-bronze { background: linear-gradient(135deg,#CD7F32,#B87333); color:#fff; }
         .rank-other { background: linear-gradient(135deg,#1e3a8a,#3b82f6); color:#fff; }
 
-        /* Score badges */
-        .sc-excellent { background:#d4f0e6; color:#0e8a5f; }
-        .sc-good { background:#d6eaf8; color:#1a6fa8; }
-        .sc-fair { background:#fef3d4; color:#b07e16; }
-        .sc-poor { background:#fce8e6; color:#c0392b; }
+        /* Category badges - same as grades.html */
+        .category-badge { display:inline-flex; align-items:center; gap:4px; padding:5px 14px; border-radius:20px; font-weight:700; font-size:12px; white-space:nowrap; }
+        .category-excellent { background-color:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .category-good { background-color:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+        .category-average { background-color:#fef9c3; color:#854d0e; border:1px solid #fde047; }
+        .category-below-average { background-color:#fed7aa; color:#9a3412; border:1px solid #fb923c; }
+        .category-poor { background-color:#fce8e6; color:#991b1b; border:1px solid #fca5a5; }
+        .category-default { background-color:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
         @media (max-width: 768px) {
             #rankTableHead { display: none; }
@@ -352,7 +355,7 @@
                         <span class="font-semibold text-sm">Top Section</span>
                     </div>
                     <div class="font-display font-bold text-xl leading-tight" id="statTopSection">—</div>
-                    <div class="text-xs opacity-90 mt-1" id="statTopScore">0% average</div>
+                    <div class="text-xs opacity-90 mt-1" id="statTopCategory">—</div>
                 </div>
                 <div class="stat-card bg-gradient-to-br from-royal to-blue rounded-2xl text-white p-5">
                     <div class="flex items-center gap-2 mb-3">
@@ -371,9 +374,9 @@
                 <div class="stat-card bg-gradient-to-br from-purple to-purple-900 rounded-2xl text-white p-5">
                     <div class="flex items-center gap-2 mb-3">
                         <i class="fas fa-star text-xl"></i>
-                        <span class="font-semibold text-sm">Overall Avg</span>
+                        <span class="font-semibold text-sm">Overall Category</span>
                     </div>
-                    <div class="font-mono font-bold text-3xl" id="statOverallAvg">0%</div>
+                    <div class="font-mono font-bold text-lg" id="statOverallCategory">—</div>
                 </div>
             </div>
 
@@ -438,8 +441,8 @@
                         <select id="sortBy" onchange="applyFilters()"
                             class="px-3 py-2 border border-border rounded-xl text-[13px] font-medium text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 transition-all">
                             <option value="rank">Sort by Rank</option>
-                            <option value="average-desc">Highest → Lowest Score</option>
-                            <option value="average-asc">Lowest → Highest Score</option>
+                            <option value="category-desc">Best → Worst Category</option>
+                            <option value="category-asc">Worst → Best Category</option>
                             <option value="students-desc">Most Students</option>
                             <option value="students-asc">Least Students</option>
                             <option value="name-asc">Name A→Z</option>
@@ -461,7 +464,7 @@
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Students</th>
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">With Grades</th>
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Completion</th>
-                                <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Avg Score</th>
+                                <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Overall Category</th>
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Actions</th>
                             </tr>
                         </thead>
@@ -614,69 +617,242 @@
     let sectionRankings = [];
     let activeSectionFilter = null;
 
-    // Scoring functions
-    function calculateActivityScore(testName, result, testTarget = null) {
-        const n = (testName || '').toLowerCase().trim();
+    // ===== NORM-BASED CLASSIFICATION (same as grades.html) =====
 
-        if (n.includes('skinfold') || n.includes('step test') || n.includes('3-minute')) return 100;
-
-        if (result && typeof result === 'object' && result !== null) {
-            if (result.score !== undefined && result.score !== null) {
-                const s = parseFloat(result.score);
-                if (!isNaN(s) && s >= 0 && s <= 100) return s;
-            }
-        }
-
-        let v = 0;
+    function extractNumericResult(result) {
         if (typeof result === 'object' && result !== null) {
-            v = result.repetitions || result.time || result.distance || result.value || result.result || result.count || result.score || 0;
-        } else if (typeof result === 'string') {
-            const m = result.match(/(\d+\.?\d*)/);
-            v = m ? parseFloat(m[1]) : parseFloat(result) || 0;
-        } else { v = parseFloat(result) || 0; }
-
-        if (testTarget && testTarget > 0) {
-            const pctBracket = (pct) => {
-                if (pct >= 100) return 100; if (pct >= 90) return 95; if (pct >= 80) return 90;
-                if (pct >= 70) return 85;  if (pct >= 60) return 80; if (pct >= 50) return 75;
-                return Math.round(Math.max(50, pct));
-            };
-            if (n.includes('push-up')||n.includes('pushup')||n.includes('sit-up')||n.includes('situp')||n.includes('curl-up'))
-                return pctBracket((v / testTarget) * 100);
-            if (n.includes('plank'))      return pctBracket((v / testTarget) * 100);
-            if (n.includes('sit-and-reach')) return pctBracket((v / testTarget) * 100);
-            if (n.includes('grip'))       return pctBracket((v / testTarget) * 100);
-            if (n.includes('mile')||n.includes('run')) return pctBracket((testTarget / v) * 100);
+            return parseFloat(result.value || result.result || result.score || result.count || result.repetitions || result.time || 0) || 0;
         }
-
-        // Fallback defaults
-        if (n.includes('push-up')||n.includes('pushup')) {
-            if (v>=40) return 100; if (v>=30) return 90; if (v>=20) return 80; if (v>=15) return 70; return 60;
+        if (typeof result === 'string') {
+            const match = result.match(/(\d+\.?\d*)/);
+            if (match) return parseFloat(match[1]);
         }
-        if (n.includes('curl-up')||n.includes('curl up')) {
-            if (v>=75) return 100; if (v>=50) return 90; if (v>=30) return 80; if (v>=20) return 70; return 60;
-        }
-        if (n.includes('plank')) {
-            if (v>=120) return 100; if (v>=90) return 90; if (v>=60) return 80; if (v>=45) return 70; return 60;
-        }
-        if (n.includes('grip')) {
-            if (v>=60) return 100; if (v>=50) return 90; if (v>=40) return 80; if (v>=30) return 70; return 60;
-        }
-        if (n.includes('sit-and-reach')) {
-            if (v>=20) return 100; if (v>=15) return 90; if (v>=10) return 80; if (v>=5) return 70; return 60;
-        }
-        return 75;
+        return parseFloat(result) || 0;
     }
 
-    function scoreBadge(score) {
-        if (score >= 90) return { text:'Excellent', cls:'sc-excellent' };
-        if (score >= 80) return { text:'Good', cls:'sc-good' };
-        if (score >= 70) return { text:'Fair', cls:'sc-fair' };
-        return { text:'Needs Work', cls:'sc-poor' };
+    const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+    // Helper function to get age group from student data
+function getAgeGroupFromStudent(studentData) {
+    if (!studentData) return '19-22'; // default
+    
+    // If student has birthday
+    if (studentData.birthday) {
+        try {
+            let birthDate;
+            if (studentData.birthday.toDate) {
+                birthDate = studentData.birthday.toDate();
+            } else {
+                birthDate = new Date(studentData.birthday);
+            }
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            if (!isNaN(age) && age > 0) {
+                if (age <= 18) return '15-18';
+                if (age <= 22) return '19-22';
+                if (age <= 26) return '23-26';
+                return '27-30';
+            }
+        } catch (e) {
+            console.error('Error computing age from birthday:', e);
+        }
+    }
+    
+    // If student has age field
+    if (studentData.age) {
+        const age = parseInt(studentData.age);
+        if (!isNaN(age)) {
+            if (age <= 18) return '15-18';
+            if (age <= 22) return '19-22';
+            if (age <= 26) return '23-26';
+            return '27-30';
+        }
+    }
+    
+    return '19-22'; // default fallback
+}
+
+    function getCategoryIcon(category) {
+        switch(category) {
+            case 'Excellent': return '⭐';
+            case 'Good': return '👍';
+            case 'Average': return '📊';
+            case 'Below Average': return '📉';
+            case 'Poor': return '⚠️';
+            default: return '—';
+        }
     }
 
-    function rankClass(r) {
-        return r===1 ? 'rank-gold' : r===2 ? 'rank-silver' : r===3 ? 'rank-bronze' : 'rank-other';
+    function getCategoryClass(category) {
+        switch(category) {
+            case 'Excellent': return 'category-excellent';
+            case 'Good': return 'category-good';
+            case 'Average': return 'category-average';
+            case 'Below Average': return 'category-below-average';
+            case 'Poor': return 'category-poor';
+            default: return 'category-default';
+        }
+    }
+
+    function renderCategoryBadge(category) {
+        if (!category || category === 'No Grades') return '<span class="category-badge category-default">— No Grades</span>';
+        const icon = getCategoryIcon(category);
+        const className = getCategoryClass(category);
+        return `<span class="category-badge ${className}">${icon} ${category}</span>`;
+    }
+
+    function rankClass(rank) {
+        return rank === 1 ? 'rank-gold' : rank === 2 ? 'rank-silver' : rank === 3 ? 'rank-bronze' : 'rank-other';
+    }
+
+    function getPushUpCategory(genderKey, ageGroup, reps) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[40,31,21,11], '19-22':[38,28,18,9], '23-26':[35,25,16,8], '27-30':[32,23,14,6] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[25,19,13,7], '19-22':[23,17,11,6], '23-26':[20,15,9,5], '27-30':[18,13,8,4] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
+        }
+    }
+
+    function getCurlUpCategory(genderKey, ageGroup, reps) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[50,41,31,21], '19-22':[47,38,28,19], '23-26':[44,35,25,17], '27-30':[40,32,22,15] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[45,36,26,16], '19-22':[42,34,24,15], '23-26':[39,31,21,13], '27-30':[36,28,19,11] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
+        }
+    }
+
+    function getSitReachCategory(genderKey, ageGroup, cm) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[38,33,26,18], '19-22':[37,32,25,17], '23-26':[35.5,30.5,23.5,15.5], '27-30':[34,29,22,14] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (cm >= t[0]) return 'Excellent';
+            if (cm >= t[1]) return 'Good';
+            if (cm >= t[2]) return 'Average';
+            if (cm >= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[39,34,27,19], '19-22':[38,33,26,18], '23-26':[37,32,25,17], '27-30':[36,31,24,16] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (cm >= t[0]) return 'Excellent';
+            if (cm >= t[1]) return 'Good';
+            if (cm >= t[2]) return 'Average';
+            if (cm >= t[3]) return 'Below Average';
+            return 'Poor';
+        }
+    }
+
+    function getStepTestCategory(genderKey, ageGroup, hr) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[84,97,108,118], '19-22':[79,89,105,116], '23-26':[80,90,106,117], '27-30':[81,91,107,118] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (hr <= t[0]) return 'Excellent';
+            if (hr <= t[1]) return 'Good';
+            if (hr <= t[2]) return 'Average';
+            if (hr <= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[89,103,113,124], '19-22':[85,98,109,118], '23-26':[86,99,110,119], '27-30':[88,101,112,121] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (hr <= t[0]) return 'Excellent';
+            if (hr <= t[1]) return 'Good';
+            if (hr <= t[2]) return 'Average';
+            if (hr <= t[3]) return 'Below Average';
+            return 'Poor';
+        }
+    }
+
+    function getNormCategory(testName, result, genderKey = 'male', ageGroup = '19-22') {
+        const normalized = (testName || '').toLowerCase();
+        const value = extractNumericResult(result);
+
+        if (normalized.includes('push-up') || normalized.includes('pushup'))
+            return getPushUpCategory(genderKey, ageGroup, value);
+        if (normalized.includes('curl-up') || normalized.includes('curl up'))
+            return getCurlUpCategory(genderKey, ageGroup, value);
+        if (normalized.includes('sit-and-reach') || normalized.includes('sit and reach'))
+            return getSitReachCategory(genderKey, ageGroup, value);
+        if (normalized.includes('step test') || normalized.includes('3-minute'))
+            return getStepTestCategory(genderKey, ageGroup, value);
+
+        // For skinfold / other tests
+        if (normalized.includes('skinfold') || normalized.includes('skin fold')) {
+            if (typeof result === 'string') {
+                const classMatch = result.match(/\(([^)]+)\)/);
+                if (classMatch) {
+                    const cls = classMatch[1];
+                    if (cls === 'Athletic' || cls === 'Fitness') return 'Excellent';
+                    if (cls === 'Average') return 'Average';
+                    if (cls === 'Essential Fat') return 'Good';
+                    if (cls === 'Overfat') return 'Below Average';
+                    if (cls === 'Obese') return 'Poor';
+                }
+            }
+            return 'Average';
+        }
+
+        // BMI
+        if (normalized.includes('bmi')) {
+            const bmi = extractNumericResult(result);
+            if (bmi >= 18.5 && bmi <= 24.9) return 'Excellent';
+            if ((bmi >= 17.0 && bmi < 18.5) || (bmi >= 25.0 && bmi < 27.0)) return 'Good';
+            if ((bmi >= 16.0 && bmi < 17.0) || (bmi >= 27.0 && bmi < 30.0)) return 'Average';
+            return 'Below Average';
+        }
+
+        return 'Average';
+    }
+
+    function getOverallCategory(categories) {
+        if (!categories || categories.length === 0) return 'Average';
+        const scores = categories.map(c => CATEGORY_ORDER[c] || 3);
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (avg >= 4.5) return 'Excellent';
+        if (avg >= 3.5) return 'Good';
+        if (avg >= 2.5) return 'Average';
+        if (avg >= 1.5) return 'Below Average';
+        return 'Poor';
+    }
+
+    function extractResult(data) {
+        if (data.result !== undefined && data.result !== null) {
+            if (typeof data.result === 'number') return data.result;
+            if (typeof data.result === 'string') { const m = data.result.match(/(\d+\.?\d*)/); return m ? parseFloat(m[1]) : data.result; }
+            if (typeof data.result === 'object') return data.result.value || data.result.repetitions || data.result.time || data.result.distance || 0;
+        }
+        if (data.resultData) {
+            if (typeof data.resultData === 'object') return data.resultData.value || data.resultData.repetitions || data.resultData.time || 0;
+            return data.resultData;
+        }
+        if (data.repetitions !== undefined) return data.repetitions;
+        return '-';
     }
 
     function getInitials(name) {
@@ -733,87 +909,150 @@
         setAv(document.getElementById('profileDropdownAvatar'), photo, init);
     }
 
-    async function loadAssignedSections() {
-        assignedSections = [];
-        allSections = [];
-        const profEmail = (currentProfessor.email || currentUser.email).toLowerCase();
-        const profUid = currentUser.uid || '';
+ async function loadAssignedSections() {
+    assignedSections = [];
+    allSections = [];
+    const profEmail = (currentProfessor.email || currentUser.email).toLowerCase();
+    const profUid = currentUser.uid || '';
 
-        // Collect name variations
-        const nameVariations = new Set();
-        ['fullName','name','displayName'].forEach(f => {
-            if (currentProfessor[f]) nameVariations.add(currentProfessor[f].toUpperCase().trim());
-        });
-        if (currentUser.displayName) nameVariations.add(currentUser.displayName.toUpperCase().trim());
+    // Collect name variations (existing code remains the same)
+    const nameVariations = new Set();
+    ['fullName','name','displayName'].forEach(f => {
+        if (currentProfessor[f]) nameVariations.add(currentProfessor[f].toUpperCase().trim());
+    });
+    if (currentUser.displayName) nameVariations.add(currentUser.displayName.toUpperCase().trim());
 
-        const profSnap = await getDocs(query(collection(db,'professors'), where('email','==',profEmail)));
-        profSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
+    const profSnap = await getDocs(query(collection(db,'professors'), where('email','==',profEmail)));
+    profSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
 
-        const usrSnap = await getDocs(query(collection(db,'users'), where('email','==',profEmail)));
-        usrSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
+    const usrSnap = await getDocs(query(collection(db,'users'), where('email','==',profEmail)));
+    usrSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
 
-        nameVariations.add(profEmail.split('@')[0].toUpperCase().trim());
-        nameVariations.delete('');
+    nameVariations.add(profEmail.split('@')[0].toUpperCase().trim());
+    nameVariations.delete('');
 
-        const nameTokens = new Set();
-        nameVariations.forEach(n => n.split(/[\s,\.]+/).forEach(w => { if (w.length >= 3) nameTokens.add(w); }));
+    const nameTokens = new Set();
+    nameVariations.forEach(n => n.split(/[\s,\.]+/).forEach(w => { if (w.length >= 3) nameTokens.add(w); }));
 
-        const addedIds = new Set();
+    const addedIds = new Set();
 
-        // Direct query by professorId
-        if (profUid) {
-            try {
-                const q1 = await getDocs(query(collection(db,'sections'), where('professorId','==',profUid)));
-                q1.forEach(d => {
-                    if (addedIds.has(d.id)) return;
-                    addedIds.add(d.id);
-                    const data = d.data();
-                    const section = { id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data };
-                    assignedSections.push(section);
-                });
-            } catch(e) {}
-        }
-
-        // Direct query by professorEmail
+    // Direct query by professorId
+    if (profUid) {
         try {
-            const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
-            q2.forEach(d => {
+            const q1 = await getDocs(query(collection(db,'sections'), where('professorId','==',profUid)));
+            q1.forEach(d => {
                 if (addedIds.has(d.id)) return;
                 addedIds.add(d.id);
                 const data = d.data();
-                const section = { id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data };
+                const section = { 
+                    id:d.id, 
+                    name:data.name||'Unnamed', 
+                    courseCode:data.courseCode||'PE', 
+                    students:data.students||[], 
+                    studentCount:(data.students||[]).length, 
+                    yearLevel:data.yearLevel||'', 
+                    professor:data.professor||'', 
+                    ...data 
+                };
                 assignedSections.push(section);
             });
         } catch(e) {}
-
-        // Full scan for fuzzy matching
-        const secSnap = await getDocs(collection(db,'sections'));
-        secSnap.forEach(d => {
-            if (addedIds.has(d.id)) return;
-            const data = d.data();
-            const dbProf = (data.professor || '').toString().trim().toUpperCase();
-            let isMatch = false;
-
-            for (const v of nameVariations) { if (v && v.length>=3 && dbProf===v) { isMatch=true; break; } }
-            if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3 && (dbProf.includes(v)||v.includes(dbProf))) { isMatch=true; break; } }
-            if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3) { const ln=v.split(',')[0].trim(); if (ln.length>=3 && dbProf.includes(ln)) { isMatch=true; break; } } }
-            if (!isMatch && dbProf.length>=3) { const dbW=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch=true; break; } } }
-            if (!isMatch) { const eu=profEmail.split('@')[0].toUpperCase(); if (eu.length>3 && dbProf.includes(eu)) isMatch=true; }
-
-            if (isMatch) {
-                addedIds.add(d.id);
-                const section = { id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data };
-                assignedSections.push(section);
-            }
-        });
-
-        allSections = [...assignedSections];
-        filteredSections = [...assignedSections];
-        
-        document.getElementById('sectionsCount').textContent = assignedSections.length;
-        renderSections(filteredSections);
-        populateSectionNameFilter();
     }
+
+    // Direct query by professorEmail
+    try {
+        const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
+        q2.forEach(d => {
+            if (addedIds.has(d.id)) return;
+            addedIds.add(d.id);
+            const data = d.data();
+            const section = { 
+                id:d.id, 
+                name:data.name||'Unnamed', 
+                courseCode:data.courseCode||'PE', 
+                students:data.students||[], 
+                studentCount:(data.students||[]).length, 
+                yearLevel:data.yearLevel||'', 
+                professor:data.professor||'', 
+                ...data 
+            };
+            assignedSections.push(section);
+        });
+    } catch(e) {}
+
+    // Full scan for fuzzy matching
+    const secSnap = await getDocs(collection(db,'sections'));
+    secSnap.forEach(d => {
+        if (addedIds.has(d.id)) return;
+        const data = d.data();
+        const dbProf = (data.professor || '').toString().trim().toUpperCase();
+        let isMatch = false;
+
+        for (const v of nameVariations) { if (v && v.length>=3 && dbProf===v) { isMatch=true; break; } }
+        if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3 && (dbProf.includes(v)||v.includes(dbProf))) { isMatch=true; break; } }
+        if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3) { const ln=v.split(',')[0].trim(); if (ln.length>=3 && dbProf.includes(ln)) { isMatch=true; break; } } }
+        if (!isMatch && dbProf.length>=3) { const dbW=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch=true; break; } } }
+        if (!isMatch) { const eu=profEmail.split('@')[0].toUpperCase(); if (eu.length>3 && dbProf.includes(eu)) isMatch=true; }
+
+        if (isMatch) {
+            addedIds.add(d.id);
+            const section = { 
+                id:d.id, 
+                name:data.name||'Unnamed', 
+                courseCode:data.courseCode||'PE', 
+                students:data.students||[], 
+                studentCount:(data.students||[]).length, 
+                yearLevel:data.yearLevel||'', 
+                professor:data.professor||'', 
+                ...data 
+            };
+            assignedSections.push(section);
+        }
+    });
+
+    // AFTER loading sections, load student data including age/birthday
+    await loadAllStudentsData();
+
+    allSections = [...assignedSections];
+    filteredSections = [...assignedSections];
+    
+    document.getElementById('sectionsCount').textContent = assignedSections.length;
+    renderSections(filteredSections);
+    populateSectionNameFilter();
+}
+
+// New function to load all students data
+async function loadAllStudentsData() {
+    const studentsSnap = await getDocs(collection(db, 'students'));
+    const studentsMap = new Map();
+    
+    studentsSnap.forEach(doc => {
+        const data = doc.data();
+        if (data.email) {
+            studentsMap.set(data.email, {
+                birthday: data.birthday || null,
+                age: data.age || null,
+                gender: data.gender || 'male'
+            });
+        }
+    });
+    
+    // Attach student data to section students
+    assignedSections.forEach(section => {
+        if (section.students && Array.isArray(section.students)) {
+            section.students.forEach(student => {
+                const studentData = studentsMap.get(student.email);
+                if (studentData) {
+                    student.birthday = studentData.birthday;
+                    student.age = studentData.age;
+                    student.gender = studentData.gender;
+                }
+            });
+        }
+    });
+    
+    console.log('✅ Student data loaded with age/birthday info');
+}
 
     function renderSections(sections) {
         const grid = document.getElementById('sectionsGrid');
@@ -895,108 +1134,171 @@
         document.getElementById('sectionsCount').textContent = filteredSections.length;
     };
 
-    async function loadTestResults() {
-        allTestResults = [];
-        if (!assignedSections.length) return;
+ async function loadTestResults() {
+    allTestResults = [];
+    if (!assignedSections.length) return;
 
-        const bestMap = new Map();
-        const OVERDUE_PENALTY = 0.10;
-
-        try {
-            const snap = await getDocs(collection(db, 'testResults'));
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                if (!['completed','overdue','late'].includes(data.status)) return;
-
-                const studentEmail = data.studentEmail || '';
-                if (!studentEmail) return;
-
-                const studentSection = assignedSections.find(s => s.name === data.section)
-                    || assignedSections.find(s => s.students && s.students.some(st => st.email === studentEmail));
-                if (!studentSection) return;
-
-                const testId = data.testId || docSnap.id;
-                const testKey = `${studentEmail}_${testId}`;
-                const isOverride = data.isProfessorOverride === true;
-                const testNorm = (data.testName || '').toLowerCase();
-                const isCBased = testNorm.includes('skinfold') || testNorm.includes('step test') || testNorm.includes('3-minute');
-
-                let score;
-                if (isOverride && typeof data.score === 'number' && !isNaN(data.score)) {
-                    score = data.score;
-                } else {
-                    score = calculateActivityScore(data.testName, data.result || data.resultData || data.repetitions || data, data.testTarget || null);
-                    if ((data.status === 'overdue' || data.status === 'late') && !isOverride && !isCBased) {
-                        score = Math.max(0, score - score * OVERDUE_PENALTY);
-                    }
-                }
-                score = Math.max(0, Math.min(100, Math.round(score)));
-
-                if (!bestMap.has(testKey) || score > bestMap.get(testKey).score) {
-                    bestMap.set(testKey, {
-                        studentName: data.studentName || 'Unknown',
-                        studentEmail, section: studentSection.name, sectionId: studentSection.id,
-                        testName: data.testName, testId, score,
-                        isOverdue: data.status === 'overdue' || data.status === 'late'
+    // Create a map for quick student lookup by email
+    const studentsMap = new Map();
+    assignedSections.forEach(section => {
+        if (section.students && Array.isArray(section.students)) {
+            section.students.forEach(student => {
+                if (student.email) {
+                    studentsMap.set(student.email, {
+                        ...student,
+                        section: section.name,
+                        sectionId: section.id
                     });
                 }
             });
-        } catch(e) { console.error('testResults error:', e); }
+        }
+    });
 
-        allTestResults = Array.from(bestMap.values());
-    }
+    const bestMap = new Map();
 
-    function calculateRankings() {
-        sectionRankings = [];
+    try {
+        const snap = await getDocs(collection(db, 'testResults'));
+        snap.forEach(docSnap => {
+            const data = docSnap.data();
+            if (data.status !== 'completed') return;
 
-        assignedSections.forEach(sec => {
-            const studentsInSection = sec.students || [];
-            const sectionResults = allTestResults.filter(r => r.sectionId === sec.id || r.section === sec.name);
+            const studentEmail = data.studentEmail || '';
+            if (!studentEmail) return;
 
-            const studentMap = new Map();
-            studentsInSection.forEach(st => {
-                if (st.email) studentMap.set(st.email, { name: st.name || st.email.split('@')[0], email: st.email, scores: [], hasGrades: false });
-            });
+            const studentSection = assignedSections.find(s => s.name === data.section)
+                || assignedSections.find(s => s.students && s.students.some(st => st.email === studentEmail));
+            if (!studentSection) return;
 
-            sectionResults.forEach(r => {
-                if (studentMap.has(r.studentEmail)) {
-                    const s = studentMap.get(r.studentEmail);
-                    s.scores.push(r.score);
-                    s.hasGrades = true;
-                } else {
-                    studentMap.set(r.studentEmail, { name: r.studentName || r.studentEmail.split('@')[0], email: r.studentEmail, scores: [r.score], hasGrades: true });
-                }
-            });
+            // Get student data for age
+            const studentData = studentsMap.get(studentEmail);
+            
+            // Get gender for norm-based classification
+            const gender = (data.gender || studentData?.gender || '').toLowerCase();
+            const genderKey = gender.startsWith('f') ? 'female' : 'male';
+            
+            // Get age group from student data
+            const ageGroup = getAgeGroupFromStudent(studentData);
+            
+            const category = getNormCategory(
+                data.testName || '', 
+                data.result || data.resultData || data.repetitions || data, 
+                genderKey, 
+                ageGroup  // ← GAMITIN ANG ACTUAL AGE GROUP!
+            );
 
-            const studentAverages = [];
-            studentMap.forEach((s, email) => {
-                const avg = s.scores.length ? s.scores.reduce((a, b) => a + b, 0) / s.scores.length : 0;
-                studentAverages.push({ email, name: s.name, averageScore: parseFloat(avg.toFixed(2)), activitiesCount: s.scores.length, hasGrades: s.hasGrades });
-            });
-            studentAverages.sort((a, b) => b.averageScore - a.averageScore);
+            const testId = data.testId || docSnap.id;
+            const testKey = `${studentEmail}_${testId}`;
 
-            const totalStudents = studentsInSection.length;
-            const studentsWithGrades = studentAverages.filter(s => s.hasGrades).length;
-            const completionRate = totalStudents > 0 ? (studentsWithGrades / totalStudents) * 100 : 0;
-            const sectionAvg = studentsWithGrades > 0
-                ? studentAverages.filter(s => s.hasGrades).reduce((sum, s) => sum + s.averageScore, 0) / studentsWithGrades
-                : 0;
+            if (!bestMap.has(testKey) || 
+                (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestMap.get(testKey).category] || 0)) {
+                bestMap.set(testKey, {
+                    studentName: data.studentName || 'Unknown',
+                    studentEmail, 
+                    section: studentSection.name, 
+                    sectionId: studentSection.id,
+                    testName: data.testName, 
+                    testId, 
+                    category,
+                    isOverdue: data.status === 'overdue' || data.status === 'late',
+                    ageGroup: ageGroup // store for debugging
+                });
+            }
+        });
+    } catch(e) { console.error('testResults error:', e); }
 
-            sectionRankings.push({
-                id: sec.id, name: sec.name, courseCode: sec.courseCode, yearLevel: sec.yearLevel,
-                totalStudents, studentsWithGrades, completionRate: parseFloat(completionRate.toFixed(2)),
-                averageScore: parseFloat(sectionAvg.toFixed(2)),
-                studentAverages,
-            });
+    allTestResults = Array.from(bestMap.values());
+}
+
+function calculateRankings() {
+    sectionRankings = [];
+
+    assignedSections.forEach(sec => {
+        const studentsInSection = sec.students || [];
+        const sectionResults = allTestResults.filter(r => r.sectionId === sec.id || r.section === sec.name);
+
+        const studentMap = new Map();
+        studentsInSection.forEach(st => {
+            if (st.email) {
+                studentMap.set(st.email, { 
+                    name: st.name || st.email.split('@')[0], 
+                    email: st.email, 
+                    categories: [], 
+                    hasGrades: false,
+                    ageGroup: getAgeGroupFromStudent(st) // store age group
+                });
+            }
         });
 
-        sectionRankings.sort((a, b) => b.averageScore - a.averageScore);
-        sectionRankings = sectionRankings.map((s, i) => ({ ...s, rank: i + 1 }));
+        sectionResults.forEach(r => {
+            if (studentMap.has(r.studentEmail)) {
+                const s = studentMap.get(r.studentEmail);
+                s.categories.push(r.category);
+                s.hasGrades = true;
+            } else {
+                studentMap.set(r.studentEmail, { 
+                    name: r.studentName || r.studentEmail.split('@')[0], 
+                    email: r.studentEmail, 
+                    categories: [r.category], 
+                    hasGrades: true,
+                    ageGroup: r.ageGroup || '19-22'
+                });
+            }
+        });
 
-        renderRankings(sectionRankings);
-        updateStats(sectionRankings);
-    }
+        const studentCategories = [];
+        studentMap.forEach((s, email) => {
+            const overallCategory = s.categories.length ? getOverallCategory(s.categories) : 'No Grades';
+            const categoryScore = s.categories.length ? 
+                s.categories.reduce((sum, cat) => sum + (CATEGORY_ORDER[cat] || 3), 0) / s.categories.length : 0;
+            
+            studentCategories.push({ 
+                email, 
+                name: s.name, 
+                overallCategory, 
+                categoryScore,
+                activitiesCount: s.categories.length, 
+                hasGrades: s.hasGrades,
+                ageGroup: s.ageGroup // include age group in student data
+            });
+        });
+        studentCategories.sort((a, b) => b.categoryScore - a.categoryScore);
 
+        const totalStudents = studentsInSection.length;
+        const studentsWithGrades = studentCategories.filter(s => s.hasGrades).length;
+        const completionRate = totalStudents > 0 ? (studentsWithGrades / totalStudents) * 100 : 0;
+        
+        // Calculate section overall category based on student category scores
+        const sectionCategoryScore = studentsWithGrades > 0
+            ? studentCategories.filter(s => s.hasGrades).reduce((sum, s) => sum + s.categoryScore, 0) / studentsWithGrades
+            : 3;
+        
+        let sectionOverallCategory = 'Average';
+        if (sectionCategoryScore >= 4.5) sectionOverallCategory = 'Excellent';
+        else if (sectionCategoryScore >= 3.5) sectionOverallCategory = 'Good';
+        else if (sectionCategoryScore >= 2.5) sectionOverallCategory = 'Average';
+        else if (sectionCategoryScore >= 1.5) sectionOverallCategory = 'Below Average';
+        else sectionOverallCategory = 'Poor';
+
+        sectionRankings.push({
+            id: sec.id, 
+            name: sec.name, 
+            courseCode: sec.courseCode, 
+            yearLevel: sec.yearLevel,
+            totalStudents, 
+            studentsWithGrades, 
+            completionRate: parseFloat(completionRate.toFixed(2)),
+            categoryScore: parseFloat(sectionCategoryScore.toFixed(2)),
+            overallCategory: sectionOverallCategory,
+            studentCategories,
+        });
+    });
+
+    sectionRankings.sort((a, b) => b.categoryScore - a.categoryScore);
+    sectionRankings = sectionRankings.map((s, i) => ({ ...s, rank: i + 1 }));
+
+    renderRankings(sectionRankings);
+    updateStats(sectionRankings);
+}
     function renderRankings(rankings) {
         const tbody = document.getElementById('rankTableBody');
 
@@ -1011,7 +1313,7 @@
 
         tbody.innerHTML = rankings.map(sec => {
             const rc = rankClass(sec.rank);
-            const bd = scoreBadge(sec.averageScore);
+            const categoryBadge = renderCategoryBadge(sec.overallCategory);
             return `
             <tr class="border-b border-border hover:bg-surface/60 transition-all cursor-pointer" onclick="viewSectionDetails('${sec.id}')">
                 <td data-label="Rank" class="px-4 py-3.5">
@@ -1034,9 +1336,8 @@
                     </div>
                     <span class="text-[12px] text-text-muted">${sec.completionRate}%</span>
                 </td>
-                <td data-label="Avg Score" class="px-4 py-3.5">
-                    <span class="font-bold text-navy text-lg">${sec.averageScore}%</span>
-                    <span class="ml-2 inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${bd.cls}">${bd.text}</span>
+                <td data-label="Overall Category" class="px-4 py-3.5">
+                    ${categoryBadge}
                 </td>
                 <td data-label="Actions" class="px-4 py-3.5">
                     <button onclick="event.stopPropagation(); viewSectionDetails('${sec.id}')"
@@ -1052,11 +1353,20 @@
         if (!rankings.length) return;
         const top = rankings[0];
         document.getElementById('statTopSection').textContent = top.name;
-        document.getElementById('statTopScore').textContent = `${top.averageScore}% average`;
+        document.getElementById('statTopCategory').innerHTML = renderCategoryBadge(top.overallCategory);
         document.getElementById('statTotalSections').textContent = rankings.length;
         document.getElementById('statTotalStudents').textContent = rankings.reduce((s, r) => s + r.totalStudents, 0);
-        const avg = rankings.reduce((s, r) => s + r.averageScore, 0) / rankings.length;
-        document.getElementById('statOverallAvg').textContent = `${avg.toFixed(1)}%`;
+        
+        // Calculate overall category for all sections combined
+        const avgScore = rankings.reduce((s, r) => s + r.categoryScore, 0) / rankings.length;
+        let overallCategory = 'Average';
+        if (avgScore >= 4.5) overallCategory = 'Excellent';
+        else if (avgScore >= 3.5) overallCategory = 'Good';
+        else if (avgScore >= 2.5) overallCategory = 'Average';
+        else if (avgScore >= 1.5) overallCategory = 'Below Average';
+        else overallCategory = 'Poor';
+        
+        document.getElementById('statOverallCategory').innerHTML = renderCategoryBadge(overallCategory);
     }
 
     window.selectSectionFilter = function(sectionId) {
@@ -1077,7 +1387,7 @@
         document.getElementById('heroFilterName').textContent = sec?.name || 'Section';
 
         const filtered = sectionRankings.filter(s => s.id === sectionId);
-        renderRankings(filtered);
+        renderRankings(filtered.length ? filtered : sectionRankings);
         updateStats(filtered.length ? filtered : sectionRankings);
     };
 
@@ -1092,92 +1402,92 @@
         updateStats(sectionRankings);
     };
 
-    window.viewSectionDetails = function(sectionId) {
-        const sec = sectionRankings.find(s => s.id === sectionId);
-        if (!sec) { showAlert('Section not found', 'error'); return; }
+window.viewSectionDetails = function(sectionId) {
+    const sec = sectionRankings.find(s => s.id === sectionId);
+    if (!sec) { showAlert('Section not found', 'error'); return; }
 
-        document.getElementById('modalSectionName').textContent = `${sec.name} — Student Rankings`;
+    document.getElementById('modalSectionName').textContent = `${sec.name} — Student Rankings`;
 
-        const bd = scoreBadge(sec.averageScore);
-        const rc = rankClass(sec.rank);
+    const categoryBadge = renderCategoryBadge(sec.overallCategory);
 
-        let studentsHtml = '';
-        if (!sec.studentAverages || !sec.studentAverages.length) {
-            studentsHtml = `<div class="text-center py-10 text-text-muted text-sm"><i class="fas fa-user-graduate text-4xl mb-3 opacity-30"></i><div>No students found in this section.</div></div>`;
-        } else {
-            studentsHtml = sec.studentAverages.map((st, i) => {
-                const sr = i < 3 ? ['rank-gold','rank-silver','rank-bronze'][i] : 'rank-other';
-                const sb = st.hasGrades ? scoreBadge(st.averageScore) : null;
-                return `
+    let studentsHtml = '';
+    if (!sec.studentCategories || !sec.studentCategories.length) {
+        studentsHtml = `<div class="text-center py-10 text-text-muted text-sm"><i class="fas fa-user-graduate text-4xl mb-3 opacity-30"></i><div>No students found in this section.</div></div>`;
+    } else {
+        studentsHtml = sec.studentCategories.map((st, i) => {
+            const sr = i < 3 ? ['rank-gold','rank-silver','rank-bronze'][i] : 'rank-other';
+            const studentBadge = st.hasGrades ? renderCategoryBadge(st.overallCategory) : '';
+            
+            // Optional: Add age group badge
+            // const ageBadge = `<span class="text-[10px] ml-2 px-1.5 py-0.5 rounded bg-info-bg text-info">Age: ${st.ageGroup}</span>`;
+            
+            return `
                 <div class="student-rank-row flex items-center gap-3 p-3 rounded-xl border border-border mb-2 bg-white">
                     <div class="${sr} inline-flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold flex-shrink-0">${i+1}</div>
                     <div class="w-9 h-9 rounded-full bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${getInitials(st.name)}</div>
                     <div class="flex-1 min-w-0">
                         <div class="font-semibold text-navy text-[14px] truncate">${st.name}</div>
-                        <div class="text-[12px] text-text-muted truncate">${st.email}</div>
+                        <div class="text-[12px] text-text-muted truncate">${st.email} ${st.ageGroup ? `· Age Group: ${st.ageGroup}` : ''}</div>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <span class="font-bold text-navy text-[16px]">${st.hasGrades ? st.averageScore + '%' : '0%'}</span>
                         ${st.hasGrades
-                            ? `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${sb.cls}">${sb.text}</span>`
+                            ? studentBadge
                             : `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-surface text-text-muted border border-border">No Grades</span>`
                         }
                     </div>
                 </div>`;
-            }).join('');
-        }
+        }).join('');
+    }
 
-        document.getElementById('sectionDetailsBody').innerHTML = `
-            <div class="flex items-center gap-4 mb-5 pb-5 border-b border-border flex-wrap">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                </div>
-                <div class="flex-1">
-                    <div class="font-display font-bold text-navy text-xl">${sec.name}</div>
-                    <div class="text-[13px] text-text-muted mt-0.5">${sec.courseCode || 'PE'} · ${sec.yearLevel || 'N/A'}</div>
-                </div>
+    document.getElementById('sectionDetailsBody').innerHTML = `
+        <div class="flex items-center gap-4 mb-5 pb-5 border-b border-border flex-wrap">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                <i class="fas fa-chalkboard-teacher"></i>
             </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Total Students</div>
-                    <div class="font-mono font-bold text-navy text-2xl">${sec.totalStudents}</div>
-                </div>
-                <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">With Grades</div>
-                    <div class="font-mono font-bold text-navy text-2xl">${sec.studentsWithGrades}</div>
-                    <div class="text-[11px] text-text-muted mt-0.5">${sec.completionRate}% done</div>
-                </div>
-                <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Section Rank</div>
-                    <div class="font-mono font-bold text-navy text-2xl">#${sec.rank}</div>
-                    <div class="text-[11px] text-text-muted mt-0.5">of ${sectionRankings.length}</div>
-                </div>
-                <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Average Score</div>
-                    <div class="font-mono font-bold text-navy text-2xl">${sec.averageScore}%</div>
-                    <div class="text-[11px] mt-0.5 ${bd.cls} inline-block px-2 rounded font-semibold">${bd.text}</div>
-                </div>
+            <div class="flex-1">
+                <div class="font-display font-bold text-navy text-xl">${sec.name}</div>
+                <div class="text-[13px] text-text-muted mt-0.5">${sec.courseCode || 'PE'} · ${sec.yearLevel || 'N/A'}</div>
             </div>
+        </div>
 
-            <div class="mb-6">
-                <div class="flex justify-between text-[12px] text-text-muted mb-1.5">
-                    <span>Completion Progress</span><span>${sec.completionRate}%</span>
-                </div>
-                <div class="h-2 bg-border rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-success to-emerald-400 rounded-full" style="width:${sec.completionRate}%"></div>
-                </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Total Students</div>
+                <div class="font-mono font-bold text-navy text-2xl">${sec.totalStudents}</div>
             </div>
-
-            <div class="font-display font-bold text-navy text-[15px] mb-3 flex items-center gap-2">
-                <i class="fas fa-users text-accent text-base"></i> All Students
+            <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">With Grades</div>
+                <div class="font-mono font-bold text-navy text-2xl">${sec.studentsWithGrades}</div>
+                <div class="text-[11px] text-text-muted mt-0.5">${sec.completionRate}% done</div>
             </div>
-            ${studentsHtml}
-        `;
+            <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Section Rank</div>
+                <div class="font-mono font-bold text-navy text-2xl">#${sec.rank}</div>
+                <div class="text-[11px] text-text-muted mt-0.5">of ${sectionRankings.length}</div>
+            </div>
+            <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Overall Category</div>
+                <div class="font-mono font-bold text-navy text-lg mt-1">${categoryBadge}</div>
+            </div>
+        </div>
 
-        document.getElementById('sectionDetailsModal').classList.add('open');
-    };
+        <div class="mb-6">
+            <div class="flex justify-between text-[12px] text-text-muted mb-1.5">
+                <span>Completion Progress</span><span>${sec.completionRate}%</span>
+            </div>
+            <div class="h-2 bg-border rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-success to-emerald-400 rounded-full" style="width:${sec.completionRate}%"></div>
+            </div>
+        </div>
 
+        <div class="font-display font-bold text-navy text-[15px] mb-3 flex items-center gap-2">
+            <i class="fas fa-users text-accent text-base"></i> All Students
+        </div>
+        ${studentsHtml}
+    `;
+
+    document.getElementById('sectionDetailsModal').classList.add('open');
+};
     window.closeSectionDetailsModal = function() {
         document.getElementById('sectionDetailsModal').classList.remove('open');
     };
@@ -1188,8 +1498,8 @@
 
         switch(sortBy) {
             case 'rank': sorted.sort((a,b) => a.rank - b.rank); break;
-            case 'average-desc': sorted.sort((a,b) => b.averageScore - a.averageScore); break;
-            case 'average-asc': sorted.sort((a,b) => a.averageScore - b.averageScore); break;
+            case 'category-desc': sorted.sort((a,b) => b.categoryScore - a.categoryScore); break;
+            case 'category-asc': sorted.sort((a,b) => a.categoryScore - b.categoryScore); break;
             case 'students-desc': sorted.sort((a,b) => b.totalStudents - a.totalStudents); break;
             case 'students-asc': sorted.sort((a,b) => a.totalStudents - b.totalStudents); break;
             case 'name-asc': sorted.sort((a,b) => a.name.localeCompare(b.name)); break;

@@ -127,15 +127,14 @@
         .status-scheduled { background-color:#fbbf24; color:#000; }
         .status-completed { background-color:#3b82f6; color:#fff; }
 
-        .score-badge { display:inline-block; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600; }
-        .score-excellent { background-color:#d1fae5; color:#065f46; }
-        .score-good { background-color:#fef3c7; color:#92400e; }
-        .score-poor { background-color:#fee2e2; color:#991b1b; }
-
-        .rating-badge { display:inline-block; padding:4px 12px; border-radius:14px; font-weight:600; font-size:11px; }
-        .rating-excellent { background-color:#a4fbb1; color:#000; }
-        .rating-good { background-color:#3b82f6; color:#fff; }
-        .rating-fair { background-color:#fbbf24; color:#000; }
+        /* Category badges - same as grades.html */
+        .category-badge { display:inline-flex; align-items:center; gap:4px; padding:5px 14px; border-radius:20px; font-weight:700; font-size:12px; white-space:nowrap; }
+        .category-excellent { background-color:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .category-good { background-color:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+        .category-average { background-color:#fef9c3; color:#854d0e; border:1px solid #fde047; }
+        .category-below-average { background-color:#fed7aa; color:#9a3412; border:1px solid #fb923c; }
+        .category-poor { background-color:#fce8e6; color:#991b1b; border:1px solid #fca5a5; }
+        .category-default { background-color:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
         .action-buttons { display:flex; gap:6px; justify-content:center; align-items:center; flex-wrap:nowrap; white-space:nowrap; }
         .btn-action { padding:6px 12px; border:none; border-radius:20px; font-weight:600; font-size:12px; cursor:pointer; transition:all 0.2s ease; display:inline-flex; align-items:center; justify-content:center; gap:4px; letter-spacing:0.3px; box-shadow:0 2px 4px rgba(0,0,0,0.05); line-height:1; white-space:nowrap; }
@@ -606,140 +605,139 @@
                 </div>
 
                 <!-- Recent Test Results Section -->
-                <div class="bg-white rounded-2xl shadow-sm border border-border p-6">
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
-                        <h3 class="text-navy font-display font-bold text-xl flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-success to-[#059669] flex items-center justify-center text-white text-[13px]">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            Recent Test Results
-                        </h3>
-                        <button class="inline-flex items-center gap-2 bg-surface hover:bg-border text-text-secondary font-semibold py-2 px-4 rounded-xl transition-all border border-border text-sm" onclick="generateReports()">
-                            <i class="fas fa-file-alt"></i> Generate Reports
-                        </button>
-                    </div>
+  <!-- Recent Test Results Section -->
+<div class="bg-white rounded-2xl shadow-sm border border-border p-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
+        <h3 class="text-navy font-display font-bold text-xl flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-success to-[#059669] flex items-center justify-center text-white text-[13px]">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            Recent Test Results
+        </h3>
+        <button class="inline-flex items-center gap-2 bg-surface hover:bg-border text-text-secondary font-semibold py-2 px-4 rounded-xl transition-all border border-border text-sm" onclick="generateReports()">
+            <i class="fas fa-file-alt"></i> Generate Reports
+        </button>
+    </div>
 
-                    <!-- Summary Statistics Card -->
-                    <div id="resultsSummary" class="summary-card" style="display: none;">
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="summary-stat">
-                                <div class="summary-stat-label">Total Results</div>
-                                <div class="summary-stat-value" id="totalResults">0</div>
+    <!-- Summary Statistics Card -->
+    <div id="resultsSummary" class="summary-card" style="display: none;">
+        <div class="grid grid-cols-3 gap-4">
+            <div class="summary-stat">
+                <div class="summary-stat-label">Total Results</div>
+                <div class="summary-stat-value" id="totalResults">0</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-label">Unique Students</div>
+                <div class="summary-stat-value" id="uniqueStudents">0</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-label">Average Category</div>
+                <div class="summary-stat-value" id="averageCategory">Average</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-search text-text-muted text-sm"></i>
+            </div>
+            <input type="text" id="searchResults"
+                   class="block w-full pl-10 pr-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm transition-all"
+                   placeholder="Search by student name"
+                   onkeyup="filterResultsTable()">
+        </div>
+        <select class="block w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm text-text-secondary" id="filterSection" onchange="filterResultsTable()">
+            <option value="">All Sections</option>
+        </select>
+    </div>
+
+    <button class="mb-5 text-blue hover:text-royal font-medium text-sm flex items-center gap-1.5 transition-colors" onclick="clearResultFilters()">
+        <i class="fas fa-redo"></i> Clear Filters
+    </button>
+
+    <!-- Results Table -->
+    <div class="table-responsive" style="max-height: 500px; overflow-y: auto; border-radius: 8px; border: 1px solid #e1e6ef;">
+        <table class="custom-table" id="resultsTable">
+            <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                    <th>Student Name</th>
+                    <th>Section</th>
+                    <th>Tests</th>
+                    <th>Best Category</th>
+                    <th>Overall Category</th>
+                    <th>Last Activity</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <div class="empty-icon">📊</div>
+                            <div class="empty-title">No Test Results Yet</div>
+                            <div class="empty-text">No students have completed tests yet. Test results will appear here once students start taking and completing their fitness assessments.</div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>   
+</main>
+      <!-- Footer -->
+<footer class="bg-gradient-to-r from-navy to-navy-light text-white py-8 sm:py-12 md:ml-[260px]">                        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 text-center lg:text-left">
+                    <div>
+                        <div class="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                            <img src="UMakfit Logo (2).png" alt="UMak Logo" class="h-12 w-auto object-contain">
+                            <div>
+                                <h6 class="text-accent font-bold text-lg lg:text-xl mb-1">UMakFit</h6>
+                                <p class="text-xs lg:text-sm text-white/60 font-medium">College of Human Kinetics</p>
                             </div>
-                            <div class="summary-stat">
-                                <div class="summary-stat-label">Unique Students</div>
-                                <div class="summary-stat-value" id="uniqueStudents">0</div>
+                        </div>
+                        <p class="text-sm leading-relaxed text-white/70">UMakFit is the official fitness assessment and tracking platform of the College of Human Kinetics at University of Makati.</p>
+                    </div>
+                    <div>
+                        <h6 class="text-accent font-bold text-lg lg:text-xl mb-4">Quick Links</h6>
+ <div class="grid grid-cols-2 gap-4">
+    <div class="space-y-3">
+        <a href="professor.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</a>
+        <a href="studentmanagement.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-users mr-2"></i>Students</a>
+        <a href="addactivities.html" class="block text-accent font-semibold text-sm"><i class="fas fa-dumbbell mr-2"></i>Activities</a>
+    </div>
+    <div class="space-y-3">
+        <a href="addlesson.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-book-open mr-2"></i>Lessons</a>
+        <a href="monitoringactivities.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-bar mr-2"></i>Monitoring</a>
+        <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-graduation-cap mr-2"></i>Grades</a>
+        <a href="sectionranklist.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-trophy mr-2"></i>Section Rank</a>
+    </div>
+</div>
+                    </div>
+                    <div>
+                        <h6 class="text-accent font-bold text-lg lg:text-xl mb-4">Get In Touch</h6>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-map-marker-alt text-accent mt-1"></i>
+                                <p class="text-sm text-white/70">College of Human Kinetics<br>University of Makati<br>JP Rizal Ext., West Rembo, Taguig City</p>
                             </div>
-                            <div class="summary-stat">
-                                <div class="summary-stat-label">Average Score</div>
-                                <div class="summary-stat-value" id="averageScore">0%</div>
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-envelope text-accent"></i>
+                                <a href="mailto:chk@umak.edu.ph" class="text-white/70 hover:text-accent transition-colors text-sm">chk@umak.edu.ph</a>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-phone text-accent"></i>
+                                <span class="text-white/70 text-sm">+63 933 189 7230</span>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Filters -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-search text-text-muted text-sm"></i>
-                            </div>
-                            <input type="text" id="searchResults"
-                                   class="block w-full pl-10 pr-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm transition-all"
-                                   placeholder="Search by student name"
-                                   onkeyup="filterResultsTable()">
-                        </div>
-                        <select class="block w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm text-text-secondary" id="filterSection" onchange="filterResultsTable()">
-                            <option value="">All Sections</option>
-                        </select>
-                    </div>
-
-                    <button class="mb-5 text-blue hover:text-royal font-medium text-sm flex items-center gap-1.5 transition-colors" onclick="clearResultFilters()">
-                        <i class="fas fa-redo"></i> Clear Filters
-                    </button>
-
-                    <!-- Results Table -->
-                    <div class="table-responsive" style="max-height: 420px; overflow-y: auto; border-radius: 8px; border: 1px solid #e1e6ef;">
-                        <table class="custom-table" id="resultsTable">
-                            <thead>
-                                <tr>
-                                    <th>Student Name</th>
-                                    <th>Section</th>
-                                    <th>Total Tests</th>
-                                    <th>Best Score</th>
-                                    <th>Average Score</th>
-                                    <th>Last Activity</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="resultsTableBody">
-                                <tr>
-                                    <td colspan="7">
-                                        <div class="empty-state">
-                                            <div class="empty-icon">📊</div>
-                                            <div class="empty-title">No Test Results Yet</div>
-                                            <div class="empty-text">No students have completed tests yet. Test results will appear here once students start taking and completing their fitness assessments.</div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                </div>
+                <div class="border-t border-white/10 mt-8 pt-6 text-center">
+                    <p class="text-xs text-white/40">© 2025 University of Makati — College of Human Kinetics. All Rights Reserved.</p>
                 </div>
             </div>
-
-            <!-- Footer -->
-            <footer class="bg-gradient-to-r from-navy to-navy-light text-white py-8 sm:py-12">
-                <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 text-center lg:text-left">
-                        <div>
-                            <div class="flex items-center justify-center lg:justify-start gap-3 mb-4">
-                                <img src="UMakfit Logo (2).png" alt="UMak Logo" class="h-12 w-auto object-contain">
-                                <div>
-                                    <h6 class="text-accent font-bold text-lg lg:text-xl mb-1">UMakFit</h6>
-                                    <p class="text-xs lg:text-sm text-white/60 font-medium">College of Human Kinetics</p>
-                                </div>
-                            </div>
-                            <p class="text-sm leading-relaxed text-white/70">UMakFit is the official fitness assessment and tracking platform of the College of Human Kinetics at University of Makati.</p>
-                        </div>
-                        <div>
-                            <h6 class="text-accent font-bold text-lg lg:text-xl mb-4">Quick Links</h6>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="space-y-3">
-                                    <a href="professor.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</a>
-                                    <a href="studentmanagement.html" class="block text-accent font-semibold text-sm"><i class="fas fa-users mr-2"></i>Students</a>
-                                    <a href="addactivities.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-dumbbell mr-2"></i>Activities</a>
-                                </div>
-                                <div class="space-y-3">
-                                    <a href="addlesson.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-book-open mr-2"></i>Lessons</a>
-                                    <a href="monitoringactivities.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-bar mr-2"></i>Monitoring</a>
-                                    <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-graduation-cap mr-2"></i>Grades</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h6 class="text-accent font-bold text-lg lg:text-xl mb-4">Get In Touch</h6>
-                            <div class="space-y-3">
-                                <div class="flex items-start gap-3">
-                                    <i class="fas fa-map-marker-alt text-accent mt-1"></i>
-                                    <p class="text-sm text-white/70">College of Human Kinetics<br>University of Makati<br>JP Rizal Ext., West Rembo, Taguig City</p>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <i class="fas fa-envelope text-accent"></i>
-                                    <a href="mailto:chk@umak.edu.ph" class="text-white/70 hover:text-accent transition-colors text-sm">chk@umak.edu.ph</a>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <i class="fas fa-phone text-accent"></i>
-                                    <span class="text-white/70 text-sm">+63 933 189 7230</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="border-t border-white/10 mt-8 pt-6 text-center">
-                        <p class="text-xs text-white/40">© 2025 University of Makati — College of Human Kinetics. All Rights Reserved.</p>
-                    </div>
-                </div>
-            </footer>
-        </main>
+        </footer>
     </div>
 
     <!-- ── STUDENT TEST RESULTS MODAL ── -->
@@ -761,7 +759,7 @@
                     <table class="custom-table" style="min-width: 100%;">
                         <thead style="position: sticky; top: 0; background: linear-gradient(90deg, rgba(10,22,40,0.92) 0%, rgba(30,77,140,0.92) 100%); z-index: 10;">
                             <tr>
-                                <th>Date & Time</th><th>Test Name</th><th>Score</th><th>Rating</th><th>Result</th><th>Attempt</th>
+                                <th>Date & Time</th><th>Test Name</th><th>Category</th><th>Result</th><th>Attempt</th>
                             </tr>
                         </thead>
                         <tbody id="studentTestsTableBody"></tbody>
@@ -869,11 +867,6 @@
                 <div class="form-group">
                     <label class="form-label">Deadline Time <span class="text-danger">*</span></label>
                     <input type="time" class="form-control" id="editTestDeadlineTime" required>
-                </div>
-                <div class="form-group" id="editTestTargetGroup" style="display: none;">
-                    <label class="form-label" id="editTestTargetLabel">Test Target <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="editTestTarget" min="1">
-                    <small class="text-text-muted text-xs mt-1 block" id="editTestTargetHint"></small>
                 </div>
                 <input type="hidden" id="editAttemptsAllowed" value="2">
                 <input type="hidden" id="editTestId">
@@ -1155,6 +1148,181 @@
         window.studentResultsMap = new Map();
         window.allScheduledTests = [];
 
+        // ===== NORM-BASED CLASSIFICATION (same as grades.html) =====
+        const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+
+        function extractNumericResult(result) {
+            if (typeof result === 'object' && result !== null) {
+                return parseFloat(result.value || result.result || result.score || result.count || result.repetitions || result.time || 0) || 0;
+            }
+            if (typeof result === 'string') {
+                const match = result.match(/(\d+\.?\d*)/);
+                if (match) return parseFloat(match[1]);
+            }
+            return parseFloat(result) || 0;
+        }
+
+        function getCategoryIcon(category) {
+            switch(category) {
+                case 'Excellent': return '⭐';
+                case 'Good': return '👍';
+                case 'Average': return '📊';
+                case 'Below Average': return '📉';
+                case 'Poor': return '⚠️';
+                default: return '—';
+            }
+        }
+
+        function getCategoryClass(category) {
+            switch(category) {
+                case 'Excellent': return 'category-excellent';
+                case 'Good': return 'category-good';
+                case 'Average': return 'category-average';
+                case 'Below Average': return 'category-below-average';
+                case 'Poor': return 'category-poor';
+                default: return 'category-default';
+            }
+        }
+
+        function renderCategoryBadge(category) {
+            if (!category || category === 'No Grades') return '<span class="category-badge category-default">— No Grades</span>';
+            const icon = getCategoryIcon(category);
+            const className = getCategoryClass(category);
+            return `<span class="category-badge ${className}">${icon} ${category}</span>`;
+        }
+
+        function getPushUpCategory(genderKey, ageGroup, reps) {
+            if (genderKey === 'male') {
+                const norms = { '15-18':[40,31,21,11], '19-22':[38,28,18,9], '23-26':[35,25,16,8], '27-30':[32,23,14,6] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (reps >= t[0]) return 'Excellent';
+                if (reps >= t[1]) return 'Good';
+                if (reps >= t[2]) return 'Average';
+                if (reps >= t[3]) return 'Below Average';
+                return 'Poor';
+            } else {
+                const norms = { '15-18':[25,19,13,7], '19-22':[23,17,11,6], '23-26':[20,15,9,5], '27-30':[18,13,8,4] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (reps >= t[0]) return 'Excellent';
+                if (reps >= t[1]) return 'Good';
+                if (reps >= t[2]) return 'Average';
+                if (reps >= t[3]) return 'Below Average';
+                return 'Poor';
+            }
+        }
+
+        function getCurlUpCategory(genderKey, ageGroup, reps) {
+            if (genderKey === 'male') {
+                const norms = { '15-18':[50,41,31,21], '19-22':[47,38,28,19], '23-26':[44,35,25,17], '27-30':[40,32,22,15] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (reps >= t[0]) return 'Excellent';
+                if (reps >= t[1]) return 'Good';
+                if (reps >= t[2]) return 'Average';
+                if (reps >= t[3]) return 'Below Average';
+                return 'Poor';
+            } else {
+                const norms = { '15-18':[45,36,26,16], '19-22':[42,34,24,15], '23-26':[39,31,21,13], '27-30':[36,28,19,11] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (reps >= t[0]) return 'Excellent';
+                if (reps >= t[1]) return 'Good';
+                if (reps >= t[2]) return 'Average';
+                if (reps >= t[3]) return 'Below Average';
+                return 'Poor';
+            }
+        }
+
+        function getSitReachCategory(genderKey, ageGroup, cm) {
+            if (genderKey === 'male') {
+                const norms = { '15-18':[38,33,26,18], '19-22':[37,32,25,17], '23-26':[35.5,30.5,23.5,15.5], '27-30':[34,29,22,14] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (cm >= t[0]) return 'Excellent';
+                if (cm >= t[1]) return 'Good';
+                if (cm >= t[2]) return 'Average';
+                if (cm >= t[3]) return 'Below Average';
+                return 'Poor';
+            } else {
+                const norms = { '15-18':[39,34,27,19], '19-22':[38,33,26,18], '23-26':[37,32,25,17], '27-30':[36,31,24,16] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (cm >= t[0]) return 'Excellent';
+                if (cm >= t[1]) return 'Good';
+                if (cm >= t[2]) return 'Average';
+                if (cm >= t[3]) return 'Below Average';
+                return 'Poor';
+            }
+        }
+
+        function getStepTestCategory(genderKey, ageGroup, hr) {
+            if (genderKey === 'male') {
+                const norms = { '15-18':[84,97,108,118], '19-22':[79,89,105,116], '23-26':[80,90,106,117], '27-30':[81,91,107,118] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (hr <= t[0]) return 'Excellent';
+                if (hr <= t[1]) return 'Good';
+                if (hr <= t[2]) return 'Average';
+                if (hr <= t[3]) return 'Below Average';
+                return 'Poor';
+            } else {
+                const norms = { '15-18':[89,103,113,124], '19-22':[85,98,109,118], '23-26':[86,99,110,119], '27-30':[88,101,112,121] };
+                const t = norms[ageGroup] || norms['19-22'];
+                if (hr <= t[0]) return 'Excellent';
+                if (hr <= t[1]) return 'Good';
+                if (hr <= t[2]) return 'Average';
+                if (hr <= t[3]) return 'Below Average';
+                return 'Poor';
+            }
+        }
+
+        function getNormCategory(testName, result, genderKey = 'male', ageGroup = '19-22') {
+            const normalized = (testName || '').toLowerCase();
+            const value = extractNumericResult(result);
+
+            if (normalized.includes('push-up') || normalized.includes('pushup'))
+                return getPushUpCategory(genderKey, ageGroup, value);
+            if (normalized.includes('curl-up') || normalized.includes('curl up'))
+                return getCurlUpCategory(genderKey, ageGroup, value);
+            if (normalized.includes('sit-and-reach') || normalized.includes('sit and reach'))
+                return getSitReachCategory(genderKey, ageGroup, value);
+            if (normalized.includes('step test') || normalized.includes('3-minute'))
+                return getStepTestCategory(genderKey, ageGroup, value);
+
+            // For skinfold / other tests
+            if (normalized.includes('skinfold') || normalized.includes('skin fold')) {
+                if (typeof result === 'string') {
+                    const classMatch = result.match(/\(([^)]+)\)/);
+                    if (classMatch) {
+                        const cls = classMatch[1];
+                        if (cls === 'Athletic' || cls === 'Fitness') return 'Excellent';
+                        if (cls === 'Average') return 'Average';
+                        if (cls === 'Essential Fat') return 'Good';
+                        if (cls === 'Overfat') return 'Below Average';
+                        if (cls === 'Obese') return 'Poor';
+                    }
+                }
+                return 'Average';
+            }
+
+            // BMI
+            if (normalized.includes('bmi')) {
+                const bmi = extractNumericResult(result);
+                if (bmi >= 18.5 && bmi <= 24.9) return 'Excellent';
+                if ((bmi >= 17.0 && bmi < 18.5) || (bmi >= 25.0 && bmi < 27.0)) return 'Good';
+                if ((bmi >= 16.0 && bmi < 17.0) || (bmi >= 27.0 && bmi < 30.0)) return 'Average';
+                return 'Below Average';
+            }
+
+            return 'Average';
+        }
+
+        function getOverallCategory(categories) {
+            if (!categories || categories.length === 0) return 'Average';
+            const scores = categories.map(c => CATEGORY_ORDER[c] || 3);
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            if (avg >= 4.5) return 'Excellent';
+            if (avg >= 3.5) return 'Good';
+            if (avg >= 2.5) return 'Average';
+            if (avg >= 1.5) return 'Below Average';
+            return 'Poor';
+        }
+
         onAuthStateChanged(auth, async (user) => {
             const loadingScreen = document.getElementById('loadingScreen');
             const mainContent = document.getElementById('mainContent');
@@ -1196,19 +1364,6 @@
                 options += `<option value="${section}">${section} (${count} test${count !== 1 ? 's' : ''})</option>`;
             });
             select.innerHTML = options;
-        }
-
-        function getRating(score) {
-            if (score >= 90) return { text: 'Excellent', class: 'rating-excellent' };
-            if (score >= 80) return { text: 'Good', class: 'rating-good' };
-            if (score >= 70) return { text: 'Fair', class: 'rating-fair' };
-            return { text: 'Needs Improvement', class: 'rating-fair' };
-        }
-
-        function getScoreClass(score) {
-            if (score >= 90) return 'score-excellent';
-            if (score >= 70) return 'score-good';
-            return 'score-poor';
         }
 
         function renderScheduleTable(tests, enabledTestsMap) {
@@ -1369,234 +1524,293 @@
             }
         }
 
-        async function loadTestResults(userEmail, userId) {
-            try {
-                const filterSection = document.getElementById('filterSection');
-                filterSection.innerHTML = '';
+async function loadTestResults(userEmail, userId) {
+    try {
+        const filterSection = document.getElementById('filterSection');
+        filterSection.innerHTML = '';
 
-                if (window.assignedSections && window.assignedSections.length > 0) {
-                    const uniqueSections = new Set();
-                    window.assignedSections.forEach(section => {
-                        if (!uniqueSections.has(section.section)) {
-                            uniqueSections.add(section.section);
-                            const option = document.createElement('option');
-                            option.value = section.section;
-                            option.textContent = `${section.section} (${section.students} students)`;
-                            filterSection.appendChild(option);
-                        }
-                    });
-                    if (filterSection.options.length > 0) {
-                        filterSection.value = filterSection.options[0].value;
-                        filterResultsTable();
-                    }
-                } else {
+        // Load all students data para makuha ang ages
+        const studentsMap = new Map();
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        studentsSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.email) {
+                studentsMap.set(data.email, data);
+            }
+        });
+
+        if (window.assignedSections && window.assignedSections.length > 0) {
+            const uniqueSections = new Set();
+            window.assignedSections.forEach(section => {
+                if (!uniqueSections.has(section.section)) {
+                    uniqueSections.add(section.section);
                     const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No sections assigned';
-                    option.disabled = true;
+                    option.value = section.section;
+                    option.textContent = `${section.section} (${section.students} students)`;
                     filterSection.appendChild(option);
                 }
-
-                const resultsRef = collection(db, 'testResults');
-                let resultsSnapshot;
-
-                if (window.assignedSections.length > 0) {
-                    const sectionNames = window.assignedSections.map(s => s.section);
-                    const batches = [];
-                    for (let i = 0; i < sectionNames.length; i += 10) {
-                        batches.push(getDocs(query(resultsRef, where('section', 'in', sectionNames.slice(i, i + 10)))));
-                    }
-                    const batchResults = await Promise.all(batches);
-                    resultsSnapshot = {
-                        empty: batchResults.every(b => b.empty),
-                        forEach: (cb) => batchResults.forEach(b => b.forEach(cb)),
-                        size: batchResults.reduce((acc, b) => acc + b.size, 0)
-                    };
-                } else {
-                    resultsSnapshot = await getDocs(resultsRef);
-                }
-
-                const tableBody = document.getElementById('resultsTableBody');
-                if (!resultsSnapshot.empty) {
-                    window.studentResultsMap = new Map();
-                    const testGroups = new Map();
-
-                    resultsSnapshot.forEach((docSnap) => {
-                        const result = docSnap.data();
-                        if (result.status !== 'completed') return;
-                        const studentEmail = result.studentEmail;
-                        if (!studentEmail) return;
-
-                        const score = calculateTestScore(result.testName, result.resultData || result.result || result.repetitions || result, result.testTarget);
-                        const validScore = Math.max(0, Math.min(100, score));
-
-                        let submittedDate = new Date();
-                        if (result.submittedAt) {
-                            if (typeof result.submittedAt.toDate === 'function') submittedDate = result.submittedAt.toDate();
-                            else if (typeof result.submittedAt === 'string') submittedDate = new Date(result.submittedAt);
-                            else if (result.submittedAt.seconds) submittedDate = new Date(result.submittedAt.seconds * 1000);
-                        }
-
-                        const testId = result.testId || docSnap.id;
-                        const groupKey = `${studentEmail}_${testId}`;
-                        if (!testGroups.has(groupKey) || validScore > testGroups.get(groupKey).score) {
-                            testGroups.set(groupKey, { ...result, id: docSnap.id, score: validScore, submittedAt: submittedDate });
-                        }
-                    });
-
-                    testGroups.forEach((result) => {
-                        const studentEmail = result.studentEmail;
-                        if (!window.studentResultsMap.has(studentEmail)) {
-                            window.studentResultsMap.set(studentEmail, { studentName: result.studentName || 'Unknown', section: result.section || 'N/A', tests: [], totalTests: 0, bestScore: 0, averageScore: 0, lastActivity: null, lastTestName: '' });
-                        }
-                        const studentData = window.studentResultsMap.get(studentEmail);
-                        studentData.tests.push({ id: result.id, testName: result.testName, score: result.score, result: result.result || result.resultData || result.repetitions || 'N/A', date: result.submittedAt, attempt: result.attemptNumber || 1, rating: getRating(result.score) });
-                        studentData.totalTests++;
-                        if (result.score > studentData.bestScore) studentData.bestScore = result.score;
-                        if (!studentData.lastActivity || result.submittedAt > studentData.lastActivity) {
-                            studentData.lastActivity = result.submittedAt;
-                            studentData.lastTestName = result.testName;
-                        }
-                    });
-
-                    window.studentResultsMap.forEach((studentData) => {
-                        if (studentData.tests.length > 0) {
-                            const totalScore = studentData.tests.reduce((sum, test) => sum + test.score, 0);
-                            studentData.averageScore = parseFloat((totalScore / studentData.tests.length).toFixed(2));
-                        }
-                    });
-
-                    renderStudentResultsTable();
-                } else {
-                    tableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No Test Results Yet</div><div class="empty-text">No students have completed tests yet.</div></div></td></tr>`;
-                }
-            } catch (error) {
-                console.error('Error loading test results:', error);
+            });
+            if (filterSection.options.length > 0) {
+                filterSection.value = filterSection.options[0].value;
+                filterResultsTable();
             }
+        } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No sections assigned';
+            option.disabled = true;
+            filterSection.appendChild(option);
         }
 
-        function renderStudentResultsTable() {
-            const tableBody = document.getElementById('resultsTableBody');
-            let html = '';
-            const studentsArray = Array.from(window.studentResultsMap.entries()).sort((a, b) => {
-                const dateA = a[1].lastActivity || new Date(0);
-                const dateB = b[1].lastActivity || new Date(0);
-                return dateB - dateA;
-            });
+        const resultsRef = collection(db, 'testResults');
+        let resultsSnapshot;
 
-            studentsArray.forEach(([studentEmail, studentData]) => {
-                const lastActivityFormatted = studentData.lastActivity ?
-                    `<strong>${studentData.lastTestName}</strong><br><small style="color: #8a98ae;">${studentData.lastActivity.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })}</small>` :
-                    'No activity';
-                html += `<tr onclick="showStudentTestResults('${studentEmail}')" style="cursor: pointer;">
-                    <td data-label="Student Name"><strong>${studentData.studentName}</strong></td>
-                    <td data-label="Section">${studentData.section}</td>
-                    <td data-label="Total Tests"><strong>${studentData.totalTests}</strong></td>
-                    <td data-label="Best Score"><span class="score-badge ${getScoreClass(studentData.bestScore)}">${studentData.bestScore}%</span></td>
-                    <td data-label="Average Score"><strong>${studentData.averageScore}%</strong></td>
-                    <td data-label="Last Activity">${lastActivityFormatted}</td>
-                    <td data-label="Actions"><button class="btn-action btn-view" onclick="event.stopPropagation(); showStudentTestResults('${studentEmail}')"><i class="fas fa-chart-line"></i> View Results</button></td>
-                </tr>`;
-            });
-
-            tableBody.innerHTML = html || `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No Results Found</div><div class="empty-text">No test results match your filters.</div></div></td></tr>`;
+        if (window.assignedSections.length > 0) {
+            const sectionNames = window.assignedSections.map(s => s.section);
+            const batches = [];
+            for (let i = 0; i < sectionNames.length; i += 10) {
+                batches.push(getDocs(query(resultsRef, where('section', 'in', sectionNames.slice(i, i + 10)))));
+            }
+            const batchResults = await Promise.all(batches);
+            resultsSnapshot = {
+                empty: batchResults.every(b => b.empty),
+                forEach: (cb) => batchResults.forEach(b => b.forEach(cb)),
+                size: batchResults.reduce((acc, b) => acc + b.size, 0)
+            };
+        } else {
+            resultsSnapshot = await getDocs(resultsRef);
         }
 
-        window.showStudentTestResults = function(studentEmail) {
-            const studentData = window.studentResultsMap.get(studentEmail);
-            if (!studentData) return;
-            document.getElementById('modalStudentName').textContent = `${studentData.studentName}'s Test Results (${studentData.totalTests})`;
-            const nameParts = studentData.studentName.split(' ');
-            const initials = (nameParts[0]?.charAt(0) || '') + (nameParts[nameParts.length - 1]?.charAt(0) || '');
-            document.getElementById('studentAvatar').textContent = initials.toUpperCase();
-            document.getElementById('studentNameDetail').textContent = studentData.studentName;
-            document.getElementById('studentSectionDetail').textContent = studentData.section;
-            document.getElementById('studentInfoHeader').style.display = 'flex';
-            const sortedTests = studentData.tests.sort((a, b) => b.date - a.date);
-            let html = '';
-            sortedTests.forEach((test) => {
-                const dateFormatted = test.date.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
-                const timeFormatted = test.date.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                html += `<tr>
-                    <td>${dateFormatted}<br><small style="color:#8a98ae;">${timeFormatted}</small></td>
-                    <td><strong>${test.testName}</strong></td>
-                    <td><span class="score-badge ${getScoreClass(test.score)}">${test.score}%</span></td>
-                    <td><span class="rating-badge ${test.rating.class}">${test.rating.text}</span></td>
-                    <td>${test.result || 'N/A'}</td>
-                    <td>Attempt ${test.attempt}</td>
-                </tr>`;
+        const tableBody = document.getElementById('resultsTableBody');
+        if (!resultsSnapshot.empty) {
+            window.studentResultsMap = new Map();
+            const testGroups = new Map(); // Keep best result per test per student
+
+            resultsSnapshot.forEach((docSnap) => {
+                const result = docSnap.data();
+                if (result.status !== 'completed') return;
+                const studentEmail = result.studentEmail;
+                if (!studentEmail) return;
+
+                // Get student data for age
+                const studentData = studentsMap.get(studentEmail);
+                const ageGroup = getAgeGroupFromStudent(studentData);
+
+                // Get gender for norm-based classification
+                const gender = (result.gender || '').toLowerCase();
+                const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                
+                // Get norm category with CORRECT age group
+                const category = getNormCategory(
+                    result.testName || '', 
+                    result.result || result.resultData || result.repetitions || result, 
+                    genderKey, 
+                    ageGroup  // ← GAMITIN ANG ACTUAL AGE GROUP!
+                );
+
+                let submittedDate = new Date();
+                if (result.submittedAt) {
+                    if (typeof result.submittedAt.toDate === 'function') submittedDate = result.submittedAt.toDate();
+                    else if (typeof result.submittedAt === 'string') submittedDate = new Date(result.submittedAt);
+                    else if (result.submittedAt.seconds) submittedDate = new Date(result.submittedAt.seconds * 1000);
+                }
+
+                const testId = result.testId || docSnap.id;
+                const groupKey = `${studentEmail}_${testId}`;
+                
+                // Keep best category per test (based on CATEGORY_ORDER)
+                if (!testGroups.has(groupKey) || 
+                    (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[testGroups.get(groupKey).category] || 0)) {
+                    testGroups.set(groupKey, { 
+                        ...result, 
+                        id: docSnap.id, 
+                        category, 
+                        testName: result.testName || 'Unknown Test',
+                        submittedAt: submittedDate,
+                        ageGroup: ageGroup // store for debugging
+                    });
+                }
             });
-            document.getElementById('studentTestsTableBody').innerHTML = html;
-            document.getElementById('studentTestResultsModal').style.display = 'flex';
-            const modalBody = document.getElementById('modalBodyContent');
-            if (modalBody) modalBody.scrollTop = 0;
-        };
+
+            testGroups.forEach((result) => {
+                const studentEmail = result.studentEmail;
+                if (!window.studentResultsMap.has(studentEmail)) {
+                    window.studentResultsMap.set(studentEmail, { 
+                        studentName: result.studentName || 'Unknown', 
+                        section: result.section || 'N/A', 
+                        tests: [], 
+                        totalTests: 0,
+                        categories: [],
+                        testNames: [], // Store test names for each category
+                        lastActivity: null, 
+                        lastTestName: '' 
+                    });
+                }
+                const studentData = window.studentResultsMap.get(studentEmail);
+                studentData.tests.push({ 
+                    id: result.id, 
+                    testName: result.testName, 
+                    category: result.category,
+                    result: result.result || result.resultData || result.repetitions || 'N/A', 
+                    date: result.submittedAt,
+                    attempt: result.attemptNumber || 1
+                });
+                studentData.categories.push(result.category);
+                studentData.testNames.push(result.testName);
+                studentData.totalTests++;
+                if (!studentData.lastActivity || result.submittedAt > studentData.lastActivity) {
+                    studentData.lastActivity = result.submittedAt;
+                    studentData.lastTestName = result.testName;
+                }
+            });
+
+            // Calculate overall category for each student
+            window.studentResultsMap.forEach((studentData) => {
+                studentData.overallCategory = getOverallCategory(studentData.categories);
+                
+                // Find best category (highest in CATEGORY_ORDER)
+                let bestCategory = 'Average';
+                let bestScore = 0;
+                studentData.categories.forEach((cat, index) => {
+                    const score = CATEGORY_ORDER[cat] || 3;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCategory = cat;
+                        // Store which test gave this best category
+                        studentData.bestTestForCategory = studentData.testNames[index];
+                    }
+                });
+                studentData.bestCategory = bestCategory;
+            });
+
+            renderStudentResultsTable();
+        } else {
+            tableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No Test Results Yet</div><div class="empty-text">No students have completed tests yet.</div></div></td></tr>`;
+        }
+    } catch (error) {
+        console.error('Error loading test results:', error);
+    }
+}
+ function renderStudentResultsTable() {
+    const tableBody = document.getElementById('resultsTableBody');
+    let html = '';
+    const studentsArray = Array.from(window.studentResultsMap.entries()).sort((a, b) => {
+        const dateA = a[1].lastActivity || new Date(0);
+        const dateB = b[1].lastActivity || new Date(0);
+        return dateB - dateA;
+    });
+
+    studentsArray.forEach(([studentEmail, studentData]) => {
+        const lastActivityFormatted = studentData.lastActivity ?
+            `<strong>${studentData.lastTestName}</strong><br><small style="color: #8a98ae;">${studentData.lastActivity.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })}</small>` :
+            'No activity';
+        
+        // Find which test gave the best category
+        let bestTestName = '—';
+        let bestCategoryScore = 0;
+        studentData.tests.forEach(test => {
+            const score = CATEGORY_ORDER[test.category] || 3;
+            if (score > bestCategoryScore) {
+                bestCategoryScore = score;
+                bestTestName = test.testName;
+            }
+        });
+        
+        const bestCategoryBadge = renderCategoryBadge(studentData.bestCategory);
+        const overallCategoryBadge = renderCategoryBadge(studentData.overallCategory);
+        
+        // Get all tests for tooltip/hover
+        const testDetails = studentData.tests.map(test => {
+            return `${test.testName}: ${test.category}`;
+        }).join('\n');
+        
+        html += `<tr onclick="showStudentTestResults('${studentEmail}')" style="cursor: pointer;" title="Click to view all test results">
+            <td data-label="Student Name"><strong>${studentData.studentName}</strong></td>
+            <td data-label="Section">${studentData.section}</td>
+            <td data-label="Tests"><strong>${studentData.totalTests}</strong></td>
+            <td data-label="Best Category" title="From: ${bestTestName}">
+                <div class="flex flex-col items-center">
+                    ${bestCategoryBadge}
+                    <span class="text-[10px] text-text-muted mt-1">via ${bestTestName}</span>
+                </div>
+            </td>
+            <td data-label="Overall Category" title="Based on ${studentData.totalTests} test${studentData.totalTests !== 1 ? 's' : ''}: ${testDetails}">
+                <div class="flex flex-col items-center">
+                    ${overallCategoryBadge}
+                    <span class="text-[10px] text-text-muted mt-1">from ${studentData.totalTests} test${studentData.totalTests !== 1 ? 's' : ''}</span>
+                </div>
+            </td>
+            <td data-label="Last Activity">${lastActivityFormatted}</td>
+            <td data-label="Actions"><button class="btn-action btn-view" onclick="event.stopPropagation(); showStudentTestResults('${studentEmail}')"><i class="fas fa-chart-line"></i> View Results</button></td>
+        </tr>`;
+    });
+
+    tableBody.innerHTML = html || `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No Results Found</div><div class="empty-text">No test results match your filters.</div></div></td></tr>`;
+    
+    // Update summary statistics
+    if (studentsArray.length > 0) {
+        document.getElementById('resultsSummary').style.display = 'block';
+        document.getElementById('totalResults').textContent = studentsArray.reduce((sum, [_, data]) => sum + data.totalTests, 0);
+        document.getElementById('uniqueStudents').textContent = studentsArray.length;
+        
+        // Calculate average category
+        const categoryCounts = { 'Excellent': 0, 'Good': 0, 'Average': 0, 'Below Average': 0, 'Poor': 0 };
+        studentsArray.forEach(([_, data]) => {
+            categoryCounts[data.overallCategory] = (categoryCounts[data.overallCategory] || 0) + 1;
+        });
+        
+        let mostCommonCategory = 'Average';
+        let maxCount = 0;
+        Object.entries(categoryCounts).forEach(([cat, cnt]) => {
+            if (cnt > maxCount) { maxCount = cnt; mostCommonCategory = cat; }
+        });
+        
+        document.getElementById('averageCategory').innerHTML = renderCategoryBadge(mostCommonCategory);
+    } else {
+        document.getElementById('resultsSummary').style.display = 'none';
+    }
+}
+ window.showStudentTestResults = function(studentEmail) {
+    const studentData = window.studentResultsMap.get(studentEmail);
+    if (!studentData) return;
+    document.getElementById('modalStudentName').textContent = `${studentData.studentName}'s Test Results (${studentData.totalTests})`;
+    const nameParts = studentData.studentName.split(' ');
+    const initials = (nameParts[0]?.charAt(0) || '') + (nameParts[nameParts.length - 1]?.charAt(0) || '');
+    document.getElementById('studentAvatar').textContent = initials.toUpperCase();
+    document.getElementById('studentNameDetail').textContent = studentData.studentName;
+    document.getElementById('studentSectionDetail').textContent = studentData.section;
+    document.getElementById('studentInfoHeader').style.display = 'flex';
+    
+    // Optional: Show age group info
+    // You can add this if you want to display age group
+    // const ageGroupInfo = document.createElement('small');
+    // ageGroupInfo.className = 'text-xs text-text-muted ml-2';
+    // ageGroupInfo.textContent = `Age Group: ${studentData.ageGroup || '19-22'}`;
+    // document.getElementById('studentSectionDetail').appendChild(ageGroupInfo);
+    
+    const sortedTests = studentData.tests.sort((a, b) => b.date - a.date);
+    let html = '';
+    sortedTests.forEach((test) => {
+        const dateFormatted = test.date.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+        const timeFormatted = test.date.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const categoryBadge = renderCategoryBadge(test.category);
+        html += `<tr>
+            <td>${dateFormatted}<br><small style="color:#8a98ae;">${timeFormatted}</small></td>
+            <td><strong>${test.testName}</strong></td>
+            <td>${categoryBadge}</td>
+            <td>${test.result || 'N/A'}</td>
+            <td>Attempt ${test.attempt || 1}</td>
+        </tr>`;
+    });
+    document.getElementById('studentTestsTableBody').innerHTML = html;
+    document.getElementById('studentTestResultsModal').style.display = 'flex';
+    const modalBody = document.getElementById('modalBodyContent');
+    if (modalBody) modalBody.scrollTop = 0;
+};
 
         window.closeStudentTestResultsModal = function() {
             document.getElementById('studentTestResultsModal').style.display = 'none';
         };
-
-        function calculateTestScore(testName, result, testTarget = null) {
-            const normalized = testName.toLowerCase().trim();
-            if (result && typeof result === 'object' && result !== null) {
-                if (result.score !== undefined && result.score !== null) {
-                    const score = parseFloat(result.score);
-                    if (!isNaN(score) && score >= 0 && score <= 100) return score;
-                }
-            }
-            let numericValue = 0;
-            if (typeof result === 'object' && result !== null) {
-                numericValue = result.repetitions || result.time || result.distance || result.value || result.result || result.count || result.score || 0;
-            } else if (typeof result === 'string') {
-                const match = result.match(/(\d+\.?\d*)/);
-                numericValue = match ? parseFloat(match[1]) : parseFloat(result) || 0;
-            } else {
-                numericValue = parseFloat(result) || 0;
-            }
-
-            // Per-test numeric targets are no longer used when creating activities;
-            // this function now relies only on the raw performance value.
-
-            if (normalized.includes('push-up') || normalized.includes('pushup')) {
-                const r = numericValue;
-                if (r >= 40) return 100; if (r >= 35) return 95; if (r >= 30) return 90; if (r >= 25) return 85; if (r >= 20) return 80; if (r >= 15) return 75; if (r >= 10) return 70; if (r >= 5) return 65; return 60;
-            }
-            if (normalized.includes('sit-up') || normalized.includes('situp')) {
-                const r = numericValue;
-                if (r >= 50) return 100; if (r >= 45) return 95; if (r >= 40) return 90; if (r >= 35) return 85; if (r >= 30) return 80; if (r >= 25) return 75; if (r >= 20) return 70; if (r >= 15) return 65; return 60;
-            }
-            if (normalized.includes('curl-up')) {
-                const r = numericValue;
-                if (r >= 75) return 100; if (r >= 60) return 95; if (r >= 50) return 90; if (r >= 40) return 85; if (r >= 30) return 80; if (r >= 25) return 75; if (r >= 20) return 70; return 65;
-            }
-            if (normalized.includes('plank')) {
-                let seconds = 0;
-                if (typeof numericValue === 'string' && numericValue.includes(':')) { const [m, s] = numericValue.split(':').map(Number); seconds = m*60 + (s||0); } else seconds = numericValue;
-                if (seconds >= 180) return 100; if (seconds >= 150) return 95; if (seconds >= 120) return 90; if (seconds >= 100) return 85; if (seconds >= 80) return 80; if (seconds >= 60) return 75; if (seconds >= 45) return 70; if (seconds >= 30) return 65; return 60;
-            }
-            if (normalized.includes('step test') || normalized.includes('3-minute')) {
-                const hr = numericValue;
-                if (hr <= 70) return 100; if (hr <= 80) return 95; if (hr <= 90) return 90; if (hr <= 100) return 85; if (hr <= 110) return 80; if (hr <= 120) return 75; if (hr <= 130) return 70; return 65;
-            }
-            if (normalized.includes('mile') || normalized.includes('run')) {
-                let totalSeconds = 0;
-                if (typeof numericValue === 'string' && numericValue.includes(':')) { const [m, s] = numericValue.split(':').map(Number); totalSeconds = m*60 + (s||0); } else totalSeconds = numericValue;
-                if (totalSeconds <= 360) return 100; if (totalSeconds <= 420) return 95; if (totalSeconds <= 480) return 90; if (totalSeconds <= 540) return 85; if (totalSeconds <= 600) return 80; if (totalSeconds <= 660) return 75; if (totalSeconds <= 720) return 70; if (totalSeconds <= 780) return 65; return 60;
-            }
-            if (normalized.includes('sit-and-reach')) {
-                const d = numericValue;
-                if (d >= 25) return 100; if (d >= 20) return 95; if (d >= 15) return 90; if (d >= 10) return 85; if (d >= 5) return 80; if (d >= 0) return 75; if (d >= -5) return 70; return 65;
-            }
-            if (normalized.includes('grip')) {
-                const s = numericValue;
-                if (s >= 60) return 100; if (s >= 55) return 95; if (s >= 50) return 90; if (s >= 45) return 85; if (s >= 40) return 80; if (s >= 35) return 75; if (s >= 30) return 70; return 65;
-            }
-            if (normalized.includes('bmi')) {
-                const bmi = numericValue;
-                if (bmi >= 18.5 && bmi <= 24.9) return 100; if ((bmi >= 17.5 && bmi < 18.5) || (bmi >= 25 && bmi <= 27)) return 85; if ((bmi >= 15 && bmi < 17.5) || (bmi > 27 && bmi <= 30)) return 70; return 60;
-            }
-            return 75;
-        }
 
         window.manageStudents = async function(testId, testName, section) {
             try {
@@ -1665,7 +1879,50 @@
                 container.innerHTML = `<p class="text-center text-danger py-5">Error: ${error.message}</p>`;
             }
         }
-
+// Helper function to get age group from student data
+function getAgeGroupFromStudent(studentData) {
+    if (!studentData) return '19-22'; // default
+    
+    // If student has birthday
+    if (studentData.birthday) {
+        try {
+            let birthDate;
+            if (studentData.birthday.toDate) {
+                birthDate = studentData.birthday.toDate();
+            } else {
+                birthDate = new Date(studentData.birthday);
+            }
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            if (!isNaN(age) && age > 0) {
+                if (age <= 18) return '15-18';
+                if (age <= 22) return '19-22';
+                if (age <= 26) return '23-26';
+                return '27-30';
+            }
+        } catch (e) {
+            console.error('Error computing age from birthday:', e);
+        }
+    }
+    
+    // If student has age field
+    if (studentData.age) {
+        const age = parseInt(studentData.age);
+        if (!isNaN(age)) {
+            if (age <= 18) return '15-18';
+            if (age <= 22) return '19-22';
+            if (age <= 26) return '23-26';
+            return '27-30';
+        }
+    }
+    
+    return '19-22'; // default fallback
+}
         function renderStudentListForTest(filterText = '') {
             const container = document.getElementById('studentsListContainer');
             let studentsToShow = window.currentTestStudents;
@@ -1817,35 +2074,8 @@
             document.getElementById('testDeadline').value = nextWeek.toISOString().split('T')[0];
             document.getElementById('testDeadlineTime').value = '23:59';
             document.getElementById('testTime').value = '00:00';
-            const testTypeSelect = document.getElementById('testType');
-            testTypeSelect.removeEventListener('change', handleTestTypeChange);
-            testTypeSelect.addEventListener('change', handleTestTypeChange);
             modal.style.display = 'flex';
         };
-
-        function handleTestTypeChange(event) {
-            const testType = event.target.value;
-            // Target inputs removed – norms are used instead
-            if (!testType) { targetGroup.style.display = 'none'; return; }
-            const normalizedType = testType.toLowerCase();
-            if (normalizedType.includes('3-minute') || normalizedType.includes('step test')) {
-                targetGroup.style.display = 'block'; targetLabel.textContent = 'Target Duration (minutes)'; targetInput.placeholder = 'Duration is fixed at 3 minutes'; targetInput.value = '3'; targetInput.readOnly = true; targetHint.textContent = 'This test has a fixed duration of 3 minutes';
-                document.getElementById('attemptsAllowed').value = 1; document.getElementById('attemptsDisplay').value = '1 Attempt Only';
-            } else if (normalizedType.includes('curl-up')) {
-                targetGroup.style.display = 'block'; targetLabel.textContent = 'Target Curl-Ups'; targetInput.placeholder = 'Enter target number of curl-ups'; targetInput.value = '25'; targetInput.readOnly = false; targetHint.textContent = 'Set the target number of abdominal curls';
-                document.getElementById('attemptsAllowed').value = 2; document.getElementById('attemptsDisplay').value = '2 Attempts';
-            } else if (normalizedType.includes('push-up') || normalizedType.includes('pushup')) {
-                targetGroup.style.display = 'block'; targetLabel.textContent = 'Target Push-ups'; targetInput.placeholder = 'Enter target number of push-ups'; targetInput.value = '20'; targetInput.readOnly = false; targetHint.textContent = 'Set the target number of push-ups students should aim to complete';
-                document.getElementById('attemptsAllowed').value = 2; document.getElementById('attemptsDisplay').value = '2 Attempts';
-            } else if (normalizedType.includes('sit-and-reach')) {
-                targetGroup.style.display = 'block'; targetLabel.textContent = 'Target Distance (cm)'; targetInput.placeholder = 'Enter target distance in cm'; targetInput.value = '15'; targetInput.readOnly = false; targetHint.textContent = 'Set the target reach distance in centimeters';
-                document.getElementById('attemptsAllowed').value = 2; document.getElementById('attemptsDisplay').value = '2 Attempts';
-            } else if (normalizedType.includes('skinfold')) {
-                targetGroup.style.display = 'none'; document.getElementById('attemptsAllowed').value = 1; document.getElementById('attemptsDisplay').value = '1 Attempt Only';
-            } else {
-                targetGroup.style.display = 'none'; document.getElementById('attemptsAllowed').value = 2; document.getElementById('attemptsDisplay').value = '2 Attempts';
-            }
-        }
 
         window.scheduleTest = async function() {
             const testType = document.getElementById('testType').value;
@@ -1858,7 +2088,6 @@
             const isOneAttemptOnly = normalizedTestType.includes('skinfold') || normalizedTestType.includes('step test') || normalizedTestType.includes('3-minute');
             const attemptsAllowed = isOneAttemptOnly ? 1 : 2;
             const testInstructions = document.getElementById('testInstructions').value;
-            const testTarget = null;
             const videoURL = document.getElementById('videoURL').value;
 
             if (!testType || !testSection || !testDate || !testTime || !testDeadline || !testDeadlineTime) {
@@ -1893,7 +2122,6 @@
                     testName: testType, section: testSection, date: testDate, time: testTime,
                     dateTime: testDateTime.toISOString(), deadline: testDeadline, deadlineTime: testDeadlineTime,
                     deadlineDateTime: deadlineDateTime.toISOString(), attemptsAllowed, instructions: testInstructions,
-                    testTarget: null, videoURL: videoURL || null,
                     professorEmail: window.currentUser.email, professorId: window.currentUser.uid,
                     professorName: window.currentUser.displayName || window.currentUser.email, status,
                     totalStudents: allStudentEmails.length, completedStudents: 0, selectedStudents: allStudentEmails,
@@ -1955,13 +2183,6 @@
                 document.getElementById('editTestDeadlineTime').value = testData.deadlineTime || '23:59';
                 document.getElementById('editAttemptsAllowed').value = `${testData.attemptsAllowed || 1} Attempt(s)`;
                 document.getElementById('editTestId').value = testId;
-                const targetGroup = document.getElementById('editTestTargetGroup');
-                const targetLabel = document.getElementById('editTestTargetLabel');
-                const targetInput = document.getElementById('editTestTarget');
-                const targetHint = document.getElementById('editTestTargetHint');
-                const normalized = testData.testName.toLowerCase();
-                // No more per-test numeric targets; norms are shown on student side
-           targetGroup.style.display = 'none';
                 const saveBtn = document.querySelector('#editTestModal .modal-footer button:last-child');
                 const cancelBtn = document.querySelector('#editTestModal .modal-footer button:first-child');
                 if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
@@ -1980,7 +2201,6 @@
             const newTime = document.getElementById('editTestTime').value;
             const newDeadline = document.getElementById('editTestDeadline').value;
             const newDeadlineTime = document.getElementById('editTestDeadlineTime').value;
-            const newTarget = document.getElementById('editTestTarget').value;
             if (!newDate || !newTime || !newDeadline || !newDeadlineTime) { showWarningModal('Please fill in all required fields', () => {}, () => {}); return; }
             const testDateTime = new Date(`${newDate}T${newTime}`);
             const deadlineDateTime = new Date(`${newDeadline}T${newDeadlineTime}`);
@@ -1991,7 +2211,7 @@
             try {
                 if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
                 if (cancelBtn) cancelBtn.disabled = true;
-                const updateData = { date: newDate, time: newTime, dateTime: testDateTime.toISOString(), deadline: newDeadline, deadlineTime: newDeadlineTime, deadlineDateTime: deadlineDateTime.toISOString(), testTarget: null, updatedAt: serverTimestamp() };
+                const updateData = { date: newDate, time: newTime, dateTime: testDateTime.toISOString(), deadline: newDeadline, deadlineTime: newDeadlineTime, deadlineDateTime: deadlineDateTime.toISOString(), updatedAt: serverTimestamp() };
                 const now = new Date();
                 if (testDateTime <= now && deadlineDateTime >= now) updateData.status = 'active';
                 else if (deadlineDateTime < now) updateData.status = 'completed';
@@ -2055,7 +2275,6 @@
             document.getElementById('attemptsAllowed').value = '1';
             document.getElementById('testInstructions').value = '';
             document.getElementById('videoURL').value = '';
-            // Target group no longer used
             if (window.currentUser) loadScheduledTests(window.currentUser.email, window.currentUser.uid);
         };
 

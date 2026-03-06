@@ -120,10 +120,13 @@
         .status-badge { display:inline-block; padding:6px 12px; border-radius:20px; font-weight:600; font-size:12px; text-align:center; min-width:80px; }
         .status-active { background-color:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
 
-        .score-badge { display:inline-block; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600; }
-        .score-excellent { background-color:#d1fae5; color:#065f46; }
-        .score-good { background-color:#fef3c7; color:#92400e; }
-        .score-poor { background-color:#fee2e2; color:#991b1b; }
+        .category-badge { display:inline-flex; align-items:center; gap:4px; padding:5px 14px; border-radius:20px; font-weight:700; font-size:12px; white-space:nowrap; }
+        .category-excellent { background-color:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .category-good { background-color:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+        .category-average { background-color:#fef9c3; color:#854d0e; border:1px solid #fde047; }
+        .category-below-average { background-color:#fed7aa; color:#9a3412; border:1px solid #fb923c; }
+        .category-poor { background-color:#fce8e6; color:#991b1b; border:1px solid #fca5a5; }
+        .category-default { background-color:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
         .btn-action { padding:6px 12px; border:none; border-radius:20px; font-weight:600; font-size:12px; cursor:pointer; transition:all 0.3s; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.05); }
         .btn-view { background:linear-gradient(135deg, #4a5a72 0%, #2d3d52 100%); color:white; }
@@ -204,7 +207,6 @@
             .modal-content .custom-table td:last-child { border-bottom:none; }
         }
 
-        /* email cell */
         .email-cell { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         @media (max-width: 768px) { .email-cell { max-width:100%; white-space:normal; word-break:break-all; } }
     </style>
@@ -408,7 +410,7 @@
                     <div>
                         <div class="text-xs text-white/50 uppercase tracking-[2px] mb-1">Faculty Member</div>
                         <div class="font-display text-2xl font-bold text-white mb-1">Student Management</div>
-                        <div class="text-[13px] text-white/45">View student scores and manage activity attempts</div>
+                        <div class="text-[13px] text-white/45">View student performance across all sections</div>
                     </div>
                 </div>
             </div>
@@ -457,10 +459,10 @@
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[13px]">
                             <i class="fas fa-user-graduate"></i>
                         </div>
-                        Student Scores &amp; Attempts
+                        Student Performance
                     </h3>
                     <button class="bg-surface hover:bg-border text-text-secondary font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-all border border-border text-sm" onclick="exportStudents()">
-                        <i class="fas fa-file-export"></i> Export Scores
+                        <i class="fas fa-file-export"></i> Export
                     </button>
                 </div>
 
@@ -477,15 +479,17 @@
                 <!-- All Students View -->
                 <div id="allStudentsView">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-                        <input type="text" id="searchStudents" placeholder="Search students by name or UMaK ID..."
+                        <input type="text" id="searchStudents" placeholder="Search students by name or ID..."
                             class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm transition-all w-full"
                             onkeyup="filterStudents()">
                         <select id="filterSection" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()"></select>
-                        <select id="filterPerformance" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()">
-                            <option value="">All Performance</option>
-                            <option value="excellent">Excellent (90-100%)</option>
-                            <option value="good">Good (70-89%)</option>
-                            <option value="needs-improvement">Needs Improvement (0-69%)</option>
+                        <select id="filterCategory" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()">
+                            <option value="">All Categories</option>
+                            <option value="Excellent">Excellent</option>
+                            <option value="Good">Good</option>
+                            <option value="Average">Average</option>
+                            <option value="Below Average">Below Average</option>
+                            <option value="Poor">Poor</option>
                             <option value="no-attempts">No Attempts Yet</option>
                         </select>
                     </div>
@@ -493,12 +497,12 @@
                         <table class="custom-table" id="studentsTable">
                             <thead>
                                 <tr>
-                                    <th>UMaK ID</th><th>Student Name</th><th>Section</th>
-                                    <th>Best Score</th><th>Average Score</th><th>Actions</th>
+                                    <th>ID</th><th>Student Name</th><th>Section</th>
+                                    <th>Activities</th><th>Overall Performance</th><th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="studentsTableBody">
-                                <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">Loading Students...</div></div></td></tr>
+                                <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">Loading Students...</div></div></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -633,8 +637,6 @@
                             <div class="sort-option" onclick="changeSort('oldest-first')"><i class="fas fa-arrow-up"></i><span>Oldest First</span></div>
                             <div class="sort-option" onclick="changeSort('test-name-a-z')"><i class="fas fa-sort-alpha-down"></i><span>Test Name A-Z</span></div>
                             <div class="sort-option" onclick="changeSort('test-name-z-a')"><i class="fas fa-sort-alpha-up"></i><span>Test Name Z-A</span></div>
-                            <div class="sort-option" onclick="changeSort('score-high-low')"><i class="fas fa-chart-line"></i><span>Score: High to Low</span></div>
-                            <div class="sort-option" onclick="changeSort('score-low-high')"><i class="fas fa-chart-bar"></i><span>Score: Low to High</span></div>
                             <div class="sort-option" onclick="changeSort('status')"><i class="fas fa-check-circle"></i><span>Status (Pending First)</span></div>
                         </div>
                     </div>
@@ -643,7 +645,7 @@
             <div class="table-responsive" style="display:block !important; overflow-x:hidden !important; overflow-y:auto !important;">
                 <table class="custom-table" style="min-width:100%;">
                     <thead style="position:sticky; top:0; z-index:10;">
-                        <tr><th>Test Name</th><th>Status</th><th>Deadline</th><th>Score</th><th>Actions</th></tr>
+                        <tr><th>Test Name</th><th>Status</th><th>Deadline</th><th>Result</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="studentTestsTableBody"></tbody>
                 </table>
@@ -667,7 +669,7 @@
             <div class="table-responsive" style="display:block !important; overflow-x:hidden !important; overflow-y:auto !important;">
                 <table class="custom-table" style="min-width:100%;">
                     <thead style="position:sticky; top:0; z-index:10;">
-                        <tr><th>UMaK ID</th><th>Student Name</th><th>Email</th><th>Total Attempts</th><th>Best Score</th><th>Average Score</th><th>Actions</th></tr>
+                        <tr><th>ID</th><th>Student Name</th><th>Email</th><th>Activities</th><th>Overall</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="sectionStudentsTableBody"></tbody>
                 </table>
@@ -687,7 +689,7 @@
         </div>
         <div class="modal-body">
             <div id="studentDetailsContent" class="mb-6"></div>
-            <h4 class="text-lg font-bold text-navy mb-4 flex items-center gap-2"><i class="fas fa-history"></i> Activity Attempts</h4>
+            <h4 class="text-lg font-bold text-navy mb-4 flex items-center gap-2"><i class="fas fa-history"></i> Activity History</h4>
             <div id="attemptsTableBody"></div>
         </div>
         <div class="modal-footer">
@@ -699,7 +701,7 @@
 <div id="editScoreModal" class="modal-overlay" style="display:none;">
     <div class="modal-content small" onclick="event.stopPropagation()">
         <div class="modal-header" style="background: linear-gradient(90deg, #0a1628 0%, #1e4d8c 100%);">
-            <h3 style="color:white;"><span>📝</span> Edit Student Score</h3>
+            <h3 style="color:white;"><span>📝</span> Edit Student Result</h3>
             <button class="modal-close-btn" onclick="closeEditScoreModal()" style="background:rgba(255,255,255,0.2); color:white;"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -712,14 +714,10 @@
                 </div>
                 <div class="step flex flex-col items-center gap-2 relative z-10" id="step2">
                     <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold step-circle">2</div>
-                    <div class="text-xs font-semibold text-gray-500">Edit Score</div>
+                    <div class="text-xs font-semibold text-gray-500">Edit Result</div>
                 </div>
             </div>
             <div class="bg-gradient-to-r from-blue/5 to-royal/5 rounded-lg p-4 mb-4 border-l-4 border-blue">
-                <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
-                    <span class="text-sm font-semibold text-text-secondary">Test Target</span>
-                    <span class="px-3 py-1 bg-success text-white rounded-full text-sm font-bold" id="editScoreTarget">0</span>
-                </div>
                 <div class="flex justify-between items-center flex-wrap gap-2">
                     <span class="text-sm font-semibold text-text-secondary">Student</span>
                     <span class="text-sm font-semibold text-text-primary" id="editScoreStudent">Student Name</span>
@@ -727,30 +725,25 @@
             </div>
             <div id="stepContent1">
                 <div class="bg-info-bg rounded-lg p-4 mb-4 border-l-4 border-blue">
-                    <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
                         <span class="text-sm font-semibold text-text-secondary">Current Result</span>
                         <span class="text-sm font-bold text-text-primary" id="currentResultDisplay">--</span>
                     </div>
-                    <div class="flex justify-between items-center flex-wrap gap-2">
-                        <span class="text-sm font-semibold text-text-secondary">Current Score</span>
-                        <span class="text-2xl font-bold text-blue" id="currentScoreDisplay">--</span>
-                    </div>
                 </div>
-                <p class="text-sm text-text-muted"><i class="fas fa-info-circle"></i> Click "Next" to edit this score</p>
+                <p class="text-sm text-text-muted"><i class="fas fa-info-circle"></i> Click "Next" to edit this result</p>
             </div>
             <div id="stepContent2" style="display:none;">
                 <div class="mb-4">
-                    <label class="block text-text-secondary font-semibold mb-2">Student Result <span class="text-danger">*</span></label>
+                    <label class="block text-text-secondary font-semibold mb-2">New Result <span class="text-danger">*</span></label>
                     <div class="relative">
                         <span class="absolute left-4 top-3 text-text-muted">📊</span>
-                        <input type="number" class="w-full pl-12 pr-4 py-3 border-2 border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue font-semibold" id="newResult" placeholder="Enter result" min="0" step="1">
+                        <input type="number" class="w-full pl-12 pr-4 py-3 border-2 border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue font-semibold" id="newResult" placeholder="Enter new result" min="0" step="any">
                     </div>
-                    <p class="text-xs text-text-muted mt-1" id="resultHint">Enter what the student achieved in this test</p>
+                    <p class="text-xs text-text-muted mt-1" id="resultHint">Enter the student's achievement</p>
                 </div>
-                <div id="scorePreview" class="bg-warning-bg rounded-lg p-4 border-l-4 border-warning" style="display:none;">
-                    <div class="text-xs font-semibold text-warning mb-1">CALCULATED SCORE</div>
-                    <div class="text-4xl font-bold text-warning" id="previewScore">0</div>
-                    <div class="text-xs text-warning mt-2 score-preview-text">Based on the result entered</div>
+                <div id="categoryPreview" class="bg-warning-bg rounded-lg p-4 border-l-4 border-warning" style="display:none;">
+                    <div class="text-xs font-semibold text-warning mb-1">CATEGORY</div>
+                    <div class="text-2xl font-bold text-warning" id="previewCategory">—</div>
                 </div>
             </div>
         </div>
@@ -759,8 +752,8 @@
             <button id="btnNext" class="px-4 py-2 bg-blue hover:bg-royal text-white rounded-lg font-semibold transition-all text-sm" onclick="nextStep()">
                 Next <i class="fas fa-arrow-right"></i>
             </button>
-            <button id="btnSubmit" class="px-4 py-2 bg-gradient-to-r from-royal to-blue hover:from-navy-light hover:to-royal text-white font-semibold rounded-lg transition-all text-sm" onclick="submitScore()" style="display:none;">
-                <span>✓</span> Save Score
+            <button id="btnSubmit" class="px-4 py-2 bg-gradient-to-r from-royal to-blue hover:from-navy-light hover:to-royal text-white font-semibold rounded-lg transition-all text-sm" onclick="submitResult()" style="display:none;">
+                <span>✓</span> Save Result
             </button>
         </div>
     </div>
@@ -813,7 +806,6 @@
     }
     window.updateProfileUI = updateProfileUI;
 
-    // Logout popup (matching student dashboard / professor pages)
     function showLogoutConfirmPopup() {
         const existing = document.getElementById('logoutOverlay');
         if (existing) existing.remove();
@@ -1020,157 +1012,226 @@
         modal.style.display = 'flex';
     }
 
-    window._showLogoutConfirm = function() {
-        showConfirmModal('Are you sure you want to logout?', async () => {
-            try { await signOut(auth); window.location.href = '/login/index.html'; }
-            catch (error) { showErrorModal('Error logging out. Please try again.'); }
-        });
-    };
-
     // ============================================================
-    // ⭐ UNIFIED SCORING FUNCTION — SYNCED WITH grades.html ⭐
+    // ⭐ NORM-BASED CLASSIFICATION - EXACTLY LIKE grades.html ⭐
     // ============================================================
-    function calculateActivityScore(testName, result, testTarget = null) {
-        const normalized = testName.toLowerCase().trim();
 
-        // Always return 100 for these tests regardless of result
-        if (normalized.includes('skinfold') ||
-            normalized.includes('step test') ||
-            normalized.includes('3-minute') ||
-            normalized.includes('skin fold')) {
-            return 100;
-        }
-
-        // Use stored professor/system score if present
-        if (result && typeof result === 'object' && result !== null) {
-            if (result.score !== undefined && result.score !== null) {
-                const score = parseFloat(result.score);
-                if (!isNaN(score) && score >= 0 && score <= 100) return score;
-            }
-        }
-
-        // Extract numeric value
-        let numericValue = 0;
+    function extractNumericResult(result) {
         if (typeof result === 'object' && result !== null) {
-            numericValue = result.repetitions || result.time || result.distance ||
-                           result.value || result.result || result.count || result.score || 0;
-        } else if (typeof result === 'string') {
+            return parseFloat(result.value || result.result || result.score || result.count || result.repetitions || result.time || 0) || 0;
+        }
+        if (typeof result === 'string') {
             const match = result.match(/(\d+\.?\d*)/);
-            numericValue = match ? parseFloat(match[1]) : parseFloat(result) || 0;
+            if (match) return parseFloat(match[1]);
+        }
+        return parseFloat(result) || 0;
+    }
+
+    // Norm category order (same as grades.html)
+    const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+    // Helper function to get age group from student data
+function getAgeGroupFromStudent(studentData) {
+    if (!studentData) return '19-22'; // default
+    
+    // If student has birthday
+    if (studentData.birthday) {
+        try {
+            let birthDate;
+            if (studentData.birthday.toDate) {
+                birthDate = studentData.birthday.toDate();
+            } else {
+                birthDate = new Date(studentData.birthday);
+            }
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            if (!isNaN(age) && age > 0) {
+                if (age <= 18) return '15-18';
+                if (age <= 22) return '19-22';
+                if (age <= 26) return '23-26';
+                return '27-30';
+            }
+        } catch (e) {
+            console.error('Error computing age from birthday:', e);
+        }
+    }
+    
+    // If student has age field
+    if (studentData.age) {
+        const age = parseInt(studentData.age);
+        if (!isNaN(age)) {
+            if (age <= 18) return '15-18';
+            if (age <= 22) return '19-22';
+            if (age <= 26) return '23-26';
+            return '27-30';
+        }
+    }
+    
+    return '19-22'; // default fallback
+}
+
+    function getCategoryClass(category) {
+        switch(category) {
+            case 'Excellent': return 'category-excellent';
+            case 'Good': return 'category-good';
+            case 'Average': return 'category-average';
+            case 'Below Average': return 'category-below-average';
+            case 'Poor': return 'category-poor';
+            default: return 'category-default';
+        }
+    }
+
+    function getCategoryIcon(category) {
+        switch(category) {
+            case 'Excellent': return '⭐';
+            case 'Good': return '👍';
+            case 'Average': return '📊';
+            case 'Below Average': return '📉';
+            case 'Poor': return '⚠️';
+            default: return '—';
+        }
+    }
+
+    function renderCategoryBadge(category) {
+        const icon = getCategoryIcon(category);
+        const className = getCategoryClass(category);
+        return `<span class="category-badge ${className}">${icon} ${category}</span>`;
+    }
+
+    function getPushUpCategory(genderKey, ageGroup, reps) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[40,31,21,11], '19-22':[38,28,18,9], '23-26':[35,25,16,8], '27-30':[32,23,14,6] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
         } else {
-            numericValue = parseFloat(result) || 0;
+            const norms = { '15-18':[25,19,13,7], '19-22':[23,17,11,6], '23-26':[20,15,9,5], '27-30':[18,13,8,4] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
         }
-
-        // ── Target-based scoring ──
-        if (testTarget && testTarget > 0) {
-            if (normalized.includes('push-up') || normalized.includes('pushup') ||
-                normalized.includes('sit-up') || normalized.includes('situp') ||
-                normalized.includes('curl-up') || normalized.includes('curl up')) {
-                if (numericValue >= testTarget) return 100;
-                const pct = (numericValue / testTarget) * 100;
-                if (pct >= 90) return 95; if (pct >= 80) return 90; if (pct >= 70) return 85;
-                if (pct >= 60) return 80; if (pct >= 50) return 75;
-                return Math.round(Math.min(100, Math.max(50, pct)));
-            }
-            if (normalized.includes('plank')) {
-                if (numericValue >= testTarget) return 100;
-                const pct = (numericValue / testTarget) * 100;
-                if (pct >= 90) return 95; if (pct >= 80) return 90; if (pct >= 70) return 85;
-                if (pct >= 60) return 80; if (pct >= 50) return 75;
-                return Math.round(Math.min(100, Math.max(50, pct)));
-            }
-            if (normalized.includes('sit-and-reach') || normalized.includes('reach')) {
-                if (numericValue >= testTarget) return 100;
-                const pct = (numericValue / testTarget) * 100;
-                if (pct >= 90) return 95; if (pct >= 80) return 90; if (pct >= 70) return 85;
-                if (pct >= 60) return 80; if (pct >= 50) return 75;
-                return Math.round(Math.min(100, Math.max(50, pct)));
-            }
-            if (normalized.includes('grip')) {
-                if (numericValue >= testTarget) return 100;
-                const pct = (numericValue / testTarget) * 100;
-                if (pct >= 90) return 95; if (pct >= 80) return 90; if (pct >= 70) return 85;
-                if (pct >= 60) return 80; if (pct >= 50) return 75;
-                return Math.round(Math.min(100, Math.max(50, pct)));
-            }
-            if (normalized.includes('mile') || normalized.includes('run')) {
-                if (numericValue <= testTarget) return 100;
-                const pct = (testTarget / numericValue) * 100;
-                if (pct >= 90) return 95; if (pct >= 80) return 90; if (pct >= 70) return 85;
-                if (pct >= 60) return 80; if (pct >= 50) return 75;
-                return Math.round(Math.min(100, Math.max(50, pct)));
-            }
-        }
-
-        // ── Fallback default scoring ──
-        return calculateDefaultScore(normalized, numericValue);
     }
 
-    function calculateDefaultScore(normalized, numericValue) {
-        if (normalized.includes('push-up') || normalized.includes('pushup')) {
-            if (numericValue >= 40) return 100; if (numericValue >= 30) return 90;
-            if (numericValue >= 20) return 80; if (numericValue >= 15) return 70; return 60;
+    function getCurlUpCategory(genderKey, ageGroup, reps) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[50,41,31,21], '19-22':[47,38,28,19], '23-26':[44,35,25,17], '27-30':[40,32,22,15] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[45,36,26,16], '19-22':[42,34,24,15], '23-26':[39,31,21,13], '27-30':[36,28,19,11] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (reps >= t[0]) return 'Excellent';
+            if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';
+            if (reps >= t[3]) return 'Below Average';
+            return 'Poor';
         }
-        if (normalized.includes('sit-up') || normalized.includes('situp')) {
-            if (numericValue >= 50) return 100; if (numericValue >= 40) return 90;
-            if (numericValue >= 30) return 80; if (numericValue >= 20) return 70; return 60;
+    }
+
+    function getSitReachCategory(genderKey, ageGroup, cm) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[38,33,26,18], '19-22':[37,32,25,17], '23-26':[35.5,30.5,23.5,15.5], '27-30':[34,29,22,14] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (cm >= t[0]) return 'Excellent';
+            if (cm >= t[1]) return 'Good';
+            if (cm >= t[2]) return 'Average';
+            if (cm >= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[39,34,27,19], '19-22':[38,33,26,18], '23-26':[37,32,25,17], '27-30':[36,31,24,16] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (cm >= t[0]) return 'Excellent';
+            if (cm >= t[1]) return 'Good';
+            if (cm >= t[2]) return 'Average';
+            if (cm >= t[3]) return 'Below Average';
+            return 'Poor';
         }
-        if (normalized.includes('curl-up') || normalized.includes('curl up')) {
-            if (numericValue >= 75) return 100; if (numericValue >= 50) return 90;
-            if (numericValue >= 30) return 80; if (numericValue >= 20) return 70; return 65;
+    }
+
+    function getStepTestCategory(genderKey, ageGroup, hr) {
+        if (genderKey === 'male') {
+            const norms = { '15-18':[84,97,108,118], '19-22':[79,89,105,116], '23-26':[80,90,106,117], '27-30':[81,91,107,118] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (hr <= t[0]) return 'Excellent';
+            if (hr <= t[1]) return 'Good';
+            if (hr <= t[2]) return 'Average';
+            if (hr <= t[3]) return 'Below Average';
+            return 'Poor';
+        } else {
+            const norms = { '15-18':[89,103,113,124], '19-22':[85,98,109,118], '23-26':[86,99,110,119], '27-30':[88,101,112,121] };
+            const t = norms[ageGroup] || norms['19-22'];
+            if (hr <= t[0]) return 'Excellent';
+            if (hr <= t[1]) return 'Good';
+            if (hr <= t[2]) return 'Average';
+            if (hr <= t[3]) return 'Below Average';
+            return 'Poor';
         }
-        if (normalized.includes('plank')) {
-            if (numericValue >= 180) return 100; if (numericValue >= 120) return 90;
-            if (numericValue >= 90) return 85; if (numericValue >= 60) return 80;
-            if (numericValue >= 45) return 70; if (numericValue >= 30) return 65; return 60;
+    }
+
+    function getNormCategory(testName, result, genderKey = 'male', ageGroup = '19-22') {
+        const normalized = (testName || '').toLowerCase();
+        const value = extractNumericResult(result);
+
+        if (normalized.includes('push-up') || normalized.includes('pushup'))
+            return getPushUpCategory(genderKey, ageGroup, value);
+        if (normalized.includes('curl-up') || normalized.includes('curl up'))
+            return getCurlUpCategory(genderKey, ageGroup, value);
+        if (normalized.includes('sit-and-reach') || normalized.includes('sit and reach'))
+            return getSitReachCategory(genderKey, ageGroup, value);
+        if (normalized.includes('step test') || normalized.includes('3-minute'))
+            return getStepTestCategory(genderKey, ageGroup, value);
+
+        // For skinfold / other tests
+        if (normalized.includes('skinfold') || normalized.includes('skin fold')) {
+            if (typeof result === 'string') {
+                const classMatch = result.match(/\(([^)]+)\)/);
+                if (classMatch) {
+                    const cls = classMatch[1];
+                    if (cls === 'Athletic' || cls === 'Fitness') return 'Excellent';
+                    if (cls === 'Average') return 'Average';
+                    if (cls === 'Essential Fat') return 'Good';
+                    if (cls === 'Overfat') return 'Below Average';
+                    if (cls === 'Obese') return 'Poor';
+                }
+            }
+            return 'Average';
         }
-        if (normalized.includes('step test') || normalized.includes('3-minute')) {
-            if (numericValue <= 70) return 100; if (numericValue <= 80) return 95;
-            if (numericValue <= 90) return 90; if (numericValue <= 100) return 85;
-            if (numericValue <= 110) return 80; if (numericValue <= 120) return 75;
-            if (numericValue <= 130) return 70; return 65;
-        }
-        if (normalized.includes('mile') || normalized.includes('run')) {
-            if (numericValue <= 360) return 100; if (numericValue <= 420) return 95;
-            if (numericValue <= 480) return 90; if (numericValue <= 540) return 85;
-            if (numericValue <= 600) return 80; if (numericValue <= 660) return 75;
-            if (numericValue <= 720) return 70; if (numericValue <= 780) return 65; return 60;
-        }
-        if (normalized.includes('sit-and-reach') || normalized.includes('reach')) {
-            if (numericValue >= 25) return 100; if (numericValue >= 20) return 95;
-            if (numericValue >= 15) return 90; if (numericValue >= 10) return 85;
-            if (numericValue >= 5) return 80; if (numericValue >= 0) return 75; return 65;
-        }
-        if (normalized.includes('grip')) {
-            if (numericValue >= 60) return 100; if (numericValue >= 55) return 95;
-            if (numericValue >= 50) return 90; if (numericValue >= 45) return 85;
-            if (numericValue >= 40) return 80; if (numericValue >= 35) return 75;
-            if (numericValue >= 30) return 70; return 65;
-        }
+
+        // BMI
         if (normalized.includes('bmi')) {
-            if (numericValue >= 18.5 && numericValue <= 24.9) return 100;
-            if (numericValue >= 17.5 && numericValue < 18.5) return 85;
-            if (numericValue >= 25 && numericValue <= 27) return 85;
-            if (numericValue >= 15 && numericValue < 17.5) return 70;
-            if (numericValue > 27 && numericValue <= 30) return 70; return 60;
+            const bmi = extractNumericResult(result);
+            if (bmi >= 18.5 && bmi <= 24.9) return 'Excellent';
+            if ((bmi >= 17.0 && bmi < 18.5) || (bmi >= 25.0 && bmi < 27.0)) return 'Good';
+            if ((bmi >= 16.0 && bmi < 17.0) || (bmi >= 27.0 && bmi < 30.0)) return 'Average';
+            return 'Below Average';
         }
-        return 75;
+
+        return 'Average';
     }
 
-    // ── Rating helper (matches grades.html getRating) ──
-    function getRating(score) {
-        if (score >= 90) return { text: 'Excellent', cls: 'score-excellent' };
-        if (score >= 80) return { text: 'Good', cls: 'score-good' };
-        if (score >= 70) return { text: 'Passed', cls: 'score-good' };
-        return { text: 'Needs Work', cls: 'score-poor' };
-    }
-
-    function getGradeLetter(score) {
-        if (score >= 97) return 'A+'; if (score >= 93) return 'A'; if (score >= 90) return 'A-';
-        if (score >= 87) return 'B+'; if (score >= 83) return 'B'; if (score >= 80) return 'B-';
-        if (score >= 77) return 'C+'; if (score >= 73) return 'C'; if (score >= 70) return 'C-';
-        if (score >= 67) return 'D+'; if (score >= 63) return 'D'; if (score >= 60) return 'D-';
-        return 'F';
+    function getOverallCategory(categories) {
+        if (!categories || categories.length === 0) return 'Average';
+        const scores = categories.map(c => CATEGORY_ORDER[c] || 3);
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (avg >= 4.5) return 'Excellent';
+        if (avg >= 3.5) return 'Good';
+        if (avg >= 2.5) return 'Average';
+        if (avg >= 1.5) return 'Below Average';
+        return 'Poor';
     }
 
     // ── Global state ──
@@ -1293,97 +1354,130 @@
         return 'N/A';
     }
 
-    window.loadStudents = async function() {
-        try {
-            if (window.sections.length === 0) { updateStudentsTable([]); return; }
-            window.students = [];
-            const seenStudentIds = new Set();
-            for (const section of window.sections) {
-                if (!section.students || !Array.isArray(section.students) || section.students.length === 0) continue;
-                for (const rawStudent of section.students) {
-                    const studentEmail = rawStudent.email || '';
-                    if (!studentEmail || seenStudentIds.has(studentEmail)) continue;
-                    seenStudentIds.add(studentEmail);
-                    let firstName = '', lastName = '', fullName = rawStudent.name || 'Unknown Student';
-                    if (fullName.includes(',')) { const parts = fullName.split(',').map(p => p.trim()); lastName = parts[0]; firstName = parts.slice(1).join(' '); }
-                    else { const nameParts = fullName.split(' '); firstName = nameParts[0] || ''; lastName = nameParts.slice(1).join(' ') || ''; }
-
-                    // ── Load attempts and calculate scores using grades.html logic ──
-                    let bestScore = 0, lastAttempt = null, lastAttemptTest = '';
-                    const bestScoresPerTest = new Map();
-                    let totalAttempts = 0;
-
-                    if (studentEmail) {
-                        try {
-                            const attemptsQuery = query(
-                                collection(db, 'testResults'),
-                                where('studentEmail', '==', studentEmail),
-                                where('status', '==', 'completed')
-                            );
-                            const snapshot = await getDocs(attemptsQuery);
-                            totalAttempts = snapshot.size;
-
-                            snapshot.forEach(docSnap => {
-                                const data = docSnap.data();
-                                const testId = data.testId || docSnap.id;
-
-                                // ── Use unified scoring function ──
-                                const score = Math.max(0, Math.min(100, Math.round(
-                                    calculateActivityScore(
-                                        data.testName || '',
-                                        data.result || data.resultData || data.repetitions || data,
-                                        data.testTarget || null
-                                    )
-                                )));
-
-                                // Keep best score per unique test (same as grades.html bestScoresMap)
-                                if (!bestScoresPerTest.has(testId) || score > bestScoresPerTest.get(testId)) {
-                                    bestScoresPerTest.set(testId, score);
-                                }
-                                if (score > bestScore) bestScore = score;
-
-                            });
-                        } catch (e) { console.warn('Error loading attempts for student:', fullName, e); }
-                    }
-
-                    const uniqueTestCount = bestScoresPerTest.size;
-                    let totalBestScore = 0;
-                    bestScoresPerTest.forEach(score => { totalBestScore += score; });
-                    const averageScore = uniqueTestCount > 0
-                        ? parseFloat((totalBestScore / uniqueTestCount).toFixed(2))
-                        : 0;
-
-                    window.students.push({
-                        id: studentEmail,
-                        umakId: rawStudent.student_id || rawStudent.studentId || 'N/A',
-                        firstName: firstName || 'Unknown',
-                        lastName: lastName || '',
-                        fullName: fullName,
-                        email: studentEmail,
-                        section: section.name,
-                        yearLevel: section.yearLevel || extractYearLevel(section.name),
-                        totalAttempts: totalAttempts || 0,
-                        uniqueTestCount: uniqueTestCount || 0,
-                        bestScore: bestScore || 0,
-                        averageScore: averageScore || 0,
-                        lastAttempt: lastAttempt,
-                        lastAttemptTest: lastAttemptTest,
-                        status: 'active'
-                    });
-                }
+window.loadStudents = async function() {
+    try {
+        if (window.sections.length === 0) { updateStudentsTable([]); return; }
+        window.students = [];
+        const seenStudentIds = new Set();
+        
+        // Load all students data from students collection para makuha ang age/birthday
+        const studentsMap = new Map();
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        studentsSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.email) {
+                studentsMap.set(data.email, {
+                    birthday: data.birthday || null,
+                    age: data.age || null,
+                    gender: data.gender || 'male'
+                });
             }
-            window.filteredStudents = [...window.students];
-            window.currentPage = 1;
-            updateStudentsTable(window.filteredStudents);
-            await loadOverdueStudents();
-            document.getElementById('allStudentsCount').textContent = window.students.length;
-        } catch (error) {
-            console.error('Error loading students:', error);
-            updateStudentsTable([]);
-            showErrorModal('Error loading students: ' + error.message);
-        }
-    };
+        });
+        
+        for (const section of window.sections) {
+            if (!section.students || !Array.isArray(section.students) || section.students.length === 0) continue;
+            
+            for (const rawStudent of section.students) {
+                const studentEmail = rawStudent.email || '';
+                if (!studentEmail || seenStudentIds.has(studentEmail)) continue;
+                seenStudentIds.add(studentEmail);
+                
+                let firstName = '', lastName = '', fullName = rawStudent.name || 'Unknown Student';
+                if (fullName.includes(',')) { 
+                    const parts = fullName.split(',').map(p => p.trim()); 
+                    lastName = parts[0]; 
+                    firstName = parts.slice(1).join(' '); 
+                } else { 
+                    const nameParts = fullName.split(' '); 
+                    firstName = nameParts[0] || ''; 
+                    lastName = nameParts.slice(1).join(' ') || ''; 
+                }
 
+                // Get student data for age
+                const studentAgeData = studentsMap.get(studentEmail) || {};
+
+                // Load attempts and calculate categories (like grades.html)
+                let categories = [];
+                const bestCategoriesPerTest = new Map(); // Store best category per test
+                let totalAttempts = 0;
+
+                if (studentEmail) {
+                    try {
+                        const attemptsQuery = query(
+                            collection(db, 'testResults'),
+                            where('studentEmail', '==', studentEmail),
+                            where('status', '==', 'completed')
+                        );
+                        const snapshot = await getDocs(attemptsQuery);
+                        totalAttempts = snapshot.size;
+
+                        snapshot.forEach(docSnap => {
+                            const data = docSnap.data();
+                            const testId = data.testId || docSnap.id;
+                            const testName = data.testName || 'Unknown Activity';
+                            const result = data.result || data.resultData || data.repetitions || '';
+                            
+                            // Determine gender (from test data or student data)
+                            const gender = (data.gender || studentAgeData.gender || '').toLowerCase();
+                            const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                            
+                            // Get age group from student data
+                            const ageGroup = getAgeGroupFromStudent(studentAgeData);
+                            
+                            // Get category with CORRECT age group
+                            const category = getNormCategory(testName, result, genderKey, ageGroup);
+                            
+                            // Keep best category per test (based on CATEGORY_ORDER)
+                            if (!bestCategoriesPerTest.has(testId) || 
+                                (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestCategoriesPerTest.get(testId)] || 0)) {
+                                bestCategoriesPerTest.set(testId, category);
+                            }
+                        });
+                    } catch (e) { console.warn('Error loading attempts for student:', fullName, e); }
+                }
+
+                // Get all unique best categories
+                const uniqueCategories = Array.from(bestCategoriesPerTest.values());
+                const uniqueTestCount = uniqueCategories.length;
+                
+                // Get overall category (like grades.html)
+                const overallCategory = getOverallCategory(uniqueCategories);
+                
+                // Calculate numeric representation for sorting
+                const overallScore = CATEGORY_ORDER[overallCategory] || 3;
+
+                window.students.push({
+                    id: studentEmail,
+                    umakId: rawStudent.student_id || rawStudent.studentId || 'N/A',
+                    firstName: firstName || 'Unknown',
+                    lastName: lastName || '',
+                    fullName: fullName,
+                    email: studentEmail,
+                    section: section.name,
+                    yearLevel: section.yearLevel || extractYearLevel(section.name),
+                    totalAttempts: totalAttempts || 0,
+                    uniqueTestCount: uniqueTestCount || 0,
+                    categories: uniqueCategories,
+                    overallCategory: overallCategory,
+                    overallScore: overallScore,
+                    status: 'active',
+                    age: studentAgeData.age || null,
+                    birthday: studentAgeData.birthday || null
+                });
+            }
+        }
+        
+        window.filteredStudents = [...window.students];
+        window.currentPage = 1;
+        updateStudentsTable(window.filteredStudents);
+        await loadOverdueStudents();
+        document.getElementById('allStudentsCount').textContent = window.students.length;
+    } catch (error) {
+        console.error('Error loading students:', error);
+        updateStudentsTable([]);
+        showErrorModal('Error loading students: ' + error.message);
+    }
+};
     function populateSectionsTable() {
         const tableBody = document.getElementById('sectionsTableBody');
         document.getElementById('sectionCount').textContent = window.filteredSections.length;
@@ -1413,35 +1507,29 @@
         const studentCount = document.getElementById('studentCount');
         const showAll = isMobileView();
         const displayStudents = showAll ? students : students.slice((window.currentPage - 1) * window.itemsPerPage, window.currentPage * window.itemsPerPage);
+        
         if (!showAll) {
             const totalPages = Math.ceil(students.length / window.itemsPerPage);
             document.getElementById('totalPages').textContent = totalPages || 1;
             document.getElementById('currentPage').textContent = window.currentPage;
         }
         studentCount.textContent = students.length;
+        
         if (displayStudents.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">No Students Found</div><div class="text-gray-500 text-sm">Try adjusting your search or filters.</div></div></td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">No Students Found</div><div class="text-gray-500 text-sm">Try adjusting your search or filters.</div></div></td></tr>`;
             return;
         }
+        
         let rowsHTML = '';
         displayStudents.forEach(student => {
-            const rat = getRating(student.bestScore);
-            let scoreDisplay = student.totalAttempts > 0
-                ? `<span class="score-badge ${rat.cls}">${student.bestScore}%</span><br><small style="color:#64748b;">${rat.text}</small>`
-                : '—';
-            let avgDisplay = student.uniqueTestCount > 0
-                ? `<strong>${student.averageScore.toFixed(2)}%</strong>`
-                : '—';
-            let lastAttemptFormatted = 'No attempts';
-            if (student.lastAttempt instanceof Date && !isNaN(student.lastAttempt)) {
-                lastAttemptFormatted = `<strong>${student.lastAttemptTest || 'Unknown Test'}</strong><br><small style="color:#64748b;">${student.lastAttempt.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}</small>`;
-            }
+            const badge = renderCategoryBadge(student.overallCategory);
+            
             rowsHTML += `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
-                <td data-label="UMaK ID"><strong>${student.umakId || 'N/A'}</strong></td>
+                <td data-label="ID"><strong>${student.umakId || 'N/A'}</strong></td>
                 <td data-label="Student Name">${student.firstName} ${student.lastName}</td>
                 <td data-label="Section">${student.section || 'N/A'}</td>
-                <td data-label="Best Score">${scoreDisplay}</td>
-                <td data-label="Average Score">${avgDisplay}</td>
+                <td data-label="Activities"><strong>${student.uniqueTestCount}</strong></td>
+                <td data-label="Overall">${badge}</td>
                 <td data-label="Actions"><div class="action-buttons"><button class="btn-action btn-view" onclick="event.stopPropagation(); viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i> View</button></div></td>
             </tr>`;
         });
@@ -1475,9 +1563,9 @@
         if (students.length === 0) { container.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700">No Students Found</div></div>`; return; }
         let html = '';
         students.forEach(student => {
-            const rat = getRating(student.bestScore);
-            let lastAttemptFormatted = 'No attempts';
-            if (student.lastAttempt instanceof Date && !isNaN(student.lastAttempt)) lastAttemptFormatted = student.lastAttempt.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+            const icon = getCategoryIcon(student.overallCategory);
+            const className = getCategoryClass(student.overallCategory);
+            
             html += `<div class="student-card" onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
                 <div class="student-card-header">
                     <div><div class="student-card-name">${student.firstName} ${student.lastName}</div><div class="student-card-id">${student.umakId || 'N/A'}</div></div>
@@ -1485,8 +1573,8 @@
                 </div>
                 <div class="student-card-details">
                     <div class="student-card-detail"><span class="student-card-label-small">Section</span><span class="student-card-value">${student.section || 'N/A'}</span></div>
-                    <div class="student-card-detail"><span class="student-card-label-small">Average Score</span><span class="student-card-value">${student.uniqueTestCount > 0 ? `<strong>${student.averageScore.toFixed(2)}%</strong>` : '—'}</span></div>
-                    <div class="student-card-detail"><span class="student-card-label-small">Best</span><span class="student-card-value">${student.totalAttempts > 0 ? `<strong>${student.bestScore}%</strong>` : '—'}</span></div>
+                    <div class="student-card-detail"><span class="student-card-label-small">Activities</span><span class="student-card-value"><strong>${student.uniqueTestCount}</strong></span></div>
+                    <div class="student-card-detail" style="grid-column:span 2;"><span class="student-card-label-small">Overall</span><span class="student-card-value"><span class="category-badge ${className}" style="margin:0 auto;">${icon} ${student.overallCategory}</span></span></div>
                 </div>
             </div>`;
         });
@@ -1533,42 +1621,58 @@
             if (!sectionDoc.exists()) { showErrorModal('Section not found!'); return; }
             const sectionData = { id: sectionDoc.id, ...sectionDoc.data() };
             const sectionStudents = window.students.filter(student => student.section === sectionData.name);
-            let totalAttempts = 0, totalScore = 0, studentsWithAttempts = 0;
-            sectionStudents.forEach(student => { if (student.uniqueTestCount > 0) { studentsWithAttempts++; totalAttempts += student.totalAttempts; totalScore += student.averageScore; } });
-            const averageScore = studentsWithAttempts > 0 ? parseFloat((totalScore / studentsWithAttempts).toFixed(2)) : 0;
+            
+            // Calculate section statistics
+            let totalAttempts = 0, studentsWithAttempts = 0;
+            const categoryCounts = { 'Excellent': 0, 'Good': 0, 'Average': 0, 'Below Average': 0, 'Poor': 0 };
+            
+            sectionStudents.forEach(student => { 
+                if (student.uniqueTestCount > 0) { 
+                    studentsWithAttempts++; 
+                    totalAttempts += student.totalAttempts;
+                    categoryCounts[student.overallCategory] = (categoryCounts[student.overallCategory] || 0) + 1;
+                } 
+            });
+            
             const completionRate = sectionStudents.length > 0 ? Math.round((studentsWithAttempts / sectionStudents.length) * 100) : 0;
+            
+            // Find most common category
+            let mostCommonCategory = '—';
+            let maxCount = 0;
+            Object.entries(categoryCounts).forEach(([cat, cnt]) => { if (cnt > maxCount) { maxCount = cnt; mostCommonCategory = cat; } });
+            
             let schedule = '';
             if (sectionData.time && sectionData.day && sectionData.room) schedule = `${sectionData.time} / ${sectionData.day} / ${sectionData.room}`;
             else if (sectionData.schedule) schedule = sectionData.schedule;
             else schedule = 'Not Set';
             const academicYear = sectionData.academicYear || sectionData.createdYear || sectionData.year || 'N/A';
-            const avgRat = getRating(averageScore);
+            
             let html = `<div class="student-info-header"><div class="student-avatar"><i class="fas fa-users text-white"></i></div><div class="student-basic-info"><div class="student-name">${sectionData.name}</div><div class="student-id">${sectionData.courseCode || 'PE 3'} • ${academicYear} • ${schedule}</div></div></div>
             <div class="student-info-grid">
                 <div class="info-item"><div class="info-label">Total Students</div><div class="info-value"><strong style="color:#2d6fc4; font-size:18px;">${sectionStudents.length}</strong></div></div>
                 <div class="info-item"><div class="info-label">Schedule</div><div class="info-value">${schedule}</div></div>
                 <div class="info-item"><div class="info-label">Total Attempts</div><div class="info-value"><strong>${totalAttempts}</strong></div></div>
-                <div class="info-item"><div class="info-label">Average Score</div><div class="info-value">${averageScore > 0 ? `<span class="score-badge ${avgRat.cls}">${averageScore.toFixed(2)}%</span>` : 'No data'}</div></div>
+                <div class="info-item"><div class="info-label">Most Common</div><div class="info-value">${mostCommonCategory !== '—' ? renderCategoryBadge(mostCommonCategory) : '—'}</div></div>
                 <div class="info-item"><div class="info-label">Completion Rate</div><div class="info-value"><strong>${completionRate}%</strong></div></div>
                 <div class="info-item"><div class="info-label">Professor</div><div class="info-value">${sectionData.professor || window.currentUser?.displayName || window.currentUser?.email}</div></div>
                 ${sectionData.description ? `<div class="info-item" style="grid-column: 1 / -1;"><div class="info-label">Description</div><div class="info-value" style="font-size:14px; color:#475569; line-height:1.5;">${sectionData.description}</div></div>` : ''}
             </div>`;
             document.getElementById('sectionDetailsContent').innerHTML = html;
+            
             let studentsHTML = '';
             if (sectionStudents.length > 0) {
                 sectionStudents.forEach(student => {
-                    const rat = getRating(student.bestScore);
+                    const badge = renderCategoryBadge(student.overallCategory);
                     studentsHTML += `<tr onclick="viewStudentDetails('${student.id}'); closeViewSectionModal();" style="cursor:pointer;">
-                        <td data-label="UMaK ID"><strong style="color:#0a1628;">${student.umakId || 'N/A'}</strong></td>
+                        <td data-label="ID"><strong style="color:#0a1628;">${student.umakId || 'N/A'}</strong></td>
                         <td data-label="Student Name">${student.firstName} ${student.lastName}</td>
                         <td data-label="Email" class="email-cell" title="${student.email}">${student.email || 'N/A'}</td>
-                        <td data-label="Total Attempts">${student.totalAttempts || 0}</td>
-                        <td data-label="Best Score">${student.totalAttempts > 0 ? `<span class="score-badge ${rat.cls}">${student.bestScore}%</span>` : '—'}</td>
-                        <td data-label="Average Score">${student.uniqueTestCount > 0 ? `<strong>${student.averageScore.toFixed(2)}%</strong>` : '—'}</td>
+                        <td data-label="Activities">${student.uniqueTestCount}</td>
+                        <td data-label="Overall">${badge}</td>
                         <td data-label="Actions"><div class="action-buttons"><button class="btn-action btn-view" onclick="event.stopPropagation(); viewStudentDetails('${student.id}'); closeViewSectionModal();"><i class="fas fa-eye"></i> View</button></div></td>
                     </tr>`;
                 });
-            } else { studentsHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:#64748b;"><div style="font-size:48px; opacity:0.3; margin-bottom:10px;">👥</div>No students found in this section</td></tr>`; }
+            } else { studentsHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:#64748b;"><div style="font-size:48px; opacity:0.3; margin-bottom:10px;">👥</div>No students found in this section</td></tr>`; }
             document.getElementById('sectionStudentsTableBody').innerHTML = studentsHTML;
             document.getElementById('viewSectionModal').style.display = 'flex';
         } catch (error) { console.error('Error viewing section details:', error); showErrorModal('Error: ' + error.message); }
@@ -1576,96 +1680,82 @@
 
     window.closeViewSectionModal = function() { document.getElementById('viewSectionModal').style.display = 'none'; };
 
-    window.viewStudentDetails = async function(studentId) {
-        try {
-            window.currentStudentId = studentId;
-            const student = window.students.find(s => s.id === studentId);
-            if (!student) { showErrorModal('Student not found!'); return; }
+ window.viewStudentDetails = async function(studentId) {
+    try {
+        window.currentStudentId = studentId;
+        const student = window.students.find(s => s.id === studentId);
+        if (!student) { showErrorModal('Student not found!'); return; }
 
-            // Load all completed attempts for this student
-            const attemptsQuery = query(
-                collection(db, 'testResults'),
-                where('studentEmail', '==', student.email),
-                where('status', '==', 'completed')
-            );
-            const attemptsSnapshot = await getDocs(attemptsQuery);
+        const attemptsQuery = query(
+            collection(db, 'testResults'),
+            where('studentEmail', '==', student.email),
+            where('status', '==', 'completed')
+        );
+        const attemptsSnapshot = await getDocs(attemptsQuery);
 
-            // Group by testId, keep best score per test (same as grades.html bestScoresMap)
-            const bestScoresPerTest = new Map();
-            const allAttemptsByTest = new Map();
+        // Get student age data
+        const studentAgeData = {
+            birthday: student.birthday,
+            age: student.age
+        };
 
-            attemptsSnapshot.forEach(docSnap => {
-                const attempt = { id: docSnap.id, ...docSnap.data() };
-                const testId = attempt.testId || attempt.testName;
-                if (!allAttemptsByTest.has(testId)) {
-                    allAttemptsByTest.set(testId, { testName: attempt.testName || 'Unknown Test', attempts: [] });
-                }
-                allAttemptsByTest.get(testId).attempts.push(attempt);
+        const bestCategoriesPerTest = new Map(); // Store best category per test
+        const allAttemptsByTest = new Map();
 
-                // Use unified scoring
-                const score = Math.max(0, Math.min(100, Math.round(
-                    calculateActivityScore(
-                        attempt.testName || '',
-                        attempt.result || attempt.resultData || attempt.repetitions || attempt,
-                        attempt.testTarget || null
-                    )
-                )));
-                if (!bestScoresPerTest.has(testId) || score > bestScoresPerTest.get(testId)) {
-                    bestScoresPerTest.set(testId, score);
-                }
-            });
-
-            const uniqueTestCount = bestScoresPerTest.size;
-            let totalBestScore = 0, bestScore = 0;
-            bestScoresPerTest.forEach(score => {
-                totalBestScore += score;
-                if (score > bestScore) bestScore = score;
-            });
-            const averageScore = uniqueTestCount > 0 ? parseFloat((totalBestScore / uniqueTestCount).toFixed(2)) : 0;
-
-            const initials = (student.firstName?.charAt(0) || '') + (student.lastName?.charAt(0) || '');
-            let sectionSchedule = 'Not Set';
-            const studentSection = window.sections.find(s => s.name === student.section);
-            if (studentSection) {
-                if (studentSection.timeSlot && studentSection.days && studentSection.room) sectionSchedule = `${studentSection.timeSlot} / ${studentSection.days} / ${studentSection.room}`;
-                else if (studentSection.schedule) sectionSchedule = studentSection.schedule;
+        attemptsSnapshot.forEach(docSnap => {
+            const attempt = { id: docSnap.id, ...docSnap.data() };
+            const testId = attempt.testId || attempt.testName;
+            if (!allAttemptsByTest.has(testId)) {
+                allAttemptsByTest.set(testId, { testName: attempt.testName || 'Unknown Test', attempts: [] });
             }
+            allAttemptsByTest.get(testId).attempts.push(attempt);
 
-            const overallRat = getRating(averageScore);
-            let html = `<div class="student-info-header"><div class="student-avatar">${initials || '??'}</div><div class="student-basic-info"><div class="student-name">${student.firstName || ''} ${student.lastName || ''}</div><div class="student-id">${student.umakId || 'N/A'} • ${student.section || 'N/A'}</div></div></div>
-            <div class="student-info-grid">
-                <div class="info-item"><div class="info-label">Email</div><div class="info-value" style="word-break:break-all; font-size:13px;">${student.email || 'N/A'}</div></div>
-                <div class="info-item"><div class="info-label">Year Level</div><div class="info-value">${student.yearLevel || 'N/A'}</div></div>
-                <div class="info-item"><div class="info-label">Section Schedule</div><div class="info-value">${sectionSchedule}</div></div>
-                <div class="info-item"><div class="info-label">Total Tests Taken</div><div class="info-value"><strong>${uniqueTestCount}</strong></div></div>
-                <div class="info-item"><div class="info-label">Best Score</div><div class="info-value">${uniqueTestCount > 0 ? `<span class="score-badge ${getRating(bestScore).cls}">${bestScore}%</span>` : 'No attempts'}</div></div>
-                <div class="info-item"><div class="info-label">Average Score</div><div class="info-value">${uniqueTestCount > 0 ? `<strong style="color:#0a1628;">${averageScore.toFixed(2)}%</strong><br><small style="color:#64748b;">${overallRat.text}</small>` : 'No attempts'}</div></div>
-                <div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="status-badge status-active">Active</span></div></div>
-            </div>`;
-            document.getElementById('studentDetailsContent').innerHTML = html;
+            const gender = (attempt.gender || '').toLowerCase();
+            const genderKey = gender.startsWith('f') ? 'female' : 'male';
+            
+            // Get age group from student data
+            const ageGroup = getAgeGroupFromStudent(studentAgeData);
+            
+            const category = getNormCategory(attempt.testName || '', attempt.result || attempt.resultData || attempt.repetitions || attempt, genderKey, ageGroup);
+            
+            // Keep best category per test
+            if (!bestCategoriesPerTest.has(testId) || 
+                (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestCategoriesPerTest.get(testId)] || 0)) {
+                bestCategoriesPerTest.set(testId, category);
+            }
+        });
 
-            // Build attempts display
-            let attemptsHTML = '';
-            if (uniqueTestCount > 0) {
-                const testGroups = Array.from(allAttemptsByTest.entries()).map(([testId, group]) => {
-                    group.attempts.sort((a, b) => {
-                        const getTs = (att) => {
-                            if (!att.submittedAt) return 0;
-                            if (typeof att.submittedAt.toMillis === 'function') return att.submittedAt.toMillis();
-                            if (att.submittedAt instanceof Date) return att.submittedAt.getTime();
-                            if (typeof att.submittedAt === 'string' || typeof att.submittedAt === 'number') return new Date(att.submittedAt).getTime();
-                            if (att.submittedAt.seconds) return att.submittedAt.seconds * 1000;
-                            return 0;
-                        };
-                        return getTs(b) - getTs(a);
-                    });
-                    return { testId, testName: group.testName, attempts: group.attempts, bestScore: bestScoresPerTest.get(testId) };
-                });
+        const uniqueTestCount = bestCategoriesPerTest.size;
 
-                testGroups.sort((a, b) => {
-                    const getLatest = (attempts) => {
-                        if (!attempts.length) return 0;
-                        const att = attempts[0];
+        const initials = (student.firstName?.charAt(0) || '') + (student.lastName?.charAt(0) || '');
+        let sectionSchedule = 'Not Set';
+        const studentSection = window.sections.find(s => s.name === student.section);
+        if (studentSection) {
+            if (studentSection.timeSlot && studentSection.days && studentSection.room) sectionSchedule = `${studentSection.timeSlot} / ${studentSection.days} / ${studentSection.room}`;
+            else if (studentSection.schedule) sectionSchedule = studentSection.schedule;
+        }
+
+        const overallBadge = renderCategoryBadge(student.overallCategory);
+        
+        // Optional: Add age group info
+        // const ageGroupBadge = `<span class="ml-2 text-xs bg-info-bg text-info px-2 py-0.5 rounded">Age Group: ${getAgeGroupFromStudent(studentAgeData)}</span>`;
+        
+        let html = `<div class="student-info-header"><div class="student-avatar">${initials || '??'}</div><div class="student-basic-info"><div class="student-name">${student.firstName || ''} ${student.lastName || ''}</div><div class="student-id">${student.umakId || 'N/A'} • ${student.section || 'N/A'}</div></div></div>
+        <div class="student-info-grid">
+            <div class="info-item"><div class="info-label">Email</div><div class="info-value" style="word-break:break-all; font-size:13px;">${student.email || 'N/A'}</div></div>
+            <div class="info-item"><div class="info-label">Year Level</div><div class="info-value">${student.yearLevel || 'N/A'}</div></div>
+            <div class="info-item"><div class="info-label">Section Schedule</div><div class="info-value">${sectionSchedule}</div></div>
+            <div class="info-item"><div class="info-label">Tests Taken</div><div class="info-value"><strong>${uniqueTestCount}</strong></div></div>
+            <div class="info-item"><div class="info-label">Overall</div><div class="info-value">${overallBadge}</div></div>
+            <div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="status-badge status-active">Active</span></div></div>
+        </div>`;
+        document.getElementById('studentDetailsContent').innerHTML = html;
+
+        let attemptsHTML = '';
+        if (uniqueTestCount > 0) {
+            const testGroups = Array.from(allAttemptsByTest.entries()).map(([testId, group]) => {
+                group.attempts.sort((a, b) => {
+                    const getTs = (att) => {
                         if (!att.submittedAt) return 0;
                         if (typeof att.submittedAt.toMillis === 'function') return att.submittedAt.toMillis();
                         if (att.submittedAt instanceof Date) return att.submittedAt.getTime();
@@ -1673,139 +1763,165 @@
                         if (att.submittedAt.seconds) return att.submittedAt.seconds * 1000;
                         return 0;
                     };
-                    return getLatest(b.attempts) - getLatest(a.attempts);
+                    return getTs(b) - getTs(a);
                 });
+                return { testId, testName: group.testName, attempts: group.attempts, bestCategory: bestCategoriesPerTest.get(testId) };
+            });
 
-                testGroups.forEach(({ testName, attempts, bestScore: testBest }) => {
-                    const totalAttemptsInTest = attempts.length;
-                    attemptsHTML += `<div style="margin-bottom:16px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
-                        <div style="background:linear-gradient(90deg, rgba(10,22,40,0.9) 0%, rgba(30,77,140,0.9) 100%); padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:white; font-weight:700; font-size:14px;"><i class="fas fa-clipboard-check" style="margin-right:6px;"></i>${testName}</span>
-                            <span style="color:rgba(255,255,255,0.8); font-size:12px;">Best: <strong style="color:white;">${testBest}%</strong> • ${totalAttemptsInTest} attempt${totalAttemptsInTest > 1 ? 's' : ''}</span>
-                        </div>`;
+            testGroups.sort((a, b) => {
+                const getLatest = (attempts) => {
+                    if (!attempts.length) return 0;
+                    const att = attempts[0];
+                    if (!att.submittedAt) return 0;
+                    if (typeof att.submittedAt.toMillis === 'function') return att.submittedAt.toMillis();
+                    if (att.submittedAt instanceof Date) return att.submittedAt.getTime();
+                    if (typeof att.submittedAt === 'string' || typeof att.submittedAt === 'number') return new Date(att.submittedAt).getTime();
+                    if (att.submittedAt.seconds) return att.submittedAt.seconds * 1000;
+                    return 0;
+                };
+                return getLatest(b.attempts) - getLatest(a.attempts);
+            });
 
-                    attempts.forEach((attempt, index) => {
-                        const attemptNumber = index + 1;
-                        let date = new Date();
-                        if (attempt.submittedAt) {
-                            if (typeof attempt.submittedAt.toDate === 'function') date = attempt.submittedAt.toDate();
-                            else if (attempt.submittedAt instanceof Date) date = attempt.submittedAt;
-                            else if (typeof attempt.submittedAt === 'string' || typeof attempt.submittedAt === 'number') date = new Date(attempt.submittedAt);
-                            else if (attempt.submittedAt.seconds) date = new Date(attempt.submittedAt.seconds * 1000);
-                        }
-                        const formattedDate = date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-                        const formattedTime = date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+            testGroups.forEach(({ testName, attempts, bestCategory }) => {
+                const totalAttemptsInTest = attempts.length;
+                const bestBadge = renderCategoryBadge(bestCategory);
+                
+                attemptsHTML += `<div style="margin-bottom:16px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+                    <div style="background:linear-gradient(90deg, rgba(10,22,40,0.9) 0%, rgba(30,77,140,0.9) 100%); padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:white; font-weight:700; font-size:14px;"><i class="fas fa-clipboard-check" style="margin-right:6px;"></i>${testName}</span>
+                        <span style="color:rgba(255,255,255,0.8); font-size:12px;">Best: ${bestBadge} • ${totalAttemptsInTest} attempt${totalAttemptsInTest > 1 ? 's' : ''}</span>
+                    </div>`;
 
-                        // Use unified scoring
-                        const score = Math.max(0, Math.min(100, Math.round(
-                            calculateActivityScore(
-                                attempt.testName || testName,
-                                attempt.result || attempt.resultData || attempt.repetitions || attempt,
-                                attempt.testTarget || null
-                            )
-                        )));
-                        const rat = getRating(score);
-                        const isBest = score === testBest;
-                        const bgColor = isBest ? '#f0fdf4' : (index % 2 === 0 ? '#ffffff' : '#f8fafc');
+                attempts.forEach((attempt, index) => {
+                    const attemptNumber = index + 1;
+                    let date = new Date();
+                    if (attempt.submittedAt) {
+                        if (typeof attempt.submittedAt.toDate === 'function') date = attempt.submittedAt.toDate();
+                        else if (attempt.submittedAt instanceof Date) date = attempt.submittedAt;
+                        else if (typeof attempt.submittedAt === 'string' || typeof attempt.submittedAt === 'number') date = new Date(attempt.submittedAt);
+                        else if (attempt.submittedAt.seconds) date = new Date(attempt.submittedAt.seconds * 1000);
+                    }
+                    const formattedDate = date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+                    const formattedTime = date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-                        attemptsHTML += `<div style="background:${bgColor}; padding:12px 14px; border-top:1px solid #f1f5f9;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
-                                <div><div style="font-size:12px; color:#64748b; margin-bottom:2px;">Attempt ${attemptNumber} • ${formattedDate} at ${formattedTime}</div></div>
-                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                    <span class="score-badge ${rat.cls}">${score}%</span>
-                                    <span style="font-size:12px; color:#64748b;">${rat.text}</span>
-                                    ${isBest ? '<span style="color:#10b981; font-size:12px; font-weight:700;">🏆 Best</span>' : ''}
-                                    <button class="btn-action btn-view" style="padding:4px 8px; font-size:11px;" onclick="viewAttemptDetails('${attempt.id}')"><i class="fas fa-info-circle"></i> Details</button>
-                                </div>
+                    const gender = (attempt.gender || '').toLowerCase();
+                    const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                    
+                    // Get age group from student data
+                    const ageGroup = getAgeGroupFromStudent(studentAgeData);
+                    
+                    const category = getNormCategory(attempt.testName || testName, attempt.result || attempt.resultData || attempt.repetitions || attempt, genderKey, ageGroup);
+                    
+                    const categoryBadge = renderCategoryBadge(category);
+                    const isBest = category === bestCategory;
+                    const bgColor = isBest ? '#f0fdf4' : (index % 2 === 0 ? '#ffffff' : '#f8fafc');
+
+                    // Format result for display
+                    let resultDisplay = '—';
+                    if (attempt.result) {
+                        if (typeof attempt.result === 'object') { 
+                            const val = attempt.result.repetitions || attempt.result.time || attempt.result.distance || attempt.result.value || 0; 
+                            resultDisplay = `${val} ${attempt.testUnit || ''}`; 
+                        } else resultDisplay = `${attempt.result} ${attempt.testUnit || ''}`;
+                    } else if (attempt.repetitions) resultDisplay = `${attempt.repetitions} ${attempt.testUnit || ''}`;
+
+                    attemptsHTML += `<div style="background:${bgColor}; padding:12px 14px; border-top:1px solid #f1f5f9;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                            <div><div style="font-size:12px; color:#64748b; margin-bottom:2px;">Attempt ${attemptNumber} • ${formattedDate} at ${formattedTime}</div></div>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span style="font-weight:500;">${resultDisplay}</span>
+                                ${categoryBadge}
+                                ${isBest ? '<span style="color:#10b981; font-size:12px; font-weight:700;">🏆 Best</span>' : ''}
+                                <button class="btn-action btn-view" style="padding:4px 8px; font-size:11px;" onclick="viewAttemptDetails('${attempt.id}')"><i class="fas fa-info-circle"></i> Details</button>
                             </div>
-                        </div>`;
-                    });
-                    attemptsHTML += `</div>`;
+                        </div>
+                    </div>`;
                 });
-            } else {
-                attemptsHTML = `<div style="text-align:center; padding:40px; color:#64748b;"><div style="font-size:48px; opacity:0.3; margin-bottom:10px;">📋</div><div>No test results recorded yet</div></div>`;
-            }
-            document.getElementById('attemptsTableBody').innerHTML = attemptsHTML;
-            document.getElementById('viewStudentModal').style.display = 'flex';
-        } catch (error) { console.error('Error viewing student details:', error); showErrorModal('Error: ' + error.message); }
-    };
+                attemptsHTML += `</div>`;
+            });
+        } else {
+            attemptsHTML = `<div style="text-align:center; padding:40px; color:#64748b;"><div style="font-size:48px; opacity:0.3; margin-bottom:10px;">📋</div><div>No test results recorded yet</div></div>`;
+        }
+        document.getElementById('attemptsTableBody').innerHTML = attemptsHTML;
+        document.getElementById('viewStudentModal').style.display = 'flex';
+    } catch (error) { console.error('Error viewing student details:', error); showErrorModal('Error: ' + error.message); }
+};
+ window.viewAttemptDetails = async function(attemptId) {
+    try {
+        const attemptRef = doc(db, 'testResults', attemptId);
+        const attemptDoc = await getDoc(attemptRef);
+        if (!attemptDoc.exists()) { showErrorModal('Attempt not found!'); return; }
+        const attempt = attemptDoc.data();
+        const date = attempt.submittedAt?.toDate ? attempt.submittedAt.toDate() : (attempt.submittedAt?.seconds ? new Date(attempt.submittedAt.seconds * 1000) : new Date());
+        const student = window.students.find(s => s.email === attempt.studentEmail);
+        const studentName = student ? `${student.firstName} ${student.lastName}` : attempt.studentName || 'Unknown Student';
 
-    window.viewAttemptDetails = async function(attemptId) {
+        const gender = (attempt.gender || '').toLowerCase();
+        const genderKey = gender.startsWith('f') ? 'female' : 'male';
+        
+        // Get age group from student data
+        const studentAgeData = student ? { birthday: student.birthday, age: student.age } : {};
+        const ageGroup = getAgeGroupFromStudent(studentAgeData);
+        
+        const category = getNormCategory(attempt.testName || '', attempt.result || attempt.resultData || attempt.repetitions || attempt, genderKey, ageGroup);
+        
+        const categoryBadge = renderCategoryBadge(category);
+
+        let resultDisplay = 'N/A';
+        if (attempt.result) {
+            if (typeof attempt.result === 'object') { const val = attempt.result.repetitions || attempt.result.time || attempt.result.distance || attempt.result.value || 0; resultDisplay = `${val} ${attempt.testUnit || ''}`; }
+            else resultDisplay = `${attempt.result} ${attempt.testUnit || ''}`;
+        } else if (attempt.repetitions) resultDisplay = `${attempt.repetitions} ${attempt.testUnit || ''}`;
+
+        let attemptNumber = 1;
         try {
-            const attemptRef = doc(db, 'testResults', attemptId);
-            const attemptDoc = await getDoc(attemptRef);
-            if (!attemptDoc.exists()) { showErrorModal('Attempt not found!'); return; }
-            const attempt = attemptDoc.data();
-            const date = attempt.submittedAt?.toDate ? attempt.submittedAt.toDate() : (attempt.submittedAt?.seconds ? new Date(attempt.submittedAt.seconds * 1000) : new Date());
-            const student = window.students.find(s => s.email === attempt.studentEmail);
-            const studentName = student ? `${student.firstName} ${student.lastName}` : attempt.studentName || 'Unknown Student';
+            const attQ = query(collection(db, 'testResults'), where('studentEmail', '==', attempt.studentEmail), where('testId', '==', attempt.testId), orderBy('submittedAt', 'asc'));
+            const attSnap = await getDocs(attQ);
+            const attemptList = attSnap.docs.map(d => d.id);
+            attemptNumber = attemptList.indexOf(attemptId) + 1;
+        } catch (e) {}
 
-            // Use unified scoring
-            const score = Math.max(0, Math.min(100, Math.round(
-                calculateActivityScore(
-                    attempt.testName || '',
-                    attempt.result || attempt.resultData || attempt.repetitions || attempt,
-                    attempt.testTarget || null
-                )
-            )));
+        const existingModal = document.getElementById('attemptDetailsModal');
+        if (existingModal) existingModal.remove();
 
-            let resultDisplay = 'N/A';
-            if (attempt.result) {
-                if (typeof attempt.result === 'object') { const val = attempt.result.repetitions || attempt.result.time || attempt.result.distance || attempt.result.value || 0; resultDisplay = `${val} ${attempt.testUnit || ''}`; }
-                else resultDisplay = `${attempt.result} ${attempt.testUnit || ''}`;
-            } else if (attempt.repetitions) resultDisplay = `${attempt.repetitions} ${attempt.testUnit || ''}`;
-
-            let attemptNumber = 1;
-            try {
-                const attQ = query(collection(db, 'testResults'), where('studentEmail', '==', attempt.studentEmail), where('testId', '==', attempt.testId), orderBy('submittedAt', 'asc'));
-                const attSnap = await getDocs(attQ);
-                const attemptList = attSnap.docs.map(d => d.id);
-                attemptNumber = attemptList.indexOf(attemptId) + 1;
-            } catch (e) {}
-
-            const rat = getRating(score);
-            const existingModal = document.getElementById('attemptDetailsModal');
-            if (existingModal) existingModal.remove();
-
-            const modalHtml = `<div id="attemptDetailsModal" class="modal-overlay" style="display:flex; z-index:3000;">
-                <div class="modal-content small" onclick="event.stopPropagation()" style="max-width:500px;">
-                    <div class="modal-header" style="background:linear-gradient(90deg, #0a1628 0%, #1e4d8c 100%);">
-                        <h3 style="color:white;"><i class="fas fa-clipboard-check"></i> Attempt Details</h3>
-                        <button class="modal-close-btn" onclick="closeAttemptDetailsModal()" style="background:rgba(255,255,255,0.2); color:white;"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="modal-body" style="padding:24px;">
-                        <div style="background:#f8fafc; border-radius:10px; padding:16px; margin-bottom:20px; border-left:4px solid #2d6fc4;">
-                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-                                <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #1e4d8c 0%, #2d6fc4 100%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">${studentName.charAt(0) || '?'}</div>
-                                <div><div style="font-weight:700; color:#0a1628; font-size:16px;">${studentName}</div><div style="color:#64748b; font-size:13px;">${attempt.studentEmail}</div></div>
-                            </div>
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
-                            <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Test Name</div><div style="font-weight:700; color:#0a1628; font-size:14px;">${attempt.testName || 'Unknown'}</div></div>
-                            <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Attempt #</div><div style="font-weight:700; color:#0a1628; font-size:14px;">${attemptNumber}</div></div>
-                            <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Score</div><div style="font-weight:700; font-size:18px; color:${score >= 70 ? '#10b981' : '#ef4444'};">${score}%</div><div style="font-size:12px; color:#64748b;">Grade: ${getGradeLetter(score)} • ${rat.text}</div></div>
-                            <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Result</div><div style="font-weight:700; color:#1e293b; font-size:14px;">${resultDisplay}</div>${attempt.testTarget ? `<div style="font-size:11px; color:#64748b;">Target: ${attempt.testTarget} ${attempt.testUnit || ''}</div>` : ''}</div>
-                        </div>
-                        <div style="background:#f8fafc; border-radius:8px; padding:16px; margin-bottom:16px;">
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><i class="fas fa-calendar-alt" style="color:#2d6fc4;"></i><span style="font-weight:600; color:#475569;">Submission Date &amp; Time</span></div>
-                            <div style="font-size:15px; color:#0a1628; margin-left:24px;">${date.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}<br><span style="color:#2d6fc4; font-weight:500;">${date.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span></div>
-                        </div>
-                        <div style="background:#f8fafc; border-radius:8px; padding:16px;">
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><i class="fas fa-info-circle" style="color:#2d6fc4;"></i><span style="font-weight:600; color:#475569;">Additional Information</span></div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-left:24px;">
-                                ${attempt.heartRate ? `<div><div style="color:#64748b; font-size:11px;">Heart Rate</div><div style="font-weight:500; color:#1e293b;">${attempt.heartRate} bpm</div></div>` : ''}
-                                <div><div style="color:#64748b; font-size:11px;">Status</div><div><span class="status-badge status-active" style="font-size:11px;">Completed</span></div></div>
-                                ${attempt.isProfessorOverride ? `<div style="grid-column:span 2;"><div style="color:#64748b; font-size:11px;">Edited By</div><div style="font-weight:500; color:#b45309;">✏️ ${attempt.overriddenByName || 'Professor'}</div></div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer"><button class="px-6 py-2.5 bg-navy hover:bg-navy-light text-white rounded-lg font-semibold transition-all text-sm" onclick="closeAttemptDetailsModal()">Close</button></div>
+        const modalHtml = `<div id="attemptDetailsModal" class="modal-overlay" style="display:flex; z-index:3000;">
+            <div class="modal-content small" onclick="event.stopPropagation()" style="max-width:500px;">
+                <div class="modal-header" style="background:linear-gradient(90deg, #0a1628 0%, #1e4d8c 100%);">
+                    <h3 style="color:white;"><i class="fas fa-clipboard-check"></i> Attempt Details</h3>
+                    <button class="modal-close-btn" onclick="closeAttemptDetailsModal()" style="background:rgba(255,255,255,0.2); color:white;"><i class="fas fa-times"></i></button>
                 </div>
-            </div>`;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        } catch (error) { console.error('Error viewing attempt details:', error); showErrorModal('Error: ' + error.message); }
-    };
-
+                <div class="modal-body" style="padding:24px;">
+                    <div style="background:#f8fafc; border-radius:10px; padding:16px; margin-bottom:20px; border-left:4px solid #2d6fc4;">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                            <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #1e4d8c 0%, #2d6fc4 100%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">${studentName.charAt(0) || '?'}</div>
+                            <div><div style="font-weight:700; color:#0a1628; font-size:16px;">${studentName}</div><div style="color:#64748b; font-size:13px;">${attempt.studentEmail}</div></div>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+                        <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Test Name</div><div style="font-weight:700; color:#0a1628; font-size:14px;">${attempt.testName || 'Unknown'}</div></div>
+                        <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Category</div><div>${categoryBadge}</div></div>
+                        <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Result</div><div style="font-weight:700; color:#1e293b; font-size:14px;">${resultDisplay}</div></div>
+                        <div style="background:#f1f5f9; padding:12px; border-radius:8px;"><div style="color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Attempt #</div><div style="font-weight:700; color:#0a1628; font-size:14px;">${attemptNumber}</div></div>
+                    </div>
+                    <div style="background:#f8fafc; border-radius:8px; padding:16px; margin-bottom:16px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><i class="fas fa-calendar-alt" style="color:#2d6fc4;"></i><span style="font-weight:600; color:#475569;">Submission Date &amp; Time</span></div>
+                        <div style="font-size:15px; color:#0a1628; margin-left:24px;">${date.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}<br><span style="color:#2d6fc4; font-weight:500;">${date.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span></div>
+                    </div>
+                    <div style="background:#f8fafc; border-radius:8px; padding:16px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><i class="fas fa-info-circle" style="color:#2d6fc4;"></i><span style="font-weight:600; color:#475569;">Additional Information</span></div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-left:24px;">
+                            ${attempt.heartRate ? `<div><div style="color:#64748b; font-size:11px;">Heart Rate</div><div style="font-weight:500; color:#1e293b;">${attempt.heartRate} bpm</div></div>` : ''}
+                            <div><div style="color:#64748b; font-size:11px;">Status</div><div><span class="status-badge status-active" style="font-size:11px;">Completed</span></div></div>
+                            ${attempt.isProfessorOverride ? `<div style="grid-column:span 2;"><div style="color:#64748b; font-size:11px;">Edited By</div><div style="font-weight:500; color:#b45309;">✏️ ${attempt.overriddenByName || 'Professor'}</div></div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="px-6 py-2.5 bg-navy hover:bg-navy-light text-white rounded-lg font-semibold transition-all text-sm" onclick="closeAttemptDetailsModal()">Close</button></div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    } catch (error) { console.error('Error viewing attempt details:', error); showErrorModal('Error: ' + error.message); }
+};
     window.closeAttemptDetailsModal = function() { const modal = document.getElementById('attemptDetailsModal'); if (modal) modal.remove(); };
     document.addEventListener('click', function(event) { const modal = document.getElementById('attemptDetailsModal'); if (modal && event.target === modal) window.closeAttemptDetailsModal(); });
     window.closeViewStudentModal = function() { document.getElementById('viewStudentModal').style.display = 'none'; window.currentStudentId = null; };
@@ -1819,20 +1935,19 @@
     window.filterStudents = function() {
         const searchTerm = document.getElementById('searchStudents').value.toLowerCase();
         const sectionFilter = document.getElementById('filterSection').value;
-        const performanceFilter = document.getElementById('filterPerformance').value;
+        const categoryFilter = document.getElementById('filterCategory').value;
         window.filteredStudents = window.students.filter(student => {
             const matchesSearch = !searchTerm || student.firstName.toLowerCase().includes(searchTerm) || student.lastName.toLowerCase().includes(searchTerm) || (student.umakId && student.umakId.toLowerCase().includes(searchTerm));
             const matchesSection = !sectionFilter || student.section === sectionFilter;
-            let matchesPerformance = true;
-            if (performanceFilter) {
-                switch (performanceFilter) {
-                    case 'excellent': matchesPerformance = student.bestScore >= 90; break;
-                    case 'good': matchesPerformance = student.bestScore >= 70 && student.bestScore < 90; break;
-                    case 'needs-improvement': matchesPerformance = student.bestScore > 0 && student.bestScore < 70; break;
-                    case 'no-attempts': matchesPerformance = student.totalAttempts === 0; break;
+            let matchesCategory = true;
+            if (categoryFilter) {
+                if (categoryFilter === 'no-attempts') {
+                    matchesCategory = student.uniqueTestCount === 0;
+                } else {
+                    matchesCategory = student.overallCategory === categoryFilter;
                 }
             }
-            return matchesSearch && matchesSection && matchesPerformance;
+            return matchesSearch && matchesSection && matchesCategory;
         });
         window.currentPage = 1;
         if (window.innerWidth <= 768) populateMobileStudents(window.filteredStudents); else updateStudentsTable(window.filteredStudents);
@@ -1844,15 +1959,15 @@
     window.exportStudents = function() {
         if (window.filteredStudents.length === 0) { showWarningModal('No students to export.', () => {}, () => {}); return; }
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "UMaK ID,Student Name,Section,Total Attempts,Best Score,Average Score (2 decimals)\n";
+        csvContent += "ID,Student Name,Email,Section,Tests Taken,Overall Category\n";
         window.filteredStudents.forEach(student => {
-            const row = [student.umakId || '', `${student.firstName} ${student.lastName}`, student.section || '', student.totalAttempts || 0, student.bestScore || 0, (student.averageScore || 0).toFixed(2)];
+            const row = [student.umakId || '', `${student.firstName} ${student.lastName}`, student.email || '', student.section || '', student.uniqueTestCount || 0, student.overallCategory || 'N/A'];
             csvContent += row.map(field => `"${field}"`).join(',') + "\n";
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `student_scores_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `student_categories_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
         showSuccessModal('Students exported successfully!');
     };
@@ -1913,11 +2028,13 @@
                     completedSnapshot.forEach(docSnap => {
                         const data = docSnap.data();
                         const testId = data.testId;
-                        const score = Math.max(0, Math.min(100, Math.round(
-                            calculateActivityScore(data.testName || '', data.result || data.resultData || data.repetitions || data, data.testTarget || null)
-                        )));
-                        if (!completedTests.has(testId) || score > completedTests.get(testId).score) {
-                            completedTests.set(testId, { score: score, result: data.result, resultId: docSnap.id, submittedAt: data.submittedAt, status: data.status });
+                        const gender = (data.gender || '').toLowerCase();
+                        const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                        const category = getNormCategory(data.testName || '', data.result || data.resultData || data.repetitions || data, genderKey, '19-22');
+                        
+                        if (!completedTests.has(testId) || 
+                            (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[completedTests.get(testId).category] || 0)) {
+                            completedTests.set(testId, { category: category, result: data.result, resultId: docSnap.id, submittedAt: data.submittedAt, status: data.status });
                         }
                     });
                     testsSnapshot.forEach(testDoc => {
@@ -1926,7 +2043,7 @@
                         if (test.deadlineTime) { const [hours, minutes] = test.deadlineTime.split(':').map(Number); deadlineDateTime.setHours(hours, minutes, 0, 0); } else deadlineDateTime.setHours(23, 59, 59, 999);
                         if (deadlineDateTime < now) {
                             const completedData = completedTests.get(test.id);
-                            window.overdueStudents.push({ studentName: student.name || 'Unknown', studentEmail: studentEmail, studentId: student.student_id || student.studentId || 'N/A', section: section.name, testId: test.id, testName: test.testName, testTarget: test.testTarget || 0, testUnit: test.testUnit || '', deadline: deadlineDateTime, deadlineString: formatDeadline(test.deadline, test.deadlineTime), hasCompleted: !!completedData, currentScore: completedData?.score || 0, currentResult: completedData?.result || '', resultId: completedData?.resultId || null, status: completedData?.status || 'not-started' });
+                            window.overdueStudents.push({ studentName: student.name || 'Unknown', studentEmail: studentEmail, studentId: student.student_id || student.studentId || 'N/A', section: section.name, testId: test.id, testName: test.testName, testTarget: test.testTarget || 0, testUnit: test.testUnit || '', deadline: deadlineDateTime, deadlineString: formatDeadline(test.deadline, test.deadlineTime), hasCompleted: !!completedData, currentCategory: completedData?.category || null, resultId: completedData?.resultId || null, status: completedData?.status || 'not-started' });
                         }
                     });
                 }
@@ -2037,16 +2154,15 @@
         });
     };
 
-    window.setOverdueScore = function(studentEmail, testId, testName, testTarget, testUnit, studentName, currentScore = 0, currentResult = '', resultId = '') {
-        window.openEditScoreModal(studentEmail, testId, testName, testTarget, testUnit, studentName, currentScore, currentResult, resultId);
+    window.setOverdueScore = function(studentEmail, testId, testName, testTarget, testUnit, studentName, currentCategory = null, currentResult = '', resultId = '') {
+        window.openEditResultModal(studentEmail, testId, testName, testTarget, testUnit, studentName, currentCategory, currentResult, resultId);
     };
 
-    window.openEditScoreModal = function(studentEmail, testId, testName, testTarget, testUnit, studentName, currentScore = 0, currentResult = '', resultId = '') {
-        editScoreData = { studentEmail, testId, testName, testTarget: testTarget || 0, testUnit: testUnit || '', studentName, resultId: resultId || '', currentScore, currentResult };
+    window.openEditResultModal = function(studentEmail, testId, testName, testTarget, testUnit, studentName, currentCategory = null, currentResult = '', resultId = '') {
+        editResultData = { studentEmail, testId, testName, testTarget: testTarget || 0, testUnit: testUnit || '', studentName, resultId: resultId || '', currentCategory, currentResult };
         document.getElementById('editScoreTestName').textContent = testName;
-        document.getElementById('editScoreTarget').textContent = `${testTarget} ${testUnit}`;
         document.getElementById('editScoreStudent').textContent = studentName;
-        document.getElementById('currentScoreDisplay').textContent = currentScore > 0 ? currentScore.toFixed(1) : 'No score';
+        
         let resultDisplay = 'No result';
         if (currentResult) {
             if (typeof currentResult === 'string') resultDisplay = currentResult;
@@ -2054,24 +2170,17 @@
             else if (typeof currentResult === 'object') { const numValue = currentResult.repetitions || currentResult.time || currentResult.distance || currentResult.value || 0; resultDisplay = `${numValue} ${testUnit}`; }
         }
         document.getElementById('currentResultDisplay').textContent = resultDisplay;
+        
         currentStep = 1;
         const newResultInput = document.getElementById('newResult');
         if (newResultInput) {
             newResultInput.value = ''; newResultInput.classList.remove('border-red-500');
             const formHint = document.getElementById('resultHint');
-            if (formHint) { formHint.classList.remove('text-red-600'); formHint.textContent = 'Enter what the student achieved in this test'; }
-            const testNameLower = testName.toLowerCase();
-            if (testNameLower.includes('push-up') || testNameLower.includes('sit-up') || testNameLower.includes('curl-up')) {
-                newResultInput.type = 'number'; newResultInput.min = '0'; newResultInput.max = testTarget.toString(); newResultInput.step = '1'; newResultInput.placeholder = `Enter repetitions (0-${testTarget})`;
-            } else if (testNameLower.includes('plank')) {
-                newResultInput.type = 'number'; newResultInput.min = '0'; newResultInput.max = testTarget.toString(); newResultInput.step = '1'; newResultInput.placeholder = `Enter seconds (0-${testTarget})`;
-            } else if (testNameLower.includes('sit-and-reach')) {
-                newResultInput.type = 'number'; newResultInput.min = '0'; newResultInput.max = testTarget.toString(); newResultInput.step = '0.1'; newResultInput.placeholder = `Enter cm (0-${testTarget})`;
-            } else if (testNameLower.includes('grip')) {
-                newResultInput.type = 'number'; newResultInput.min = '0'; newResultInput.max = testTarget.toString(); newResultInput.step = '0.1'; newResultInput.placeholder = `Enter kg (0-${testTarget})`;
-            } else { newResultInput.type = 'number'; newResultInput.min = '0'; newResultInput.placeholder = 'Enter result'; }
+            if (formHint) { formHint.classList.remove('text-red-600'); formHint.textContent = 'Enter the student\'s achievement'; }
+            newResultInput.type = 'number'; newResultInput.min = '0'; newResultInput.placeholder = 'Enter result';
+            newResultInput.step = 'any';
         }
-        const preview = document.getElementById('scorePreview');
+        const preview = document.getElementById('categoryPreview');
         if (preview) preview.style.display = 'none';
         updateStepUI();
         document.getElementById('editScoreModal').style.display = 'flex';
@@ -2080,40 +2189,55 @@
     window.closeEditScoreModal = function() { document.getElementById('editScoreModal').style.display = 'none'; };
     window.nextStep = function() { if (currentStep === 1) { currentStep = 2; updateStepUI(); } };
 
-    window.submitScore = async function() {
+    window.submitResult = async function() {
         const newResult = parseFloat(document.getElementById('newResult').value);
         if (isNaN(newResult) || newResult < 0) { showWarningModal('Please enter a valid result', () => {}, () => {}); return; }
-        const testTarget = editScoreData.testTarget;
-        if (testTarget && testTarget > 0) {
-            const testName = editScoreData.testName.toLowerCase();
-            let exceedsLimit = false, maxMessage = '';
-            if (testName.includes('push-up') || testName.includes('sit-up') || testName.includes('curl-up')) { exceedsLimit = newResult > testTarget; maxMessage = `Maximum repetitions for this test is ${testTarget}.`; }
-            else if (testName.includes('plank')) { exceedsLimit = newResult > testTarget; maxMessage = `Maximum time for this test is ${testTarget} seconds.`; }
-            else if (testName.includes('sit-and-reach')) { exceedsLimit = newResult > testTarget; maxMessage = `Maximum distance for this test is ${testTarget} cm.`; }
-            else if (testName.includes('grip')) { exceedsLimit = newResult > testTarget; maxMessage = `Maximum grip strength for this test is ${testTarget} kg.`; }
-            if (exceedsLimit) { showWarningModal(`${maxMessage} Please enter a value between 0 and ${testTarget}.`, () => {}, () => {}); return; }
-        }
         try {
             const submitBtn = document.getElementById('btnSubmit');
             if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-hourglass-split"></i> Saving...'; }
-            const calculatedScore = calculateActivityScore(editScoreData.testName, newResult, editScoreData.testTarget);
-            const finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
+            
+            // Calculate category using norm-based system
+            const gender = 'male'; // Default, could be fetched from student data
+            const genderKey = 'male';
+            const category = getNormCategory(editResultData.testName, newResult, genderKey, '19-22');
+
             const now = new Date();
             let originalSubmittedAt = now;
-            if (editScoreData.resultId) {
-                try { const existingDoc = await getDoc(doc(db, 'testResults', editScoreData.resultId)); if (existingDoc.exists()) originalSubmittedAt = existingDoc.data().submittedAt || now; } catch (error) {}
+            if (editResultData.resultId) {
+                try { const existingDoc = await getDoc(doc(db, 'testResults', editResultData.resultId)); if (existingDoc.exists()) originalSubmittedAt = existingDoc.data().submittedAt || now; } catch (error) {}
             }
-            const resultData = { studentEmail: editScoreData.studentEmail, testId: editScoreData.testId, testName: editScoreData.testName, result: newResult, rawResult: newResult, resultData: { value: newResult, unit: editScoreData.testUnit }, score: finalScore, testTarget: editScoreData.testTarget, testUnit: editScoreData.testUnit, status: 'completed', submittedAt: originalSubmittedAt, isProfessorOverride: true, setByProfessor: true, overriddenBy: window.currentUser?.email || '', overriddenByName: window.currentUser?.displayName || window.currentUser?.email || 'Professor', overriddenAt: now, lastEditedAt: now };
-            if (editScoreData.resultId) await updateDoc(doc(db, 'testResults', editScoreData.resultId), resultData);
+            
+            const resultData = { 
+                studentEmail: editResultData.studentEmail, 
+                testId: editResultData.testId, 
+                testName: editResultData.testName, 
+                result: newResult, 
+                rawResult: newResult, 
+                resultData: { value: newResult, unit: editResultData.testUnit }, 
+                category: category,
+                testTarget: editResultData.testTarget, 
+                testUnit: editResultData.testUnit, 
+                status: 'completed', 
+                submittedAt: originalSubmittedAt, 
+                isProfessorOverride: true, 
+                setByProfessor: true, 
+                overriddenBy: window.currentUser?.email || '', 
+                overriddenByName: window.currentUser?.displayName || window.currentUser?.email || 'Professor', 
+                overriddenAt: now, 
+                lastEditedAt: now 
+            };
+            
+            if (editResultData.resultId) await updateDoc(doc(db, 'testResults', editResultData.resultId), resultData);
             else await addDoc(collection(db, 'testResults'), resultData);
-            showSuccessModal(`Score saved: ${finalScore}/100`);
+            
+            showSuccessModal(`Result saved! Category: ${category}`);
             closeEditScoreModal();
             if (window.loadOverdueStudents) await window.loadOverdueStudents();
             if (window.loadStudents) await window.loadStudents();
         } catch (error) {
             showErrorModal('Error: ' + error.message);
             const submitBtn = document.getElementById('btnSubmit');
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span>✓</span> Save Score'; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span>✓</span> Save Result'; }
         }
     };
 
@@ -2219,8 +2343,7 @@
     function getSortLabel(sortType) {
         switch(sortType) {
             case 'newest-first': return 'Newest First'; case 'oldest-first': return 'Oldest First'; case 'test-name-a-z': return 'Test Name A-Z';
-            case 'test-name-z-a': return 'Test Name Z-A'; case 'score-high-low': return 'Score: High to Low'; case 'score-low-high': return 'Score: Low to High';
-            case 'status': return 'Status (Pending First)'; default: return 'Newest First';
+            case 'test-name-z-a': return 'Test Name Z-A'; case 'status': return 'Status (Pending First)'; default: return 'Newest First';
         }
     }
     function sortStudentTests() {
@@ -2231,8 +2354,6 @@
             case 'oldest-first': sortedTests.sort((a, b) => a.deadline.getTime() - b.deadline.getTime()); break;
             case 'test-name-a-z': sortedTests.sort((a, b) => a.testName.localeCompare(b.testName)); break;
             case 'test-name-z-a': sortedTests.sort((a, b) => b.testName.localeCompare(a.testName)); break;
-            case 'score-high-low': sortedTests.sort((a, b) => (b.hasCompleted ? b.currentScore : 0) - (a.hasCompleted ? a.currentScore : 0)); break;
-            case 'score-low-high': sortedTests.sort((a, b) => (a.hasCompleted ? a.currentScore : 0) - (b.hasCompleted ? b.currentScore : 0)); break;
             case 'status': sortedTests.sort((a, b) => { if (!a.hasCompleted && b.hasCompleted) return -1; if (a.hasCompleted && !b.hasCompleted) return 1; return b.deadline.getTime() - a.deadline.getTime(); }); break;
         }
         renderStudentTestsTable(sortedTests);
@@ -2246,15 +2367,17 @@
             tests.forEach(item => {
                 const isEnabled = item.isEnabled || false;
                 const hasCompleted = item.hasCompleted;
+                const categoryBadge = hasCompleted && item.currentCategory ? renderCategoryBadge(item.currentCategory) : '';
+                
                 html += `<tr style="${hasCompleted ? 'background-color:#f0fdf4;' : ''}">
                     <td data-label="Test Name"><div><strong style="color:${hasCompleted ? '#10b981' : '#ef4444'};">${item.testName}</strong>${isEnabled ? '<br><small style="color:#2d6fc4;">✓ Enabled by you</small>' : ''}</div></td>
                     <td data-label="Status">${hasCompleted ? '<span class="status-badge status-active">Completed</span>' : '<span class="status-badge" style="background:#fee2e2; color:#991b1b;">Pending</span>'}</td>
                     <td data-label="Deadline"><small style="color:#64748b;">${item.deadlineString}</small></td>
-                    <td data-label="Score">${hasCompleted ? `<span style="font-weight:700; color:#0a1628;">${item.currentScore.toFixed(1)}%</span>` : '<span style="color:#64748b;">Not scored</span>'}</td>
+                    <td data-label="Category">${hasCompleted ? categoryBadge : '<span style="color:#64748b;">—</span>'}</td>
                     <td data-label="Actions"><div class="action-buttons" style="display:flex; gap:8px; flex-wrap:wrap;">
                         ${!hasCompleted && !isEnabled ? `<button class="btn-action btn-view" onclick="event.stopPropagation(); enableOverdueTest('${item.studentEmail}', '${item.testId}', '${item.testName}')"><i class="fas fa-unlock"></i> Enable</button>` : ''}
                         ${!hasCompleted && isEnabled ? `<button class="btn-action" style="background:#2d6fc4; color:white;" disabled><i class="fas fa-check-circle"></i> Enabled</button>` : ''}
-                        <button class="btn-action btn-attempt" onclick="event.stopPropagation(); setOverdueScore('${item.studentEmail}', '${item.testId}', '${item.testName}', ${item.testTarget}, '${item.testUnit}', '${item.studentName}', ${hasCompleted ? item.currentScore : 0}, '${hasCompleted ? item.currentResult : ''}', '${item.resultId || ''}')"><i class="fas fa-edit"></i> ${hasCompleted ? 'Edit' : 'Set'} Score</button>
+                        <button class="btn-action btn-attempt" onclick="event.stopPropagation(); setOverdueScore('${item.studentEmail}', '${item.testId}', '${item.testName}', ${item.testTarget}, '${item.testUnit || ''}', '${item.studentName}', ${hasCompleted ? JSON.stringify(item.currentCategory) : null}, '${hasCompleted ? item.currentResult || '' : ''}', '${item.resultId || ''}')"><i class="fas fa-edit"></i> ${hasCompleted ? 'Edit' : 'Set'} Result</button>
                     </div></td>
                 </tr>`;
             });
@@ -2293,9 +2416,8 @@
     });
 
     let currentStep = 1;
-    let editScoreData = { studentEmail:'', testId:'', testName:'', testTarget:0, testUnit:'', studentName:'', resultId:'', currentScore:0, currentResult:'' };
+    let editResultData = { studentEmail:'', testId:'', testName:'', testTarget:0, testUnit:'', studentName:'', resultId:'', currentCategory:null, currentResult:'' };
 
-    // Wire global expose
     window.toggleFilterDropdown = toggleFilterDropdown;
     window.changeFilter = changeFilter;
     window.toggleSortDropdown = toggleSortDropdown;
@@ -2307,28 +2429,17 @@
         if (newResultInput) {
             newResultInput.addEventListener('input', function() {
                 const result = parseFloat(this.value);
-                const preview = document.getElementById('scorePreview');
-                const previewValue = document.getElementById('previewScore');
+                const preview = document.getElementById('categoryPreview');
+                const previewValue = document.getElementById('previewCategory');
                 this.classList.remove('border-red-500');
-                if (formHint) { formHint.classList.remove('text-red-600'); formHint.textContent = 'Enter what the student achieved in this test'; }
+                if (formHint) { formHint.classList.remove('text-red-600'); formHint.textContent = 'Enter the student\'s achievement'; }
                 if (!isNaN(result) && result >= 0) {
-                    const testTarget = editScoreData.testTarget;
-                    if (testTarget && testTarget > 0) {
-                        const testName = editScoreData.testName.toLowerCase();
-                        let exceedsLimit = false, maxMessage = '';
-                        if (testName.includes('push-up') || testName.includes('sit-up') || testName.includes('curl-up')) { exceedsLimit = result > testTarget; maxMessage = `Maximum: ${testTarget} repetitions`; }
-                        else if (testName.includes('plank')) { exceedsLimit = result > testTarget; maxMessage = `Maximum: ${testTarget} seconds`; }
-                        else if (testName.includes('sit-and-reach')) { exceedsLimit = result > testTarget; maxMessage = `Maximum: ${testTarget} cm`; }
-                        else if (testName.includes('grip')) { exceedsLimit = result > testTarget; maxMessage = `Maximum: ${testTarget} kg`; }
-                        if (exceedsLimit) { this.classList.add('border-red-500'); if (formHint) { formHint.classList.add('text-red-600'); formHint.textContent = `❌ ${maxMessage}`; } preview.style.display = 'none'; return; }
-                    }
-                    const calculatedScore = calculateActivityScore(editScoreData.testName, result, editScoreData.testTarget);
-                    const finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
-                    if (!isNaN(finalScore)) {
-                        preview.style.display = 'block'; previewValue.textContent = finalScore.toFixed(1);
-                        const gradeText = document.querySelector('.score-preview-text');
-                        if (gradeText) gradeText.innerHTML = `Based on the result entered<br>Grade: ${getGradeLetter(finalScore)}`;
-                    } else preview.style.display = 'none';
+                    const gender = 'male';
+                    const genderKey = 'male';
+                    const category = getNormCategory(editResultData.testName, result, genderKey, '19-22');
+                    
+                    preview.style.display = 'block'; 
+                    previewValue.innerHTML = renderCategoryBadge(category);
                 } else preview.style.display = 'none';
             });
         }

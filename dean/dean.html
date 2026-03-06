@@ -3973,7 +3973,7 @@ window.createSecretaryAccount = async function() {
         return;
     }
 
-    const fullName = `${lastName}, ${firstName}`;
+const fullName = `${firstName} ${lastName}`;
     const btn = document.getElementById('addSecretaryBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
