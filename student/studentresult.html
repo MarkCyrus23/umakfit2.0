@@ -1772,7 +1772,54 @@
             }
         }
 
+            function getNextThreshold(testName, currentCategory, ageGroup, genderKey) {
+            const next = {
+                'Poor': 'Below Average',
+                'Below Average': 'Average',
+                'Average': 'Good',
+                'Good': 'Excellent',
+                'Excellent': null
+            };
+            const nextCat = next[currentCategory];
+            if (!nextCat) return null;
 
+            const normalized = testName.toLowerCase();
+
+            const thresholds = {
+                pushup: {
+                    male: { '15-18': { 'Below Average': 11, 'Average': 21, 'Good': 31, 'Excellent': 40 }, '19-22': { 'Below Average': 9, 'Average': 18, 'Good': 28, 'Excellent': 38 }, '23-26': { 'Below Average': 8, 'Average': 16, 'Good': 25, 'Excellent': 35 }, '27-30': { 'Below Average': 6, 'Average': 14, 'Good': 23, 'Excellent': 32 } },
+                    female: { '15-18': { 'Below Average': 7, 'Average': 13, 'Good': 19, 'Excellent': 25 }, '19-22': { 'Below Average': 6, 'Average': 11, 'Good': 17, 'Excellent': 23 }, '23-26': { 'Below Average': 5, 'Average': 9, 'Good': 15, 'Excellent': 20 }, '27-30': { 'Below Average': 4, 'Average': 8, 'Good': 13, 'Excellent': 18 } }
+                },
+                curlup: {
+                    male: { '15-18': { 'Below Average': 21, 'Average': 31, 'Good': 41, 'Excellent': 50 }, '19-22': { 'Below Average': 19, 'Average': 28, 'Good': 38, 'Excellent': 47 }, '23-26': { 'Below Average': 17, 'Average': 25, 'Good': 35, 'Excellent': 44 }, '27-30': { 'Below Average': 15, 'Average': 22, 'Good': 32, 'Excellent': 40 } },
+                    female: { '15-18': { 'Below Average': 16, 'Average': 26, 'Good': 36, 'Excellent': 45 }, '19-22': { 'Below Average': 15, 'Average': 24, 'Good': 34, 'Excellent': 42 }, '23-26': { 'Below Average': 13, 'Average': 21, 'Good': 31, 'Excellent': 39 }, '27-30': { 'Below Average': 11, 'Average': 19, 'Good': 28, 'Excellent': 36 } }
+                },
+                sitreach: {
+                    male: { '15-18': { 'Below Average': 18, 'Average': 26, 'Good': 33, 'Excellent': 38 }, '19-22': { 'Below Average': 17, 'Average': 25, 'Good': 32, 'Excellent': 37 }, '23-26': { 'Below Average': 15.5, 'Average': 23.5, 'Good': 30.5, 'Excellent': 35.5 }, '27-30': { 'Below Average': 14, 'Average': 22, 'Good': 29, 'Excellent': 34 } },
+                    female: { '15-18': { 'Below Average': 19, 'Average': 27, 'Good': 34, 'Excellent': 39 }, '19-22': { 'Below Average': 18, 'Average': 26, 'Good': 33, 'Excellent': 38 }, '23-26': { 'Below Average': 17, 'Average': 25, 'Good': 32, 'Excellent': 37 }, '27-30': { 'Below Average': 16, 'Average': 24, 'Good': 31, 'Excellent': 36 } }
+                },
+                steptest: {
+                    male: { '15-18': { 'Below Average': 118, 'Average': 108, 'Good': 97, 'Excellent': 84 }, '19-22': { 'Below Average': 116, 'Average': 105, 'Good': 89, 'Excellent': 79 }, '23-26': { 'Below Average': 117, 'Average': 106, 'Good': 90, 'Excellent': 80 }, '27-30': { 'Below Average': 118, 'Average': 107, 'Good': 91, 'Excellent': 81 } },
+                    female: { '15-18': { 'Below Average': 124, 'Average': 113, 'Good': 103, 'Excellent': 89 }, '19-22': { 'Below Average': 118, 'Average': 109, 'Good': 98, 'Excellent': 85 }, '23-26': { 'Below Average': 119, 'Average': 110, 'Good': 99, 'Excellent': 86 }, '27-30': { 'Below Average': 121, 'Average': 112, 'Good': 101, 'Excellent': 88 } }
+                }
+            };
+
+            let testKey = null;
+            if (normalized.includes('push-up') || normalized.includes('pushup')) testKey = 'pushup';
+            else if (normalized.includes('curl-up') || normalized.includes('curl up')) testKey = 'curlup';
+            else if (normalized.includes('sit-and-reach') || normalized.includes('sit and reach')) testKey = 'sitreach';
+            else if (normalized.includes('step test') || normalized.includes('3-minute')) testKey = 'steptest';
+            if (!testKey) return null;
+
+            const val = thresholds[testKey]?.[genderKey]?.[ageGroup]?.[nextCat];
+            if (val == null) return null;
+
+            const isLowerBetter = testKey === 'steptest';
+            const unit = testKey === 'sitreach' ? ' cm' : testKey === 'steptest' ? ' bpm' : ' reps';
+            const direction = isLowerBetter ? '≤' : '≥';
+
+            return { nextCategory: nextCat, threshold: val, unit, direction };
+        }
 const RECOMMENDATION_CACHE = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; 
 
@@ -2037,15 +2084,97 @@ function showErrorPopup(message, onClose) {
                     const scoreRatingEl = document.getElementById('scoreRating');
 
                     if (normCategory) {
-                        const rating = getRatingFromCategory(normCategory);
-                        if (scoreRatingEl) scoreRatingEl.innerHTML = `<span class="score-rating ${rating.class}"><i class="bi bi-star-fill"></i> ${rating.text}</span>`;
-                    } else {
-                        const numericRating = score >= 90 ? 'Excellent' :
-                                              score >= 80 ? 'Good' :
-                                              score >= 70 ? 'Fair' : 'Needs Improvement';
-                        const ratingMeta = getRatingFromCategory(numericRating);
-                        if (scoreRatingEl) scoreRatingEl.innerHTML = `<span class="score-rating ${ratingMeta.class}"><i class="bi bi-star-fill"></i> ${ratingMeta.text}</span>`;
+                    const rating = getRatingFromCategory(normCategory);
+                    const age = getStudentAgeForNorms();
+                    const ageGroup = getAgeGroup(age);
+                    const genderKey = getGenderKey();
+                    const nextInfo = getNextThreshold(data.testName, normCategory, ageGroup, genderKey);
+
+                    const numericValue = extractNumericResult(data.result);
+                    const normalized = data.testName.toLowerCase();
+                    const isLowerBetter = normalized.includes('step test') || normalized.includes('3-minute');
+                    const unit = normalized.includes('sit-and-reach') || normalized.includes('sit and reach') ? ' cm'
+                            : isLowerBetter ? ' bpm'
+                            : ' reps';
+
+                    let nextHint = '';
+                    if (nextInfo) {
+                        const gap = isLowerBetter
+                            ? numericValue - nextInfo.threshold
+                            : nextInfo.threshold - numericValue;
+                        const gapText = isLowerBetter
+                            ? `Lower your heart rate by <strong>${Math.ceil(gap)} bpm</strong>`
+                            : `Improve by <strong>${Math.ceil(gap)}${unit}</strong>`;
+
+                        nextHint = `
+                            <div style="
+                                margin-top: 10px;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 6px;
+                                background: #f0f9ff;
+                                border: 1px solid #bae6fd;
+                                border-radius: 50px;
+                                padding: 6px 14px;
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: #0369a1;
+                            ">
+                                <i class="bi bi-arrow-up-circle-fill" style="color: #0ea5e9;"></i>
+                                ${gapText} to reach <strong style="color:#0c4a6e;">${nextInfo.nextCategory}</strong>
+                            </div>`;
                     }
+
+                    if (scoreRatingEl) scoreRatingEl.innerHTML = `
+                    <span class="score-rating ${rating.class}">
+                        <i class="bi bi-star-fill"></i> ${rating.text}
+                    </span>
+                `;
+
+                // Insert improvement hint after the stat badges
+                const statBadges = document.getElementById('statBadges');
+                if (statBadges) {
+                    const existingHint = document.getElementById('resultHintRow');
+                    if (existingHint) existingHint.remove();
+
+                    const hintRow = document.createElement('div');
+                    hintRow.id = 'resultHintRow';
+                    hintRow.style.cssText = `
+                        display: flex;
+                        justify-content: center;
+                        margin-top: 1rem;
+                    `;
+
+                    hintRow.innerHTML = nextHint ? `
+                        <div style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 8px;
+                            background: #f0f9ff;
+                            border: 1px solid #bae6fd;
+                            border-radius: 12px;
+                            padding: 10px 20px;
+                            font-size: 13px;
+                            font-weight: 600;
+                            color: #0369a1;
+                        ">
+                            <i class="bi bi-arrow-up-circle-fill" style="color: #0ea5e9; font-size: 15px;"></i>
+                            ${isLowerBetter
+                                ? `Lower your heart rate by <strong style="color:#0c4a6e;">${Math.ceil(numericValue - nextInfo.threshold)} bpm</strong> to reach <strong style="color:#0c4a6e;">${nextInfo.nextCategory}</strong>`
+                                : `Improve by <strong style="color:#0c4a6e;">${Math.ceil(nextInfo.threshold - numericValue)}${unit}</strong> to reach <strong style="color:#0c4a6e;">${nextInfo.nextCategory}</strong>`
+                            }
+                        </div>
+                    ` : '';
+
+                    statBadges.insertAdjacentElement('afterend', hintRow);
+                }
+                } else {
+                    const numericRating = score >= 90 ? 'Excellent' :
+                                        score >= 80 ? 'Good' :
+                                        score >= 70 ? 'Fair' : 'Needs Improvement';
+                    const ratingMeta = getRatingFromCategory(numericRating);
+                    if (scoreRatingEl) scoreRatingEl.innerHTML = `<span class="score-rating ${ratingMeta.class}"><i class="bi bi-star-fill"></i> ${ratingMeta.text}</span>`;
+                }
 
                     document.getElementById('testName').textContent = data.testName;
                     document.getElementById('testResult').textContent = data.result;
