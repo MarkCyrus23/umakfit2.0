@@ -2345,6 +2345,71 @@ const stuOverallAvg = avgs.length ? avgs.reduce((a,b)=>a+b,0)/avgs.length : 0;
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(url);
     }
+    window.createSecretaryAccount = async function() {
+    const lastName  = document.getElementById('secLastName').value.trim();
+    const firstName = document.getElementById('secFirstName').value.trim();
+    const email     = document.getElementById('secEmail').value.trim().toLowerCase();
+
+    if (!lastName || !firstName || !email) {
+        await showDeanAlert('Please fill in all fields (Last Name, First Name, and Email).', { title: 'Missing Fields', type: 'warning' });
+        return;
+    }
+
+    if (!email.endsWith('@umak.edu.ph')) {
+        await showDeanAlert('Email must be a valid UMak email address ending in @umak.edu.ph.', { title: 'Invalid Email', type: 'error' });
+        return;
+    }
+
+    // Disable button while processing
+    const btn = document.getElementById('addSecretaryBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+    try {
+        // Check if email already exists
+        const existing = await db.collection('users')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            await showDeanAlert('An account with this email already exists.', { title: 'Duplicate Email', type: 'error' });
+            return;
+        }
+
+        const fullName = `${firstName} ${lastName}`;
+        const docRef   = db.collection('users').doc();
+
+        await docRef.set({
+            uid:        docRef.id,
+            name:       fullName,
+            firstName:  firstName,
+            lastName:   lastName,
+            email:      email,
+            role:       'secretary',
+            college:    'College of Human Kinetics',
+            status:     'active',
+            createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await showDeanAlert(
+            `Secretary account for <strong>${fullName}</strong> (${email}) has been created successfully.`,
+            { title: 'Account Created', type: 'success', confirmText: 'Done' }
+        );
+
+        clearSecretaryForm();
+        await loadAllAccounts();
+        await loadDashboardStats();
+
+    } catch (err) {
+        console.error('createSecretaryAccount error:', err);
+        await showDeanAlert('Failed to create account: ' + err.message, { title: 'Error', type: 'error' });
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Add Secretary';
+    }
+};
 </script>
 </body>
 </html>
