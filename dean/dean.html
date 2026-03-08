@@ -122,15 +122,17 @@
         .app-modal-hide .app-modal-card { animation:appModalFadeOut 0.16s ease-in forwards; }
 
         /* Table responsive mobile cards */
-        @media (max-width: 480px) {
+/* Table responsive mobile cards */
+        @media (max-width: 768px) {
             .custom-table thead { display:none; }
             .custom-table, .custom-table tbody, .custom-table tr, .custom-table td { display:block; width:100%; }
             .custom-table tr { border:1px solid #e1e6ef; border-radius:10px; margin-bottom:10px; padding:12px 14px; background:white; }
-            .custom-table td { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border:none; font-size:13px; border-bottom:1px solid #f4f6fa; white-space:normal; }
+            .custom-table td { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border:none; font-size:13px; border-bottom:1px solid #f4f6fa; white-space:normal; word-break:break-word; }
             .custom-table td:last-child { border-bottom:none; }
-            .custom-table td::before { content:attr(data-label); font-size:11px; font-weight:700; color:#8a98ae; text-transform:uppercase; letter-spacing:0.5px; flex-shrink:0; margin-right:10px; min-width:80px; }
+            .custom-table td::before { content:attr(data-label); font-size:11px; font-weight:700; color:#8a98ae; text-transform:uppercase; letter-spacing:0.5px; flex-shrink:0; margin-right:10px; min-width:90px; }
+            .overflow-x-auto { overflow-x: unset !important; }
+            .tbl-actions { flex-wrap:wrap; }
         }
-
         /* Rank numbers */
         .rank-1 { background:linear-gradient(135deg,#f5d020,#f0a500); color:white; box-shadow:0 3px 8px rgba(240,165,0,0.35); }
         .rank-2 { background:linear-gradient(135deg,#bdc3c7,#95a5a6); color:white; }
@@ -701,11 +703,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-[12px] font-semibold text-text-secondary uppercase tracking-[0.6px] mb-1.5">Last Name</label>
-                            <input type="text" class="w-full px-3.5 py-2.5 border border-border rounded-lg font-sans text-[14px] text-text-primary bg-surface focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all" id="secLastName" placeholder="e.g. Dela Cruz">
+<input type="text" class="w-full px-3.5 py-2.5 border border-border rounded-lg font-sans text-[14px] text-text-primary bg-surface focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all" id="secLastName" placeholder="e.g. DELA CRUZ" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase;">
                         </div>
                         <div>
                             <label class="block text-[12px] font-semibold text-text-secondary uppercase tracking-[0.6px] mb-1.5">First Name</label>
-                            <input type="text" class="w-full px-3.5 py-2.5 border border-border rounded-lg font-sans text-[14px] text-text-primary bg-surface focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all" id="secFirstName" placeholder="e.g. Maria">
+<input type="text" class="w-full px-3.5 py-2.5 border border-border rounded-lg font-sans text-[14px] text-text-primary bg-surface focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all" id="secFirstName" placeholder="e.g. MARIA" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase;">
                         </div>
                         <div>
                             <label class="block text-[12px] font-semibold text-text-secondary uppercase tracking-[0.6px] mb-1.5">UMak Gmail</label>
@@ -1831,21 +1833,20 @@ window.viewSectionDetails = async function(sectionName) {
         } catch(e) { console.error('Error loading BMI data:', e); }
 
         // 3. Compute bmiAvg and bmiCategory after ALL records collected
-        for(const [sid, data] of Object.entries(stuData)) {
-            if(data.bmiRecords && data.bmiRecords.length > 0) {
-                const bmiVals = data.bmiRecords.map(r => r.bmi).filter(b => b > 0);
-                if(bmiVals.length > 0) {
-                    data.bmiAvg = bmiVals.reduce((a,b) => a+b, 0) / bmiVals.length;
-                    const sorted = [...data.bmiRecords].sort((a,b) => {
-                        const da = a.date?.toDate?.() || new Date(a.date || 0);
-                        const db = b.date?.toDate?.() || new Date(b.date || 0);
-                        return db - da;
-                    });
-                    data.bmiCategory = sorted[0]?.category || getBMICategory(data.bmiAvg);
-                }
-            }
-        }
-
+  // 3. Use ONLY the latest pre-BMI record per student
+for(const [sid, data] of Object.entries(stuData)) {
+    if(data.bmiRecords && data.bmiRecords.length > 0) {
+        const sorted = [...data.bmiRecords].sort((a, b) => {
+            const da = a.date?.toDate?.() || new Date(a.date || 0);
+            const db = b.date?.toDate?.() || new Date(b.date || 0);
+            return db - da;
+        });
+        const latest = sorted[0];
+        data.bmiAvg = latest.bmi;
+        data.bmiCategory = latest.category || getBMICategory(latest.bmi);
+        data.bmiCount = 1; // show as single record
+    }
+}
         // 4. Map test results to students
         testResults.forEach(t => {
             const rawSid = t.studentId || t.studentEmail || t.umakId || t.email || '';
@@ -1977,9 +1978,17 @@ const stuOverallAvg = avgs.length ? avgs.reduce((a,b)=>a+b,0)/avgs.length : 0;
             allSnap.forEach(d => { const data=d.data(); const tt=(data.testType||data.type||'').toLowerCase(); if(tt==='pre') preAssessments.push({id:d.id,...data}); });
             const nameMap={};
             try { const usersSnap=await db.collection('users').get(); usersSnap.forEach(d => { const u=d.data(); const umakId=u.umakId||(u.studentId||'').replace(/^student_/i,''); const fullName=u.name||u.displayName||(u.firstName||u.lastName?`${u.firstName||''} ${u.lastName||''}`.trim():null)||null; if(umakId&&fullName) nameMap[umakId.toUpperCase()]=fullName; if(u.email&&fullName) nameMap[u.email.toLowerCase()]=fullName; }); } catch(e) {}
-            preAssessments.forEach(a => { const umakId=(a.umakId||'').toUpperCase(); const email=(a.email||'').toLowerCase(); const looked=nameMap[umakId]||nameMap[email]||null; if(looked) a._fullName=looked; if(a.bmi&&!a.category) a.category=getBMICategory(parseFloat(a.bmi)); });
-            preAssessments.sort((a,b)=>new Date(b.recordedAt||b.updatedAt||b.assessmentDate||0)-new Date(a.recordedAt||a.updatedAt||a.assessmentDate||0));
-            document.getElementById('totalPreAssessments').textContent=preAssessments.length;
+preAssessments.forEach(a => { const umakId=(a.umakId||'').toUpperCase(); const email=(a.email||'').toLowerCase(); const looked=nameMap[umakId]||nameMap[email]||null; if(looked) a._fullName=looked; if(a.bmi&&!a.category) a.category=getBMICategory(parseFloat(a.bmi)); });
+preAssessments.sort((a,b)=>new Date(b.recordedAt||b.updatedAt||b.assessmentDate||0)-new Date(a.recordedAt||a.updatedAt||a.assessmentDate||0));
+
+// Keep only the latest pre-assessment per student (by umakId, then email, then name)
+const seenStudents = new Set();
+preAssessments = preAssessments.filter(a => {
+    const key = (a.umakId||'').toUpperCase() || (a.email||'').toLowerCase() || (a.studentName||a.name||'').toLowerCase();
+    if (!key || seenStudents.has(key)) return false;
+    seenStudents.add(key);
+    return true;
+});            document.getElementById('totalPreAssessments').textContent=preAssessments.length;
             renderPreAssessmentsTable();
             
         } catch(e) { preAssessments=[]; renderPreAssessmentsTable(); console.error(e); }
@@ -2345,6 +2354,71 @@ const stuOverallAvg = avgs.length ? avgs.reduce((a,b)=>a+b,0)/avgs.length : 0;
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(url);
     }
+    window.createSecretaryAccount = async function() {
+    const lastName  = document.getElementById('secLastName').value.trim();
+    const firstName = document.getElementById('secFirstName').value.trim();
+    const email     = document.getElementById('secEmail').value.trim().toLowerCase();
+
+    if (!lastName || !firstName || !email) {
+        await showDeanAlert('Please fill in all fields (Last Name, First Name, and Email).', { title: 'Missing Fields', type: 'warning' });
+        return;
+    }
+
+    if (!email.endsWith('@umak.edu.ph')) {
+        await showDeanAlert('Email must be a valid UMak email address ending in @umak.edu.ph.', { title: 'Invalid Email', type: 'error' });
+        return;
+    }
+
+    // Disable button while processing
+    const btn = document.getElementById('addSecretaryBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+    try {
+        // Check if email already exists
+        const existing = await db.collection('users')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            await showDeanAlert('An account with this email already exists.', { title: 'Duplicate Email', type: 'error' });
+            return;
+        }
+
+        const fullName = `${firstName} ${lastName}`;
+        const docRef   = db.collection('users').doc();
+
+        await docRef.set({
+            uid:        docRef.id,
+            name:       fullName,
+            firstName:  firstName,
+            lastName:   lastName,
+            email:      email,
+            role:       'secretary',
+            college:    'College of Human Kinetics',
+            status:     'active',
+            createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await showDeanAlert(
+            `Secretary account for <strong>${fullName}</strong> (${email}) has been created successfully.`,
+            { title: 'Account Created', type: 'success', confirmText: 'Done' }
+        );
+
+        clearSecretaryForm();
+        await loadAllAccounts();
+        await loadDashboardStats();
+
+    } catch (err) {
+        console.error('createSecretaryAccount error:', err);
+        await showDeanAlert('Failed to create account: ' + err.message, { title: 'Error', type: 'error' });
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Add Secretary';
+    }
+};
 </script>
 </body>
 </html>

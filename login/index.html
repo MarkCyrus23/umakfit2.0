@@ -904,10 +904,12 @@
                 console.log('Checking status for user:', user.email);
 
                 const isAccountActive = await checkAccountStatus(user);
-                if (!isAccountActive) {
+              if (!isAccountActive) {
                     await signOut(auth);
                     hideLoading();
                     showError('Your account has been deactivated. Please contact the administrator.');
+                    busy = false;
+                    sessionStorage.removeItem(SESSION_HANDLING_KEY);
                     return;
                 }
 
@@ -958,7 +960,7 @@
                 const userDocRef   = doc(db, 'users', userEmailKey);
                 const userDocSnap  = await getDoc(userDocRef);
 
-                if (userDocSnap.exists()) {
+if (userDocSnap.exists()) {
                     showError('Your account role is not properly configured. Please contact your college secretary.');
                 } else {
                     showError('Your account is not yet registered in the system. Please contact your college secretary.');
@@ -966,12 +968,16 @@
 
                 await signOut(auth);
                 hideLoading();
+                busy = false;
+                sessionStorage.removeItem(SESSION_HANDLING_KEY);
 
             } catch (error) {
                 console.error('Error in checkUserStatus:', error);
-                showError('Error checking account status. Please try again.');
-                await signOut(auth);
-                hideLoading();
+           showError('Error checking account status. Please try again.');
+            await signOut(auth);
+            hideLoading();
+            busy = false;
+            sessionStorage.removeItem(SESSION_HANDLING_KEY);
             }
         }
 

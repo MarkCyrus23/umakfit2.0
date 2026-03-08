@@ -97,21 +97,16 @@
             #headerDate, #headerDivider, #headerNameBlock { display: none; }
         }
 
-        /* Live indicator */
         .live-dot { animation: pulse 2s infinite; }
 
-        /* Tab styles */
-        .tab-btn { transition: all 0.2s; }
-        .tab-btn.active { background: white; color: #2d6fc4; box-shadow: 0 2px 8px rgba(45,111,196,0.15); }
+.tab-btn { transition: all 0.2s; white-space: nowrap; }
+.tab-btn.active { background: white; color: #2d6fc4; box-shadow: 0 2px 8px rgba(45,111,196,0.15); }
 
-        /* Test card */
         .test-card { transition: all 0.22s; }
         .test-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.09); border-color: #c8a84b !important; }
 
-        /* Progress bar */
         .progress-fill { transition: width 0.5s ease; }
 
-        /* Stat card */
         .stat-card-mon { transition: all 0.22s; overflow: hidden; }
         .stat-card-mon:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.12); }
         .stat-card-mon::before {
@@ -120,11 +115,9 @@
             animation: shimmer 2.5s infinite;
         }
 
-        /* Toast */
         .toast { transition: all 0.3s ease; transform: translateX(120%); opacity: 0; }
         .toast.show { transform: translateX(0); opacity: 1; }
 
-        /* Category badges - same as grades.html */
         .category-badge { display:inline-flex; align-items:center; gap:4px; padding:5px 14px; border-radius:20px; font-weight:700; font-size:12px; white-space:nowrap; }
         .category-excellent { background-color:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
         .category-good { background-color:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
@@ -133,7 +126,6 @@
         .category-poor { background-color:#fce8e6; color:#991b1b; border:1px solid #fca5a5; }
         .category-default { background-color:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
-        /* Student list hover */
         .student-item { transition: all 0.18s; }
         .student-item:hover { background: #f4f6fa; transform: translateX(2px); }
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
@@ -147,6 +139,27 @@
                 padding-right: 1rem !important;
             }
         }
+    @media (max-width: 640px) {
+    .tab-btn {
+        padding: 0.4rem 0.85rem !important;
+        font-size: 12px !important;
+    }
+    #testsTab .flex-wrap.items-center.justify-between {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    #testsTab .flex-wrap.items-center.gap-2 {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+    }
+    #testsTab select, #testsTab button {
+        width: 100% !important;
+        font-size: 12px !important;
+        padding: 0.5rem !important;
+    }
+}
     </style>
 </head>
 <body class="font-sans bg-surface text-text-primary min-h-screen m-0 p-0">
@@ -202,19 +215,23 @@
 <!-- TEST DETAIL MODAL -->
 <div id="testDetailModal" class="modal-overlay fixed inset-0 bg-black/55 justify-center items-center z-[10000] backdrop-blur-sm p-2 sm:p-4">
     <div class="bg-white rounded-2xl w-full max-w-[860px] max-h-[95vh] flex flex-col shadow-[0_30px_80px_rgba(0,0,0,0.25)] animate-fadeSlide overflow-hidden">
-        <!-- Modal Header -->
         <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-white flex-shrink-0">
             <div class="min-w-0 flex-1 pr-3">
                 <div class="font-display text-[15px] font-bold text-navy truncate" id="modalTestTitle">Test Name</div>
                 <div class="text-xs text-text-muted mt-0.5" id="modalTestSection">Section: —</div>
             </div>
-            <button onclick="closeTestModal()" class="w-8 h-8 rounded-full bg-surface border-0 flex items-center justify-center cursor-pointer text-text-muted hover:bg-danger-bg hover:text-danger transition-all text-sm flex-shrink-0">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <div id="modalOverdueBadge" style="display:none;" class="inline-flex items-center gap-1 bg-danger-bg text-danger text-[10px] font-bold px-2 py-1 rounded-full border border-danger/20">
+                    <i class="fas fa-exclamation-circle text-[8px]"></i> OVERDUE
+                </div>
+                <button onclick="closeTestModal()" class="w-8 h-8 rounded-full bg-surface border-0 flex items-center justify-center cursor-pointer text-text-muted hover:bg-danger-bg hover:text-danger transition-all text-sm">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-3 sm:p-6">
-            <!-- Summary row — 4 cols always, compact on mobile -->
+            <!-- Summary row -->
             <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-5">
                 <div class="bg-navy rounded-xl p-2 sm:p-4 text-center text-white">
                     <div class="text-lg sm:text-2xl font-bold font-mono" id="modalTotalStudents">0</div>
@@ -239,13 +256,27 @@
                 <div class="h-full bg-gradient-to-r from-success to-[#34d399] rounded-full progress-fill" id="modalProgressBar" style="width:0%"></div>
             </div>
 
-            <!-- Filters — compact 2-col grid on mobile -->
+            <!-- Overdue info bar -->
+            <div id="modalOverdueInfo" style="display:none;" class="bg-danger-bg border border-danger/20 rounded-xl p-3 mb-3 sm:mb-5 flex items-center gap-3">
+                <i class="fas fa-exclamation-triangle text-danger text-sm"></i>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[12px] font-bold text-danger">This test is past its deadline</div>
+                    <div class="text-[11px] text-danger/70 mt-0.5" id="modalDeadlineText"></div>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <div class="text-[11px] font-semibold text-danger" id="modalEnabledCount"></div>
+                </div>
+            </div>
+
+            <!-- Filters -->
             <div class="bg-surface rounded-xl p-2.5 sm:p-4 border border-border mb-3 sm:mb-5">
                 <div class="grid grid-cols-2 gap-2 mb-2">
                     <select id="studentStatusFilter" onchange="window.filterModalStudents()" class="px-2 py-1.5 border border-border rounded-lg text-[12px] font-medium text-text-primary bg-white cursor-pointer focus:outline-none focus:border-blue w-full">
                         <option value="all">All Students</option>
                         <option value="taken">Taken</option>
                         <option value="not-taken">Not Taken</option>
+                        <option value="enabled">Enabled (Overdue)</option>
+                        <option value="locked">Locked (Overdue)</option>
                     </select>
                     <select id="studentSortBy" onchange="window.filterModalStudents()" class="px-2 py-1.5 border border-border rounded-lg text-[12px] font-medium text-text-primary bg-white cursor-pointer focus:outline-none focus:border-blue w-full">
                         <option value="name">Sort: Name</option>
@@ -269,13 +300,11 @@
                 </div>
             </div>
 
-            <!-- Student list heading -->
             <div class="flex justify-between items-center mb-2">
                 <span class="text-[13px] font-semibold text-navy" id="modalListTitle">Students</span>
                 <span class="text-xs text-text-muted" id="displayedCount">Showing 0 of 0</span>
             </div>
 
-            <!-- Student list — no fixed max-height, fills remaining space -->
             <div id="modalStudentList" class="space-y-2"></div>
         </div>
     </div>
@@ -295,23 +324,21 @@
         </div>
         <div class="flex-1 overflow-y-auto p-6">
             <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
-            <!-- Test name -->
-            <div style="background:#0a1628; border-radius:12px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
-                <span style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.8px; flex-shrink:0; margin-right:8px;">Test</span>
-                <span style="font-size:13px; font-weight:700; color:white; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="studentDetailsTest">—</span>
-            </div>
-            <!-- Best Category + Status in one row -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <div style="background:linear-gradient(135deg,#1e4d8c,#2d6fc4); border-radius:12px; padding:10px 12px; text-align:center;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:5px;">Best Category</div>
-                    <div id="studentDetailsBestCategory" style="display:flex; justify-content:center;">—</div>
+                <div style="background:#0a1628; border-radius:12px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.8px; flex-shrink:0; margin-right:8px;">Test</span>
+                    <span style="font-size:13px; font-weight:700; color:white; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="studentDetailsTest">—</span>
                 </div>
-                <div style="background:linear-gradient(135deg,#0e8a5f,#0a6646); border-radius:12px; padding:10px 12px; text-align:center;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:5px;">Status</div>
-                    <div style="font-size:12px; font-weight:700;" id="studentDetailsStatus">Taken</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div style="background:linear-gradient(135deg,#1e4d8c,#2d6fc4); border-radius:12px; padding:10px 12px; text-align:center;">
+                        <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:5px;">Best Category</div>
+                        <div id="studentDetailsBestCategory" style="display:flex; justify-content:center;">—</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#0e8a5f,#0a6646); border-radius:12px; padding:10px 12px; text-align:center;">
+                        <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:5px;">Status</div>
+                        <div style="font-size:12px; font-weight:700;" id="studentDetailsStatus">Taken</div>
+                    </div>
                 </div>
             </div>
-        </div>
             <h4 class="font-display text-base font-bold text-navy mb-3 flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[10px]">
                     <i class="fas fa-history"></i>
@@ -340,10 +367,9 @@
 
 <!-- MAIN -->
 <div id="mainContent" style="display:none;">
-    <!-- Sidebar Overlay -->
     <div id="sidebarOverlay" onclick="closeSidebar()" class="hidden fixed inset-0 bg-navy/60 backdrop-blur-sm z-[399]"></div>
 
-    <!-- TOP HEADER — same as professor dashboard -->
+    <!-- TOP HEADER -->
     <header class="fixed top-0 left-0 right-0 h-[70px] bg-navy flex items-center px-4 md:px-8 z-[500] border-b border-white/[0.06] shadow-[0_2px_20px_rgba(0,0,0,0.25)]">
         <button id="hamburgerBtn" onclick="toggleSidebar()"
             class="flex-col gap-[5px] w-10 h-10 bg-white/[0.08] border border-white/[0.12] rounded-lg cursor-pointer mr-3 flex-shrink-0">
@@ -445,8 +471,7 @@
 
     <!-- MAIN CONTENT -->
     <main class="ml-[260px] pt-[70px] min-h-screen" style="margin-left: 260px;">
-        <div class="px-6 md:px-10 py-8 pb-20">
-
+<div class="px-6 md:px-10 py-8 pb-20 w-full">
             <!-- Page Hero -->
             <div class="relative bg-gradient-to-br from-navy via-[#1a4580] to-navy-light rounded-2xl p-7 mb-7 overflow-hidden">
                 <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-accent/[0.07] pointer-events-none"></div>
@@ -473,60 +498,73 @@
                 </div>
             </div>
 
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-7">
+            <!-- Stats Grid — 5 cards (2 cols mobile, 5 cols desktop) -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-7">
+                <!-- Total Students -->
                 <div class="stat-card-mon relative bg-gradient-to-br from-blue to-royal rounded-2xl text-white p-5">
                     <div class="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 translate-x-6 -translate-y-6 pointer-events-none"></div>
                     <div class="flex items-center gap-2 mb-2.5">
                         <i class="fas fa-user-graduate text-sm opacity-80"></i>
-                        <span class="text-[12px] font-semibold opacity-80">Total Students</span>
+                        <span class="text-[11px] font-semibold opacity-80">Total Students</span>
                     </div>
-                    <div class="text-[32px] font-bold font-mono leading-none" id="statStudents">0</div>
-                    <div class="text-[11px] opacity-60 mt-2">Across all sections</div>
+                    <div class="text-[28px] font-bold font-mono leading-none" id="statStudents">0</div>
+                    <div class="text-[10px] opacity-60 mt-2">Across all sections</div>
                 </div>
+                <!-- Active Tests -->
                 <div class="stat-card-mon relative bg-gradient-to-br from-success to-[#0a6646] rounded-2xl text-white p-5">
                     <div class="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 translate-x-6 -translate-y-6 pointer-events-none"></div>
                     <div class="flex items-center gap-2 mb-2.5">
                         <i class="fas fa-running text-sm opacity-80"></i>
-                        <span class="text-[12px] font-semibold opacity-80">Active Tests</span>
+                        <span class="text-[11px] font-semibold opacity-80">Active Tests</span>
                     </div>
-                    <div class="text-[32px] font-bold font-mono leading-none" id="statActiveTests">0</div>
-                    <div class="text-[11px] opacity-60 mt-2">Currently in progress</div>
+                    <div class="text-[28px] font-bold font-mono leading-none" id="statActiveTests">0</div>
+                    <div class="text-[10px] opacity-60 mt-2">Currently in progress</div>
                 </div>
+                <!-- Tests Today -->
                 <div class="stat-card-mon relative bg-gradient-to-br from-purple to-[#4c1d95] rounded-2xl text-white p-5">
                     <div class="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 translate-x-6 -translate-y-6 pointer-events-none"></div>
                     <div class="flex items-center gap-2 mb-2.5">
                         <i class="fas fa-clipboard-check text-sm opacity-80"></i>
-                        <span class="text-[12px] font-semibold opacity-80">Tests Today</span>
+                        <span class="text-[11px] font-semibold opacity-80">Tests Today</span>
                     </div>
-                    <div class="text-[32px] font-bold font-mono leading-none" id="statTestsToday">0</div>
-                    <div class="text-[11px] opacity-60 mt-2">Completed last 24h</div>
+                    <div class="text-[28px] font-bold font-mono leading-none" id="statTestsToday">0</div>
+                    <div class="text-[10px] opacity-60 mt-2">Completed last 24h</div>
                 </div>
+                <!-- Overdue Tests -->
+                <div class="stat-card-mon relative bg-gradient-to-br from-danger to-[#922b21] rounded-2xl text-white p-5">
+                    <div class="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 translate-x-6 -translate-y-6 pointer-events-none"></div>
+                    <div class="flex items-center gap-2 mb-2.5">
+                        <i class="fas fa-exclamation-circle text-sm opacity-80"></i>
+                        <span class="text-[11px] font-semibold opacity-80">Overdue Tests</span>
+                    </div>
+                    <div class="text-[28px] font-bold font-mono leading-none" id="statOverdue">0</div>
+                    <div class="text-[10px] opacity-60 mt-2">Past deadline</div>
+                </div>
+                <!-- Sections -->
                 <div class="stat-card-mon relative bg-gradient-to-br from-warning to-[#8a6010] rounded-2xl text-white p-5">
                     <div class="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 translate-x-6 -translate-y-6 pointer-events-none"></div>
                     <div class="flex items-center gap-2 mb-2.5">
                         <i class="fas fa-layer-group text-sm opacity-80"></i>
-                        <span class="text-[12px] font-semibold opacity-80">Sections</span>
+                        <span class="text-[11px] font-semibold opacity-80">Sections</span>
                     </div>
-                    <div class="text-[32px] font-bold font-mono leading-none" id="statSections">0</div>
-                    <div class="text-[11px] opacity-60 mt-2">Active sections</div>
+                    <div class="text-[28px] font-bold font-mono leading-none" id="statSections">0</div>
+                    <div class="text-[10px] opacity-60 mt-2">Active sections</div>
                 </div>
             </div>
 
             <!-- Tabs -->
-            <div class="flex gap-1 bg-border/40 p-1 rounded-xl mb-6 w-fit">
-                <button id="tabOverviewBtn" onclick="window.switchTab('overview')" class="tab-btn active flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold text-text-secondary transition-all">
-                    <i class="fas fa-chart-bar"></i> Overview
-                </button>
-                <button id="tabTestsBtn" onclick="window.switchTab('tests')" class="tab-btn flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold text-text-secondary transition-all">
-                    <i class="fas fa-clipboard-list"></i> All Tests
-                    <span class="bg-warning text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center" id="testsBadge" style="display:none">0</span>
-                </button>
-            </div>
-
+<!-- Tabs -->
+<div style="display:inline-flex; gap:4px; background:rgba(225,230,239,0.5); padding:4px; border-radius:12px; margin-bottom:24px;">
+    <button id="tabOverviewBtn" onclick="window.switchTab('overview')" class="tab-btn active flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold text-text-secondary transition-all">
+        <i class="fas fa-chart-bar"></i> Overview
+    </button>
+    <button id="tabTestsBtn" onclick="window.switchTab('tests')" class="tab-btn relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold text-text-secondary transition-all">
+        <i class="fas fa-clipboard-list"></i> All Tests
+        <span id="testsBadge" style="display:none; position:absolute; top:-6px; right:-6px; background:#b07e16; color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; padding:0 4px; border-radius:999px; display:none; align-items:center; justify-content:center; line-height:1; border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.18);">0</span>
+    </button>
+</div>
             <!-- Overview Tab -->
             <div id="overviewTab">
-                <!-- Section Performance -->
                 <div class="bg-white rounded-2xl border border-border shadow-sm p-6">
                     <div class="flex items-center gap-2.5 mb-5">
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[13px]">
@@ -554,13 +592,17 @@
                             </div>
                             <span class="text-[15px] font-semibold text-navy">All Tests & Assessments</span>
                         </div>
-                        <!-- Filters -->
                         <div class="flex flex-wrap items-center gap-2">
                             <select id="filterBySection" onchange="window.applyTestFilters()" class="px-3 py-2 border border-border rounded-lg text-[13px] font-medium text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue">
                                 <option value="">All Sections</option>
                             </select>
                             <select id="filterByName" onchange="window.applyTestFilters()" class="px-3 py-2 border border-border rounded-lg text-[13px] font-medium text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue">
                                 <option value="">All Tests</option>
+                            </select>
+                            <select id="filterByStatus" onchange="window.applyTestFilters()" class="px-3 py-2 border border-border rounded-lg text-[13px] font-medium text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="overdue">Overdue</option>
                             </select>
                             <select id="filterByDate" onchange="window.applyTestFilters()" class="px-3 py-2 border border-border rounded-lg text-[13px] font-medium text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue">
                                 <option value="">All Dates</option>
@@ -726,7 +768,7 @@
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
     import { getFirestore, collection, getDocs, query, where, orderBy, limit, onSnapshot, Timestamp, doc, getDoc }
         from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { getDatabase, ref, onValue, set, serverTimestamp as rtdbST }
+    import { getDatabase, ref, onValue }
         from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
     const firebaseConfig = {
@@ -742,7 +784,6 @@
     const app      = initializeApp(firebaseConfig);
     const auth     = getAuth(app);
     const db       = getFirestore(app);
-    const database = getDatabase(app);
 
     // ─── STATE ───
     let currentUser = null, currentProfessor = null;
@@ -751,6 +792,7 @@
     let allTests = [];
     let testCompletions = new Map();       // testId → Set<studentEmail>
     let studentTestResults = new Map();    // email → Map<testId, { bestCategory, bestAttempt, attempts[] }>
+    let testPermissionsMap = new Map();    // testId → Set<studentEmail> (enabled for overdue)
     let activeListeners = [];
     let refreshTimer = null;
 
@@ -760,112 +802,85 @@
     let currentFilteredStudents = [];
 
     // Test filters
-    let filterSection = '', filterName = '', filterDate = '';
+    let filterSection = '', filterName = '', filterDate = '', filterStatus = '';
 
     // ─────────────────────────────────────────────────────────────────
-    //  NORM-BASED CLASSIFICATION — EXACT SAME as grades.html
+    //  NORM-BASED CLASSIFICATION
     // ─────────────────────────────────────────────────────────────────
     const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
-    // Helper function to get age group from student data
-function getAgeGroupFromStudent(studentData) {
-    if (!studentData) return '19-22'; // default
-    
-    // If student has birthday
-    if (studentData.birthday) {
-        try {
-            let birthDate;
-            if (studentData.birthday.toDate) {
-                birthDate = studentData.birthday.toDate();
-            } else {
-                birthDate = new Date(studentData.birthday);
-            }
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            
-            if (!isNaN(age) && age > 0) {
+
+    function getAgeGroupFromStudent(studentData) {
+        if (!studentData) return '19-22';
+        if (studentData.birthday) {
+            try {
+                let birthDate;
+                if (studentData.birthday.toDate) birthDate = studentData.birthday.toDate();
+                else birthDate = new Date(studentData.birthday);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                if (!isNaN(age) && age > 0) {
+                    if (age <= 18) return '15-18';
+                    if (age <= 22) return '19-22';
+                    if (age <= 26) return '23-26';
+                    return '27-30';
+                }
+            } catch(e) {}
+        }
+        if (studentData.age) {
+            const age = parseInt(studentData.age);
+            if (!isNaN(age)) {
                 if (age <= 18) return '15-18';
                 if (age <= 22) return '19-22';
                 if (age <= 26) return '23-26';
                 return '27-30';
             }
-        } catch (e) {
-            console.error('Error computing age from birthday:', e);
         }
+        return '19-22';
     }
-    
-    // If student has age field
-    if (studentData.age) {
-        const age = parseInt(studentData.age);
-        if (!isNaN(age)) {
-            if (age <= 18) return '15-18';
-            if (age <= 22) return '19-22';
-            if (age <= 26) return '23-26';
-            return '27-30';
-        }
-    }
-    
-    return '19-22'; // default fallback
-}
 
     function extractNumericResult(result) {
-        if (typeof result === 'object' && result !== null) {
+        if (typeof result === 'object' && result !== null)
             return parseFloat(result.value || result.result || result.score || result.count || result.repetitions || result.time || 0) || 0;
-        }
-        if (typeof result === 'string') {
-            const match = result.match(/(\d+\.?\d*)/);
-            if (match) return parseFloat(match[1]);
-        }
+        if (typeof result === 'string') { const m = result.match(/(\d+\.?\d*)/); if (m) return parseFloat(m[1]); }
         return parseFloat(result) || 0;
     }
 
     function getCategoryIcon(category) {
         switch(category) {
-            case 'Excellent': return '⭐';
-            case 'Good': return '👍';
-            case 'Average': return '📊';
-            case 'Below Average': return '📉';
-            case 'Poor': return '⚠️';
-            default: return '—';
+            case 'Excellent': return '⭐'; case 'Good': return '👍';
+            case 'Average': return '📊'; case 'Below Average': return '📉';
+            case 'Poor': return '⚠️'; default: return '—';
         }
     }
 
     function getCategoryClass(category) {
         switch(category) {
-            case 'Excellent': return 'category-excellent';
-            case 'Good': return 'category-good';
-            case 'Average': return 'category-average';
-            case 'Below Average': return 'category-below-average';
-            case 'Poor': return 'category-poor';
-            default: return 'category-default';
+            case 'Excellent': return 'category-excellent'; case 'Good': return 'category-good';
+            case 'Average': return 'category-average'; case 'Below Average': return 'category-below-average';
+            case 'Poor': return 'category-poor'; default: return 'category-default';
         }
     }
 
     function renderCategoryBadge(category) {
         const icon = getCategoryIcon(category);
-        const className = getCategoryClass(category);
-        return `<span class="category-badge ${className}">${icon} ${category}</span>`;
+        const cls  = getCategoryClass(category);
+        return `<span class="category-badge ${cls}">${icon} ${category}</span>`;
     }
 
     function getPushUpCategory(genderKey, ageGroup, reps) {
         if (genderKey === 'male') {
             const norms = { '15-18':[40,31,21,11], '19-22':[38,28,18,9], '23-26':[35,25,16,8], '27-30':[32,23,14,6] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (reps >= t[0]) return 'Excellent';
-            if (reps >= t[1]) return 'Good';
-            if (reps >= t[2]) return 'Average';
-            if (reps >= t[3]) return 'Below Average';
+            if (reps >= t[0]) return 'Excellent'; if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';   if (reps >= t[3]) return 'Below Average';
             return 'Poor';
         } else {
             const norms = { '15-18':[25,19,13,7], '19-22':[23,17,11,6], '23-26':[20,15,9,5], '27-30':[18,13,8,4] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (reps >= t[0]) return 'Excellent';
-            if (reps >= t[1]) return 'Good';
-            if (reps >= t[2]) return 'Average';
-            if (reps >= t[3]) return 'Below Average';
+            if (reps >= t[0]) return 'Excellent'; if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';   if (reps >= t[3]) return 'Below Average';
             return 'Poor';
         }
     }
@@ -874,18 +889,14 @@ function getAgeGroupFromStudent(studentData) {
         if (genderKey === 'male') {
             const norms = { '15-18':[50,41,31,21], '19-22':[47,38,28,19], '23-26':[44,35,25,17], '27-30':[40,32,22,15] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (reps >= t[0]) return 'Excellent';
-            if (reps >= t[1]) return 'Good';
-            if (reps >= t[2]) return 'Average';
-            if (reps >= t[3]) return 'Below Average';
+            if (reps >= t[0]) return 'Excellent'; if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';   if (reps >= t[3]) return 'Below Average';
             return 'Poor';
         } else {
             const norms = { '15-18':[45,36,26,16], '19-22':[42,34,24,15], '23-26':[39,31,21,13], '27-30':[36,28,19,11] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (reps >= t[0]) return 'Excellent';
-            if (reps >= t[1]) return 'Good';
-            if (reps >= t[2]) return 'Average';
-            if (reps >= t[3]) return 'Below Average';
+            if (reps >= t[0]) return 'Excellent'; if (reps >= t[1]) return 'Good';
+            if (reps >= t[2]) return 'Average';   if (reps >= t[3]) return 'Below Average';
             return 'Poor';
         }
     }
@@ -894,18 +905,14 @@ function getAgeGroupFromStudent(studentData) {
         if (genderKey === 'male') {
             const norms = { '15-18':[38,33,26,18], '19-22':[37,32,25,17], '23-26':[35.5,30.5,23.5,15.5], '27-30':[34,29,22,14] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (cm >= t[0]) return 'Excellent';
-            if (cm >= t[1]) return 'Good';
-            if (cm >= t[2]) return 'Average';
-            if (cm >= t[3]) return 'Below Average';
+            if (cm >= t[0]) return 'Excellent'; if (cm >= t[1]) return 'Good';
+            if (cm >= t[2]) return 'Average';   if (cm >= t[3]) return 'Below Average';
             return 'Poor';
         } else {
             const norms = { '15-18':[39,34,27,19], '19-22':[38,33,26,18], '23-26':[37,32,25,17], '27-30':[36,31,24,16] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (cm >= t[0]) return 'Excellent';
-            if (cm >= t[1]) return 'Good';
-            if (cm >= t[2]) return 'Average';
-            if (cm >= t[3]) return 'Below Average';
+            if (cm >= t[0]) return 'Excellent'; if (cm >= t[1]) return 'Good';
+            if (cm >= t[2]) return 'Average';   if (cm >= t[3]) return 'Below Average';
             return 'Poor';
         }
     }
@@ -914,18 +921,14 @@ function getAgeGroupFromStudent(studentData) {
         if (genderKey === 'male') {
             const norms = { '15-18':[84,97,108,118], '19-22':[79,89,105,116], '23-26':[80,90,106,117], '27-30':[81,91,107,118] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (hr <= t[0]) return 'Excellent';
-            if (hr <= t[1]) return 'Good';
-            if (hr <= t[2]) return 'Average';
-            if (hr <= t[3]) return 'Below Average';
+            if (hr <= t[0]) return 'Excellent'; if (hr <= t[1]) return 'Good';
+            if (hr <= t[2]) return 'Average';   if (hr <= t[3]) return 'Below Average';
             return 'Poor';
         } else {
             const norms = { '15-18':[89,103,113,124], '19-22':[85,98,109,118], '23-26':[86,99,110,119], '27-30':[88,101,112,121] };
             const t = norms[ageGroup] || norms['19-22'];
-            if (hr <= t[0]) return 'Excellent';
-            if (hr <= t[1]) return 'Good';
-            if (hr <= t[2]) return 'Average';
-            if (hr <= t[3]) return 'Below Average';
+            if (hr <= t[0]) return 'Excellent'; if (hr <= t[1]) return 'Good';
+            if (hr <= t[2]) return 'Average';   if (hr <= t[3]) return 'Below Average';
             return 'Poor';
         }
     }
@@ -933,7 +936,6 @@ function getAgeGroupFromStudent(studentData) {
     function getNormCategory(testName, result, genderKey = 'male', ageGroup = '19-22') {
         const normalized = (testName || '').toLowerCase();
         const value = extractNumericResult(result);
-
         if (normalized.includes('push-up') || normalized.includes('pushup'))
             return getPushUpCategory(genderKey, ageGroup, value);
         if (normalized.includes('curl-up') || normalized.includes('curl up'))
@@ -942,8 +944,6 @@ function getAgeGroupFromStudent(studentData) {
             return getSitReachCategory(genderKey, ageGroup, value);
         if (normalized.includes('step test') || normalized.includes('3-minute'))
             return getStepTestCategory(genderKey, ageGroup, value);
-
-        // For skinfold / other tests
         if (normalized.includes('skinfold') || normalized.includes('skin fold')) {
             if (typeof result === 'string') {
                 const classMatch = result.match(/\(([^)]+)\)/);
@@ -958,8 +958,6 @@ function getAgeGroupFromStudent(studentData) {
             }
             return 'Average';
         }
-
-        // BMI
         if (normalized.includes('bmi')) {
             const bmi = extractNumericResult(result);
             if (bmi >= 18.5 && bmi <= 24.9) return 'Excellent';
@@ -967,7 +965,6 @@ function getAgeGroupFromStudent(studentData) {
             if ((bmi >= 16.0 && bmi < 17.0) || (bmi >= 27.0 && bmi < 30.0)) return 'Average';
             return 'Below Average';
         }
-
         return 'Average';
     }
 
@@ -975,10 +972,8 @@ function getAgeGroupFromStudent(studentData) {
         if (!categories || categories.length === 0) return 'Average';
         const scores = categories.map(c => CATEGORY_ORDER[c] || 3);
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        if (avg >= 4.5) return 'Excellent';
-        if (avg >= 3.5) return 'Good';
-        if (avg >= 2.5) return 'Average';
-        if (avg >= 1.5) return 'Below Average';
+        if (avg >= 4.5) return 'Excellent'; if (avg >= 3.5) return 'Good';
+        if (avg >= 2.5) return 'Average';   if (avg >= 1.5) return 'Below Average';
         return 'Poor';
     }
 
@@ -1009,12 +1004,13 @@ function getAgeGroupFromStudent(studentData) {
             await loadAllStudents();
             await loadAllTests();
             await loadTestResults();
+            await loadTestPermissions();
             setupRealtimeListener();
             renderOverview();
             updateStats();
             updateTime();
             if (refreshTimer) clearInterval(refreshTimer);
-            refreshTimer = setInterval(() => { updateTime(); }, 30000);
+            refreshTimer = setInterval(() => { updateTime(); updateStats(); }, 30000);
             document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('mainContent').style.display   = 'block';
         } catch(err) {
@@ -1043,11 +1039,9 @@ function getAgeGroupFromStudent(studentData) {
         const init  = name.charAt(0).toUpperCase();
         const short = name.split(',')[0]?.trim() || name;
         const photo = user.photoURL || null;
-
         document.getElementById('headerName').textContent   = short;
         document.getElementById('dropdownName').textContent = name;
         document.getElementById('dropdownEmail').textContent = email;
-
         const setAv = (el, src, i) => {
             if (!el) return;
             el.innerHTML = src ? `<img src="${src}" class="w-full h-full object-cover rounded-full" alt="">` : i;
@@ -1057,135 +1051,78 @@ function getAgeGroupFromStudent(studentData) {
     }
 
     // ─────────────────────────────────────────────────────────────────
-    //  LOAD SECTIONS — same name-matching logic as professor.html
+    //  LOAD SECTIONS
     // ─────────────────────────────────────────────────────────────────
     async function loadAssignedSections() {
         assignedSections = [];
         const profEmail = (currentProfessor.email || currentUser.email).toLowerCase();
         const profUid   = currentUser.uid || '';
-
-        // Collect name variations
         const nameVariations = new Set();
-        ['fullName','name','displayName'].forEach(f => {
-            if (currentProfessor[f]) nameVariations.add(currentProfessor[f].toUpperCase().trim());
-        });
+        ['fullName','name','displayName'].forEach(f => { if (currentProfessor[f]) nameVariations.add(currentProfessor[f].toUpperCase().trim()); });
         if (currentUser.displayName) nameVariations.add(currentUser.displayName.toUpperCase().trim());
-
         const profSnap = await getDocs(query(collection(db,'professors'), where('email','==',profEmail)));
         profSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
-
         const usrSnap = await getDocs(query(collection(db,'users'), where('email','==',profEmail)));
         usrSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
-
         nameVariations.add(profEmail.split('@')[0].toUpperCase().trim());
         nameVariations.delete('');
-
         const nameTokens = new Set();
         nameVariations.forEach(n => n.split(/[\s,\.]+/).forEach(w => { if (w.length >= 3) nameTokens.add(w); }));
-
         const addedIds = new Set();
-
-        // 1. Direct query by professorId (UID)
         if (profUid) {
             try {
                 const q1 = await getDocs(query(collection(db,'sections'), where('professorId','==',profUid)));
-                q1.forEach(d => {
-                    if (addedIds.has(d.id)) return;
-                    addedIds.add(d.id);
-                    const data = d.data();
-                    assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data });
-                });
+                q1.forEach(d => { if (addedIds.has(d.id)) return; addedIds.add(d.id); const data = d.data(); assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data }); });
             } catch(e) {}
         }
-
-        // 2. Direct query by professorEmail
         try {
             const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
-            q2.forEach(d => {
-                if (addedIds.has(d.id)) return;
-                addedIds.add(d.id);
-                const data = d.data();
-                assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data });
-            });
+            q2.forEach(d => { if (addedIds.has(d.id)) return; addedIds.add(d.id); const data = d.data(); assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data }); });
         } catch(e) {}
-
-        // 3. Full scan with name fuzzy matching for remaining sections
-        const secSnap  = await getDocs(collection(db,'sections'));
+        const secSnap = await getDocs(collection(db,'sections'));
         secSnap.forEach(d => {
             if (addedIds.has(d.id)) return;
             const data = d.data();
             const dbProf = (data.professor || '').toString().trim().toUpperCase();
-            let isMatch  = false;
-
-            // exact name
+            let isMatch = false;
             for (const v of nameVariations) { if (v && v.length >= 3 && dbProf === v) { isMatch = true; break; } }
-            // partial includes
             if (!isMatch) for (const v of nameVariations) { if (v && v.length >= 3 && (dbProf.includes(v) || v.includes(dbProf))) { isMatch = true; break; } }
-            // last name only
             if (!isMatch) for (const v of nameVariations) { if (v && v.length >= 3) { const ln = v.split(',')[0].trim(); if (ln.length >= 3 && dbProf.includes(ln)) { isMatch = true; break; } } }
-            // token match
             if (!isMatch && dbProf.length >= 3) { const dbW = dbProf.split(/[\s,\.]+/).filter(w => w.length >= 3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch = true; break; } } }
-            // email prefix
             if (!isMatch) { const eu = profEmail.split('@')[0].toUpperCase(); if (eu.length > 3 && dbProf.includes(eu)) isMatch = true; }
-
-            if (isMatch) {
-                addedIds.add(d.id);
-                assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data });
-            }
+            if (isMatch) { addedIds.add(d.id); assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data }); }
         });
-
-        console.log('✅ Sections loaded:', assignedSections.map(s => s.name));
         document.getElementById('statSections').textContent = assignedSections.length;
     }
 
     // ─────────────────────────────────────────────────────────────────
     //  LOAD ALL STUDENTS
     // ─────────────────────────────────────────────────────────────────
- async function loadAllStudents() {
-    allStudents = [];
-    const emailSet = new Set();
-
-    for (const sec of assignedSections) {
-        if (sec.students && Array.isArray(sec.students)) {
-            sec.students.forEach(s => {
-                const key = s.email || s.student_id || s.studentId;
-                if (key && !emailSet.has(key)) {
-                    emailSet.add(key);
-                    allStudents.push({ 
-                        ...s, 
-                        section: sec.name, 
-                        uniqueId: key,
-                        // Store birthday/age if available
-                        birthday: s.birthday || null,
-                        age: s.age || null
-                    });
-                }
-            });
+    async function loadAllStudents() {
+        allStudents = [];
+        const emailSet = new Set();
+        for (const sec of assignedSections) {
+            if (sec.students && Array.isArray(sec.students)) {
+                sec.students.forEach(s => {
+                    const key = s.email || s.student_id || s.studentId;
+                    if (key && !emailSet.has(key)) {
+                        emailSet.add(key);
+                        allStudents.push({ ...s, section: sec.name, uniqueId: key, birthday: s.birthday || null, age: s.age || null });
+                    }
+                });
+            }
+            try {
+                const snap = await getDocs(query(collection(db,'students'), where('section','==',sec.name)));
+                snap.forEach(d => {
+                    const sd = d.data();
+                    const key = sd.email || sd.umakId || d.id;
+                    if (!emailSet.has(key)) { emailSet.add(key); allStudents.push({ id: d.id, ...sd, section: sec.name, uniqueId: key, birthday: sd.birthday || null, age: sd.age || null }); }
+                });
+            } catch(e) {}
         }
-        // Also try students collection (may mas complete data dito)
-        try {
-            const snap = await getDocs(query(collection(db,'students'), where('section','==',sec.name)));
-            snap.forEach(d => {
-                const sd = d.data();
-                const key = sd.email || sd.umakId || d.id;
-                if (!emailSet.has(key)) { 
-                    emailSet.add(key); 
-                    allStudents.push({ 
-                        id: d.id, 
-                        ...sd, 
-                        section: sec.name, 
-                        uniqueId: key,
-                        birthday: sd.birthday || null,
-                        age: sd.age || null
-                    }); 
-                }
-            });
-        } catch(e) {}
+        document.getElementById('statStudents').textContent = allStudents.length;
     }
 
-    document.getElementById('statStudents').textContent = allStudents.length;
-    console.log('✅ Students loaded:', allStudents.length);
-}
     // ─────────────────────────────────────────────────────────────────
     //  LOAD ALL TESTS
     // ─────────────────────────────────────────────────────────────────
@@ -1193,7 +1130,6 @@ function getAgeGroupFromStudent(studentData) {
         allTests = [];
         const sectionNames = assignedSections.map(s => s.name);
         const profEmail    = (currentProfessor.email || currentUser.email).toLowerCase();
-
         try {
             const snap = await getDocs(collection(db,'scheduledTests'));
             const now  = new Date();
@@ -1202,226 +1138,195 @@ function getAgeGroupFromStudent(studentData) {
                 const inSection = sectionNames.includes(data.section);
                 const isMine    = (data.professorEmail || '').toLowerCase() === profEmail;
                 if (inSection || isMine) {
-                    const deadline = new Date(data.deadlineDateTime || data.deadline || now);
-                    const testDate = new Date(data.date || data.createdAt?.toDate?.() || now);
-                    allTests.push({
-                        id: d.id,
-                        name: data.testName || data.name || 'Unnamed Test',
-                        section: data.section || 'No Section',
-                        date: testDate,
-                        deadline: deadline,
-                        status: testDate <= now && deadline >= now ? 'active' : 'past',
-                        ...data
-                    });
+let deadline;
+if (data.deadlineDateTime) {
+    deadline = new Date(data.deadlineDateTime);
+} else if (data.deadline && data.deadlineTime) {
+    deadline = new Date(`${data.deadline}T${data.deadlineTime}`);
+} else if (data.deadline) {
+    deadline = new Date(`${data.deadline}T23:59:59`);
+} else {
+    deadline = new Date();
+}
+let testDate;
+if (data.dateTime) {
+    testDate = new Date(data.dateTime);
+} else if (data.date && data.time) {
+    testDate = new Date(`${data.date}T${data.time}`);
+} else if (data.date) {
+    testDate = new Date(`${data.date}T00:00:00`); // treat as local midnight
+} else if (data.createdAt?.toDate) {
+    testDate = data.createdAt.toDate();
+} else {
+    testDate = new Date();
+}                    const now2 = new Date();
+                    let status = 'scheduled';
+                    if (testDate <= now2 && deadline >= now2) status = 'active';
+                    else if (deadline < now2) status = 'overdue';
+                    allTests.push({ id: d.id, name: data.testName || data.name || 'Unnamed Test', section: data.section || 'No Section', date: testDate, deadline: deadline, status, ...data });
                 }
             });
         } catch(e) { console.error('scheduledTests load error:', e); }
 
-        console.log('✅ Tests loaded:', allTests.length);
         const badge = document.getElementById('testsBadge');
         badge.textContent = allTests.length;
         badge.style.display = allTests.length > 0 ? 'inline-flex' : 'none';
-        // expose to window so switchTab can call
         window._populateTestFilters = populateTestFilters;
         window._renderAllTests      = renderAllTests;
     }
 
     // ─────────────────────────────────────────────────────────────────
-    //  LOAD TEST RESULTS — BEST CATEGORY logic same as grades page
+    //  LOAD TEST PERMISSIONS (for overdue enable/lock tracking)
     // ─────────────────────────────────────────────────────────────────
- async function loadTestResults() {
-    testCompletions.clear();
-    studentTestResults.clear();
+    async function loadTestPermissions() {
+        testPermissionsMap.clear();
+        try {
+            const snap = await getDocs(collection(db, 'testPermissions'));
+            snap.forEach(d => {
+                const data = d.data();
+                const testId = data.testId || '';
+                const studentEmail = data.studentEmail || '';
+                if (!testId || !studentEmail) return;
+                if (!testPermissionsMap.has(testId)) testPermissionsMap.set(testId, new Set());
+                testPermissionsMap.get(testId).add(studentEmail);
+            });
+        } catch(e) { console.error('testPermissions load error:', e); }
+    }
 
-    // Create a map for quick student lookup by email
-    const studentsMap = new Map();
-    allStudents.forEach(student => {
-        if (student.email || student.uniqueId) {
-            studentsMap.set(student.email || student.uniqueId, student);
-        }
-    });
-
-    const bestCategoriesMap = new Map(); // `${email}_${testId}` → best category
-
-    try {
-        const snap = await getDocs(query(
-            collection(db,'testResults'),
-            where('status','==','completed')
-        ));
-
-        snap.forEach(docSnap => {
-            const data = docSnap.data();
-            const studentEmail = data.studentEmail || data.email || '';
-            const testId       = data.testId || data.scheduledTestId || docSnap.id;
-            const testName     = data.testName || 'Unknown Test';
-
-            if (!studentEmail) return;
-
-            // Check if this student belongs to this professor
-            const isOurs = allStudents.some(s => s.email === studentEmail || s.uniqueId === studentEmail)
-                        || assignedSections.some(sec => sec.name === data.section);
-            if (!isOurs) return;
-
-            // Get student data for age
-            const studentData = studentsMap.get(studentEmail);
-            const ageGroup = getAgeGroupFromStudent(studentData);
-
-            // Get gender for norm-based classification
-            const gender = (data.gender || '').toLowerCase();
-            const genderKey = gender.startsWith('f') ? 'female' : 'male';
-            
-            // Get norm category with CORRECT age group
-            const category = getNormCategory(
-                testName, 
-                data.result || data.resultData || data.repetitions || data, 
-                genderKey, 
-                ageGroup  // ← GAMITIN ANG ACTUAL AGE GROUP!
-            );
-
-            let submittedDate = new Date();
-            if (data.submittedAt) {
-                if (typeof data.submittedAt.toDate === 'function') submittedDate = data.submittedAt.toDate();
-                else if (data.submittedAt.seconds) submittedDate = new Date(data.submittedAt.seconds * 1000);
-                else if (typeof data.submittedAt === 'string') submittedDate = new Date(data.submittedAt);
-            }
-
-            const attempt = {
-                id: docSnap.id,
-                attemptNumber: data.attemptNumber || 1,
-                category,
-                result: extractResult(data),
-                testUnit: data.testUnit || '',
-                submittedAt: submittedDate,
-                formattedDate: submittedDate.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }),
-                testName,
-                isProfessorOverride: data.isProfessorOverride || false,
-                ageGroup: ageGroup // store for debugging
-            };
-
-            const mapKey = `${studentEmail}_${testId}`;
-
-            // Keep best category per student per test (based on CATEGORY_ORDER)
-            if (!bestCategoriesMap.has(mapKey) || 
-                (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestCategoriesMap.get(mapKey).category] || 0)) {
-                bestCategoriesMap.set(mapKey, attempt);
-            }
-
-            // Also accumulate all attempts for history
-            if (!studentTestResults.has(studentEmail)) studentTestResults.set(studentEmail, new Map());
-            const stMap = studentTestResults.get(studentEmail);
-            if (!stMap.has(testId)) {
-                stMap.set(testId, { 
-                    bestCategory: category, 
-                    bestAttempt: attempt, 
-                    attempts: [attempt], 
-                    testName, 
-                    testId,
-                    ageGroup: ageGroup
-                });
-            } else {
-                const existing = stMap.get(testId);
-                existing.attempts.push(attempt);
-                if ((CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[existing.bestCategory] || 0)) { 
-                    existing.bestCategory = category; 
-                    existing.bestAttempt = attempt;
+    // ─────────────────────────────────────────────────────────────────
+    //  LOAD TEST RESULTS
+    // ─────────────────────────────────────────────────────────────────
+    async function loadTestResults() {
+        testCompletions.clear();
+        studentTestResults.clear();
+        const studentsMap = new Map();
+        allStudents.forEach(student => { if (student.email || student.uniqueId) studentsMap.set(student.email || student.uniqueId, student); });
+        try {
+            const snap = await getDocs(query(collection(db,'testResults'), where('status','==','completed')));
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const studentEmail = data.studentEmail || data.email || '';
+                const testId       = data.testId || data.scheduledTestId || docSnap.id;
+                const testName     = data.testName || 'Unknown Test';
+                if (!studentEmail) return;
+                const isOurs = allStudents.some(s => s.email === studentEmail || s.uniqueId === studentEmail)
+                            || assignedSections.some(sec => sec.name === data.section);
+                if (!isOurs) return;
+                const studentData = studentsMap.get(studentEmail);
+                const ageGroup = getAgeGroupFromStudent(studentData);
+                const gender = (data.gender || '').toLowerCase();
+                const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                const category = getNormCategory(testName, data.result || data.resultData || data.repetitions || data, genderKey, ageGroup);
+                let submittedDate = new Date();
+                if (data.submittedAt) {
+                    if (typeof data.submittedAt.toDate === 'function') submittedDate = data.submittedAt.toDate();
+                    else if (data.submittedAt.seconds) submittedDate = new Date(data.submittedAt.seconds * 1000);
+                    else if (typeof data.submittedAt === 'string') submittedDate = new Date(data.submittedAt);
                 }
-                existing.attempts.sort((a,b) => b.submittedAt - a.submittedAt);
-            }
-
-            // Mark completion
-            if (!testCompletions.has(testId)) testCompletions.set(testId, new Set());
-            testCompletions.get(testId).add(studentEmail);
-        });
-    } catch(e) { console.error('testResults load error:', e); }
-
-    console.log(`✅ Test results loaded. Students with results: ${studentTestResults.size}`);
-    updateTestsToday();
-}
+                const attempt = { id: docSnap.id, attemptNumber: data.attemptNumber || 1, category, result: extractResult(data), testUnit: data.testUnit || '', submittedAt: submittedDate, formattedDate: submittedDate.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }), testName, isProfessorOverride: data.isProfessorOverride || false, ageGroup };
+                if (!studentTestResults.has(studentEmail)) studentTestResults.set(studentEmail, new Map());
+                const stMap = studentTestResults.get(studentEmail);
+                if (!stMap.has(testId)) {
+                    stMap.set(testId, { bestCategory: category, bestAttempt: attempt, attempts: [attempt], testName, testId, ageGroup });
+                } else {
+                    const existing = stMap.get(testId);
+                    existing.attempts.push(attempt);
+                    if ((CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[existing.bestCategory] || 0)) { existing.bestCategory = category; existing.bestAttempt = attempt; }
+                    existing.attempts.sort((a,b) => b.submittedAt - a.submittedAt);
+                }
+                if (!testCompletions.has(testId)) testCompletions.set(testId, new Set());
+                testCompletions.get(testId).add(studentEmail);
+            });
+        } catch(e) { console.error('testResults load error:', e); }
+        updateTestsToday();
+    }
 
     // ─────────────────────────────────────────────────────────────────
     //  REAL-TIME LISTENER
     // ─────────────────────────────────────────────────────────────────
- function setupRealtimeListener() {
-    try {
-        const q = query(collection(db,'testResults'), orderBy('submittedAt','desc'), limit(20));
-        const unsub = onSnapshot(q, snap => {
-            snap.docChanges().forEach(change => {
-                if (change.type !== 'added') return;
-                const data = change.doc.data();
-                const email = data.studentEmail || data.email || '';
-                const isOurs = allStudents.some(s => s.email === email || s.uniqueId === email)
-                            || assignedSections.some(sec => sec.name === data.section);
-                if (!isOurs) return;
-
-                const testId   = data.testId || data.scheduledTestId || change.doc.id;
-                const testName = data.testName || 'Fitness Assessment';
-                
-                // Find student data for age
-                const student = allStudents.find(s => s.email === email || s.uniqueId === email);
-                const ageGroup = getAgeGroupFromStudent(student);
-                
-                const gender = (data.gender || '').toLowerCase();
-                const genderKey = gender.startsWith('f') ? 'female' : 'male';
-                
-                const category = getNormCategory(
-                    testName, 
-                    data.result || data.resultData || data.repetitions || data, 
-                    genderKey, 
-                    ageGroup  // ← GAMITIN ANG ACTUAL AGE GROUP!
-                );
-
-                // Update completions
-                if (!testCompletions.has(testId)) testCompletions.set(testId, new Set());
-                testCompletions.get(testId).add(email);
-
-                // Update best categories
-                if (!studentTestResults.has(email)) studentTestResults.set(email, new Map());
-                const stMap = studentTestResults.get(email);
-                if (!stMap.has(testId)) {
-                    stMap.set(testId, { bestCategory: category, attempts: [{category}], testName, testId, ageGroup });
-                } else {
-                    const ex = stMap.get(testId);
-                    if ((CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[ex.bestCategory] || 0)) { 
-                        ex.bestCategory = category; 
-                    }
-                }
-
-                const studentName = data.studentName || email.split('@')[0];
-                window.showToast('Test Completed', `${studentName} just finished ${testName} (${category})`, 'test');
-                updateTestsToday();
-                renderAllTests();
+    function setupRealtimeListener() {
+        try {
+            const q = query(collection(db,'testResults'), orderBy('submittedAt','desc'), limit(20));
+            const unsub = onSnapshot(q, snap => {
+                snap.docChanges().forEach(change => {
+                    if (change.type !== 'added') return;
+                    const data = change.doc.data();
+                    const email = data.studentEmail || data.email || '';
+                    const isOurs = allStudents.some(s => s.email === email || s.uniqueId === email)
+                                || assignedSections.some(sec => sec.name === data.section);
+                    if (!isOurs) return;
+                    const testId   = data.testId || data.scheduledTestId || change.doc.id;
+                    const testName = data.testName || 'Fitness Assessment';
+                    const student  = allStudents.find(s => s.email === email || s.uniqueId === email);
+                    const ageGroup = getAgeGroupFromStudent(student);
+                    const gender   = (data.gender || '').toLowerCase();
+                    const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                    const category = getNormCategory(testName, data.result || data.resultData || data.repetitions || data, genderKey, ageGroup);
+                    if (!testCompletions.has(testId)) testCompletions.set(testId, new Set());
+                    testCompletions.get(testId).add(email);
+                    if (!studentTestResults.has(email)) studentTestResults.set(email, new Map());
+                    const stMap = studentTestResults.get(email);
+                    if (!stMap.has(testId)) { stMap.set(testId, { bestCategory: category, attempts: [{category}], testName, testId, ageGroup }); }
+                    else { const ex = stMap.get(testId); if ((CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[ex.bestCategory] || 0)) ex.bestCategory = category; }
+                    const studentName = data.studentName || email.split('@')[0];
+                    window.showToast('Test Completed', `${studentName} just finished ${testName} (${category})`, 'test');
+                    updateTestsToday();
+                    renderAllTests();
+                });
             });
-        });
-        activeListeners.push(unsub);
-    } catch(e) { console.error('realtime listener error:', e); }
-}
+            activeListeners.push(unsub);
+        } catch(e) { console.error('realtime listener error:', e); }
+    }
 
     // ─────────────────────────────────────────────────────────────────
     //  STATS
     // ─────────────────────────────────────────────────────────────────
-    function updateStats() {
-        const now = new Date();
-        const active = allTests.filter(t => t.date <= now && t.deadline >= now).length;
-        document.getElementById('statActiveTests').textContent = active;
-        updateTestsToday();
-    }
+  function updateStats() {
+    const now = new Date();
+    
+    // Active tests: nasa pagitan ng start date at deadline
+    const active = allTests.filter(t => {
+        const testDate = t.date instanceof Date ? t.date : new Date(t.date);
+        const testDeadline = t.deadline instanceof Date ? t.deadline : new Date(t.deadline);
+        return testDate <= now && testDeadline >= now;
+    }).length;
+    
+    // Overdue tests: lagpas na sa deadline
+    const overdue = allTests.filter(t => {
+        const testDeadline = t.deadline instanceof Date ? t.deadline : new Date(t.deadline);
+        return testDeadline < now;
+    }).length;
+    
+    document.getElementById('statActiveTests').textContent = active;
+    document.getElementById('statOverdue').textContent = overdue;
+    
+    updateTestsToday();
+}
+function updateTestsToday() {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
-    async function updateTestsToday() {
-        try {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const snap = await getDocs(query(collection(db,'testResults'), where('submittedAt','>=', Timestamp.fromDate(today))));
-            let count = 0;
-            snap.forEach(d => {
-                const data = d.data();
-                const email = data.studentEmail || data.email || '';
-                const isOurs = allStudents.some(s => s.email === email || s.uniqueId === email)
-                            || assignedSections.some(sec => sec.name === data.section);
-                if (isOurs) count++;
+        // Count from already-loaded studentTestResults instead of re-querying Firestore
+        let count = 0;
+        studentTestResults.forEach((testMap, email) => {
+            const isOurs = allStudents.some(s => s.email === email || s.uniqueId === email);
+            if (!isOurs) return;
+            testMap.forEach(td => {
+                td.attempts.forEach(attempt => {
+                    if (attempt.submittedAt >= today && attempt.submittedAt < tomorrow) {
+                        count++;
+                    }
+                });
             });
-            document.getElementById('statTestsToday').textContent = count;
-        } catch(e) {}
+        });
+        document.getElementById('statTestsToday').textContent = count;
+    } catch(e) {
+        console.error('updateTestsToday error:', e);
     }
-
+}
     function updateTime() {
         const el = document.getElementById('lastUpdateTime');
         if (el) el.textContent = `Last updated: ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
@@ -1433,16 +1338,18 @@ function getAgeGroupFromStudent(studentData) {
     function renderOverview() {
         const grid = document.getElementById('sectionPerformanceGrid');
         document.getElementById('sectionPerfCount').textContent = assignedSections.length;
-
         if (!assignedSections.length) {
             grid.innerHTML = `<div class="col-span-full text-center py-10 text-text-muted"><i class="fas fa-info-circle mb-2 text-2xl"></i><div class="text-sm">No sections assigned</div></div>`;
             return;
         }
-
+        const now = new Date();
         let html = '';
         assignedSections.forEach(sec => {
             const secStudents = allStudents.filter(s => s.section === sec.name);
             const secTests    = allTests.filter(t => t.section === sec.name);
+            const overdueTests = secTests.filter(t => t.deadline < now).length;
+            const activeTests  = secTests.filter(t => t.date <= now && t.deadline >= now).length;
+            const scheduledTests = secTests.filter(t => t.date > now).length;
             let totalComp = 0, totalPoss = 0;
             secTests.forEach(t => {
                 const comps = testCompletions.get(t.id) || new Set();
@@ -1467,6 +1374,9 @@ function getAgeGroupFromStudent(studentData) {
                 <div class="space-y-1.5 text-[13px] text-text-secondary">
                     <div class="flex justify-between"><span>Students</span><span class="font-semibold text-navy">${secStudents.length}</span></div>
                     <div class="flex justify-between"><span>Tests Assigned</span><span class="font-semibold text-navy">${secTests.length}</span></div>
+                    ${activeTests > 0 ? `<div class="flex justify-between"><span>Active Now</span><span class="font-semibold text-success">${activeTests}</span></div>` : ''}
+                    ${overdueTests > 0 ? `<div class="flex justify-between"><span class="text-danger font-semibold">⚠️ Overdue</span><span class="font-semibold text-danger">${overdueTests}</span></div>` : ''}
+                    ${scheduledTests > 0 ? `<div class="flex justify-between"><span>Upcoming</span><span class="font-semibold text-warning">${scheduledTests}</span></div>` : ''}
                 </div>
                 <div class="h-1.5 bg-border rounded-full overflow-hidden mt-3">
                     <div class="h-full bg-gradient-to-r from-success to-[#34d399] rounded-full progress-fill" style="width:${rate}%"></div>
@@ -1477,11 +1387,11 @@ function getAgeGroupFromStudent(studentData) {
     }
 
     // ─────────────────────────────────────────────────────────────────
-    //  ALL TESTS TAB — UPDATED TO SHOW CATEGORIES
+    //  ALL TESTS TAB
     // ─────────────────────────────────────────────────────────────────
     function populateTestFilters() {
-        const secSel  = document.getElementById('filterBySection');
-        const nameSel = document.getElementById('filterByName');
+        const secSel    = document.getElementById('filterBySection');
+        const nameSel   = document.getElementById('filterByName');
         secSel.innerHTML  = '<option value="">All Sections</option>';
         nameSel.innerHTML = '<option value="">All Tests</option>';
         [...new Set(allTests.map(t => t.section))].sort().forEach(s => {
@@ -1491,94 +1401,211 @@ function getAgeGroupFromStudent(studentData) {
             const o = document.createElement('option'); o.value = n; o.textContent = n; nameSel.appendChild(o);
         });
     }
-
-    function renderAllTests() {
-        const grid = document.getElementById('allTestsGrid');
-        if (!grid) return;
-
-        let filtered = [...allTests];
-        if (filterSection) filtered = filtered.filter(t => t.section === filterSection);
-        if (filterName)    filtered = filtered.filter(t => t.name === filterName);
-        if (filterDate === 'newest') filtered.sort((a,b) => b.date - a.date);
-        if (filterDate === 'oldest') filtered.sort((a,b) => a.date - b.date);
-
-        if (!filtered.length) {
-            grid.innerHTML = `<div class="col-span-full text-center py-10 text-text-muted"><i class="fas fa-filter text-3xl mb-2 opacity-40"></i><div class="text-sm font-medium">No tests match your filters</div></div>`;
-            return;
-        }
-
-        grid.innerHTML = filtered.map(test => {
-            const secStudents   = allStudents.filter(s => s.section === test.section);
-            const completions   = testCompletions.get(test.id) || new Set();
-            const completedCount = Array.from(completions).filter(e => secStudents.some(s => s.email === e || s.uniqueId === e)).length;
-            const total          = secStudents.length;
-            const rate           = total > 0 ? Math.round((completedCount / total) * 100) : 0;
-            const statusColor    = test.status === 'active' ? 'bg-success-bg text-success border-success/20' : 'bg-border text-text-muted border-border';
-
-            return `
-            <div class="test-card bg-surface border-2 border-border rounded-xl p-5 cursor-pointer" onclick="openTestModal('${test.id}')">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="font-display text-base font-bold text-navy truncate pr-2" style="max-width:75%">${test.name}</div>
-                    <span class="inline-flex items-center border text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusColor}">${test.status}</span>
-                </div>
-                <div class="space-y-1.5 text-[13px] text-text-secondary mb-4">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-chalkboard-teacher w-4 text-center text-text-muted text-xs"></i>
-                        <span class="inline-block bg-info-bg text-blue text-[11px] font-semibold px-2 py-0.5 rounded">${test.section}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-users w-4 text-center text-text-muted text-xs"></i>
-                        <span>${completedCount}/${total} completed</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-calendar w-4 text-center text-text-muted text-xs"></i>
-                        <span>${test.date instanceof Date ? test.date.toLocaleDateString() : new Date(test.date).toLocaleDateString()}</span>
-                    </div>
-                </div>
-                <div class="h-1.5 bg-border rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-success to-[#34d399] rounded-full progress-fill" style="width:${rate}%"></div>
-                </div>
-                <div class="mt-1.5 text-right text-[11px] text-text-muted">${rate}% completion</div>
-            </div>`;
-        }).join('');
+// Palitan ang renderAllTests function (hanapin at palitan ang buong function)
+// Palitan ang renderAllTests function para maayos ang sorting
+function renderAllTests() {
+    const grid = document.getElementById('allTestsGrid');
+    if (!grid) return;
+    const now = new Date();
+    let filtered = [...allTests];
+    
+    // Apply filters
+    if (filterSection) filtered = filtered.filter(t => t.section === filterSection);
+    if (filterName) filtered = filtered.filter(t => t.name === filterName);
+    
+    // Fix status filtering
+    if (filterStatus) {
+        filtered = filtered.filter(t => {
+            const testDate = t.date instanceof Date ? t.date : new Date(t.date);
+            const testDeadline = t.deadline instanceof Date ? t.deadline : new Date(t.deadline);
+            
+            // Recompute status based on current date
+            let currentStatus;
+            if (testDate <= now && testDeadline >= now) {
+                currentStatus = 'active';
+            } else if (testDeadline < now) {
+                currentStatus = 'overdue';
+            } else {
+                currentStatus = 'scheduled';
+            }
+            
+            return currentStatus === filterStatus;
+        });
+    }
+    
+    // Fix date sorting
+    if (filterDate === 'newest') {
+        filtered.sort((a, b) => {
+            const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+            const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+            return dateB - dateA; // Newest first (descending)
+        });
+    } else if (filterDate === 'oldest') {
+        filtered.sort((a, b) => {
+            const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+            const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+            return dateA - dateB; // Oldest first (ascending)
+        });
     }
 
+// Default sort: newest first (when no sort filter selected)
+    if (!filterDate) {
+        filtered.sort((a, b) => {
+            const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+            const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+            return dateB - dateA;
+        });
+    }
+
+    if (!filtered.length) {
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-text-muted">
+            <i class="fas fa-filter text-3xl mb-2 opacity-40"></i>
+            <div class="text-sm font-medium">No tests match your filters</div>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(test => {
+        const secStudents = allStudents.filter(s => s.section === test.section);
+        const completions = testCompletions.get(test.id) || new Set();
+        const completedCount = Array.from(completions).filter(e => 
+            secStudents.some(s => s.email === e || s.uniqueId === e)
+        ).length;
+        const total = secStudents.length;
+        const rate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+        // Ensure dates are Date objects
+        const testDate = test.date instanceof Date ? test.date : new Date(test.date);
+        const testDeadline = test.deadline instanceof Date ? test.deadline : new Date(test.deadline);
+        
+        const nowRender = new Date();
+        const isActive = testDate <= nowRender && testDeadline >= nowRender;
+        const isOverdue = testDeadline < nowRender;
+        const statusLabel = isActive ? 'active' : isOverdue ? 'overdue' : 'scheduled';
+        
+        const statusColor = isActive ? 'bg-success-bg text-success border-success/20' :
+                           isOverdue ? 'bg-danger-bg text-danger border-danger/20' :
+                           'bg-border text-text-muted border-border';
+
+        // Format date properly
+        const formattedDate = testDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+
+        return `
+        <div class="test-card bg-surface border-2 ${isOverdue ? 'border-danger/30' : 'border-border'} rounded-xl p-4 cursor-pointer hover:shadow-md transition-all" onclick="openTestModal('${test.id}')">
+            <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
+                <div class="font-display text-sm md:text-base font-bold text-navy truncate flex-1">${test.name}</div>
+                <span class="inline-flex items-center border text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusColor}">${statusLabel}</span>
+            </div>
+            
+            <div class="space-y-1.5 text-xs md:text-[13px] text-text-secondary mb-2">
+                <div class="flex items-center gap-1.5">
+                    <i class="fas fa-chalkboard-teacher w-4 text-center text-text-muted text-xs"></i>
+                    <span class="inline-block bg-info-bg text-blue text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded">${test.section}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <i class="fas fa-users w-4 text-center text-text-muted text-xs"></i>
+                    <span>${completedCount}/${total} completed</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <i class="fas fa-calendar w-4 text-center text-text-muted text-xs"></i>
+                    <span>${formattedDate}</span>
+                </div>
+            </div>
+            
+            ${isOverdue ? `
+            <div class="mt-1 pt-1 border-t border-danger/20 flex items-center gap-1 flex-wrap text-[10px]">
+                <span class="text-danger flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> Past deadline</span>
+            </div>` : ''}
+            
+            <div class="h-1.5 bg-border rounded-full overflow-hidden mt-2">
+                <div class="h-full bg-gradient-to-r from-success to-[#34d399] rounded-full progress-fill" style="width:${rate}%"></div>
+            </div>
+            <div class="mt-1 text-right text-[10px] text-text-muted">${rate}% completion</div>
+        </div>`;
+    }).join('');
+}
+
+// Siguraduhin na ang applyTestFilters ay gumagana ng tama
+window.applyTestFilters = function() {
+    filterSection = document.getElementById('filterBySection').value;
+    filterName = document.getElementById('filterByName').value;
+    filterStatus = document.getElementById('filterByStatus').value;
+    filterDate = document.getElementById('filterByDate').value;
+    renderAllTests();
+};
+
+window.resetTestFilters = function() {
+    document.getElementById('filterBySection').value = '';
+    document.getElementById('filterByName').value = '';
+    document.getElementById('filterByStatus').value = '';
+    document.getElementById('filterByDate').value = '';
+    filterSection = filterName = filterStatus = filterDate = '';
+    renderAllTests();
+};
     // ─────────────────────────────────────────────────────────────────
-    //  TEST DETAIL MODAL — UPDATED TO SHOW CATEGORIES
+    //  TEST DETAIL MODAL
     // ─────────────────────────────────────────────────────────────────
-    window.openTestModal = function(testId) {
+    window.openTestModal = async function(testId) {
         const test = allTests.find(t => t.id === testId);
         if (!test) return;
 
+const now = new Date();
+        const deadlineDate = test.deadline instanceof Date ? test.deadline : new Date(test.deadline);
+        const isOverdue = deadlineDate < now;
+        // Refresh permissions for this test
+        try {
+            const permSnap = await getDocs(query(collection(db,'testPermissions'), where('testId','==',testId)));
+            const enabledSet = new Set();
+            permSnap.forEach(d => enabledSet.add(d.data().studentEmail));
+            testPermissionsMap.set(testId, enabledSet);
+        } catch(e) {}
+
         const secStudents = allStudents.filter(s => s.section === test.section);
         const completions = testCompletions.get(testId) || new Set();
+        const enabledForTest = testPermissionsMap.get(testId) || new Set();
 
         currentModalStudents = secStudents.map(student => {
             const email = student.email || student.uniqueId || '';
-            const hasTaken = completions.has(email);
+            const hasTaken  = completions.has(email);
+            const isEnabled = !hasTaken && enabledForTest.has(email);
             let bestCategory = null, attempts = [];
             if (hasTaken && studentTestResults.has(email)) {
                 const stMap = studentTestResults.get(email);
-                if (stMap.has(testId)) { 
-                    bestCategory = stMap.get(testId).bestCategory; 
-                    attempts = stMap.get(testId).attempts; 
-                }
+                if (stMap.has(testId)) { bestCategory = stMap.get(testId).bestCategory; attempts = stMap.get(testId).attempts; }
             }
-            return { ...student, email, hasTaken, bestCategory, attempts };
+            return { ...student, email, hasTaken, isEnabled, bestCategory, attempts };
         });
 
-        currentTestData = { test, testId };
+        currentTestData = { test, testId, isOverdue };
 
         // Header
         document.getElementById('modalTestTitle').textContent   = test.name;
-        document.getElementById('modalTestSection').textContent = `Section: ${test.section}`;
+        document.getElementById('modalTestSection').textContent = `Section: ${test.section} • Deadline: ${test.deadline instanceof Date ? test.deadline.toLocaleDateString() : new Date(test.deadline).toLocaleDateString()}`;
+
+        // Overdue badge
+        const overdueBadge = document.getElementById('modalOverdueBadge');
+        const overdueInfo  = document.getElementById('modalOverdueInfo');
+        if (isOverdue) {
+            overdueBadge.style.display = 'inline-flex';
+            overdueInfo.style.display  = 'flex';
+            document.getElementById('modalDeadlineText').textContent = `Deadline was: ${test.deadline instanceof Date ? test.deadline.toLocaleString() : new Date(test.deadline).toLocaleString()}`;
+            const enabledCount = Array.from(enabledForTest).filter(e => secStudents.some(s => (s.email || s.uniqueId) === e)).length;
+            document.getElementById('modalEnabledCount').textContent = enabledCount > 0 ? `${enabledCount} student${enabledCount > 1 ? 's' : ''} enabled` : 'No students enabled';
+        } else {
+            overdueBadge.style.display = 'none';
+            overdueInfo.style.display  = 'none';
+        }
 
         const total      = currentModalStudents.length;
         const completed  = currentModalStudents.filter(s => s.hasTaken).length;
         const notTaken   = total - completed;
         const rate       = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-        document.getElementById('modalTotalStudents').textContent = total;
+        document.getElementById('modalTotalStudents').textContent  = total;
         document.getElementById('modalCompletedCount').textContent = completed;
         document.getElementById('modalNotTakenCount').textContent  = notTaken;
         document.getElementById('modalCompletionRate').textContent = `${rate}%`;
@@ -1599,10 +1626,13 @@ function getAgeGroupFromStudent(studentData) {
         const status = document.getElementById('studentStatusFilter').value;
         const sortBy = document.getElementById('studentSortBy').value;
         const search = (document.getElementById('studentSearch').value || '').toLowerCase();
+        const isOverdue = currentTestData?.isOverdue || false;
 
         let filtered = [...currentModalStudents];
         if (status === 'taken')     filtered = filtered.filter(s =>  s.hasTaken);
         if (status === 'not-taken') filtered = filtered.filter(s => !s.hasTaken);
+        if (status === 'enabled')   filtered = filtered.filter(s => !s.hasTaken && s.isEnabled);
+        if (status === 'locked')    filtered = filtered.filter(s => !s.hasTaken && !s.isEnabled && isOverdue);
         if (search) filtered = filtered.filter(s => (s.name||'').toLowerCase().includes(search) || (s.email||'').toLowerCase().includes(search));
 
         if (sortBy === 'name')  filtered.sort((a,b) => (a.name||a.email||'').localeCompare(b.name||b.email||''));
@@ -1616,67 +1646,79 @@ function getAgeGroupFromStudent(studentData) {
         document.getElementById('displayedCount').textContent = `Showing ${filtered.length} of ${currentModalStudents.length} students`;
         renderModalStudents();
     };
-    // expose to global for inline onchange/onkeyup handlers
-    window._filterModalStudents = window.filterModalStudents;
 
     function renderModalStudents() {
-    const list = document.getElementById('modalStudentList');
-    if (!currentFilteredStudents.length) {
-        list.innerHTML = `<div class="text-center py-8 text-text-muted text-sm"><i class="fas fa-user-graduate text-3xl mb-2 opacity-40"></i><div>No students match your filters</div></div>`;
-        return;
+        const list = document.getElementById('modalStudentList');
+        const isOverdue = currentTestData?.isOverdue || false;
+
+        if (!currentFilteredStudents.length) {
+            list.innerHTML = `<div class="text-center py-8 text-text-muted text-sm"><i class="fas fa-user-graduate text-3xl mb-2 opacity-40"></i><div>No students match your filters</div></div>`;
+            return;
+        }
+        list.innerHTML = currentFilteredStudents.map(s => {
+            const name  = s.name || (s.email||'').split('@')[0] || 'Student';
+            const init  = name.charAt(0).toUpperCase();
+            const aCnt  = s.attempts?.length || 0;
+            const catClass = s.hasTaken && s.bestCategory ? getCategoryClass(s.bestCategory) : '';
+            const catIcon  = s.hasTaken && s.bestCategory ? getCategoryIcon(s.bestCategory) : '';
+
+            // Status badge
+            let statusBadge = '';
+            if (s.hasTaken) {
+                statusBadge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#d4f0e6;color:#0e8a5f;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0;border:1px solid rgba(14,138,95,0.2);">
+                    <i class="fas fa-check" style="font-size:8px;"></i> Taken
+                </span>`;
+            } else if (isOverdue && s.isEnabled) {
+                statusBadge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#d6eaf8;color:#1a6fa8;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0;border:1px solid rgba(26,111,168,0.2);">
+                    <i class="fas fa-unlock" style="font-size:8px;"></i> Enabled
+                </span>`;
+            } else if (isOverdue && !s.isEnabled) {
+                statusBadge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#fce8e6;color:#c0392b;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0;border:1px solid rgba(192,57,43,0.2);">
+                    <i class="fas fa-lock" style="font-size:8px;"></i> Locked
+                </span>`;
+            } else {
+                // Active test (not overdue) — just show "Not Taken", no lock badge
+                statusBadge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#fce8e6;color:#c0392b;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0;border:1px solid rgba(192,57,43,0.2);">
+                    <i class="fas fa-times" style="font-size:8px;"></i> Not Taken
+                </span>`;
+            }
+
+            return `
+            <div class="student-item border border-border rounded-xl cursor-pointer" style="background:white; margin-bottom:6px; overflow:hidden;" onclick="viewStudentDetails('${(s.email||'').replace(/'/g,"\\'")}')">
+                <!-- Row 1: Avatar + Name + Email + Status -->
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 12px 6px;">
+                    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0;">
+                        ${init}
+                    </div>
+                    <div style="min-width:0;flex:1;">
+                        <div style="font-size:13px;font-weight:700;color:#0a1628;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+                        <div style="font-size:11px;color:#8a98ae;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.email||''}</div>
+                    </div>
+                    ${statusBadge}
+                </div>
+                <!-- Row 2: Category + Attempts + History -->
+                <div style="display:flex;align-items:center;gap:6px;padding:0 12px 10px;flex-wrap:nowrap;">
+                    ${s.hasTaken && s.bestCategory
+                        ? `<span class="category-badge ${catClass}" style="font-size:10px;padding:3px 8px;flex-shrink:0;">
+                               ${catIcon} ${s.bestCategory}
+                           </span>
+                           ${aCnt > 0 ? `<span style="font-size:10px;color:#8a98ae;background:#f4f6fa;padding:3px 8px;border-radius:99px;border:1px solid #e1e6ef;flex-shrink:0;">
+                               ${aCnt} attempt${aCnt !== 1 ? 's' : ''}
+                           </span>` : ''}`
+                        : 
+`<span style="font-size:11px;color:#8a98ae;flex:1;">${isOverdue && s.isEnabled ? 'Enabled — awaiting submission' : isOverdue ? 'Locked — past deadline' : 'No attempts yet'}</span>`
+                    }
+                    ${s.hasTaken
+                        ? `<button onclick="event.stopPropagation(); viewStudentDetails('${(s.email||'').replace(/'/g,"\\'")}');"
+                              style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#0a1628,#1a3a5c);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:600;cursor:pointer;flex-shrink:0;">
+                              <i class="fas fa-history" style="font-size:9px;"></i> History
+                           </button>`
+                        : ''
+                    }
+                </div>
+            </div>`;
+        }).join('');
     }
-    list.innerHTML = currentFilteredStudents.map(s => {
-        const name  = s.name || (s.email||'').split('@')[0] || 'Student';
-        const init  = name.charAt(0).toUpperCase();
-        const aCnt  = s.attempts?.length || 0;
-        const catClass = s.hasTaken && s.bestCategory ? getCategoryClass(s.bestCategory) : '';
-        const catIcon  = s.hasTaken && s.bestCategory ? getCategoryIcon(s.bestCategory) : '';
-
-        return `
-        <div class="student-item border border-border rounded-xl cursor-pointer" style="background:white; margin-bottom:6px; overflow:hidden;" onclick="viewStudentDetails('${(s.email||'').replace(/'/g,"\\'")}')">
-            
-            <!-- Row 1: Avatar + Name + Email + Status badge -->
-            <div style="display:flex; align-items:center; gap:10px; padding:10px 12px 6px;">
-                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0;">
-                    ${init}
-                </div>
-                <div style="min-width:0;flex:1;">
-                    <div style="font-size:13px;font-weight:700;color:#0a1628;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
-                    <div style="font-size:11px;color:#8a98ae;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.email||''}</div>
-                </div>
-                ${s.hasTaken
-                    ? `<span style="display:inline-flex;align-items:center;gap:3px;background:#d4f0e6;color:#0e8a5f;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0;border:1px solid rgba(14,138,95,0.2);">
-                            <i class="fas fa-check" style="font-size:8px;"></i> Taken
-                       </span>`
-                    : `<span style="display:inline-flex;align-items:center;gap:3px;background:#fce8e6;color:#c0392b;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0;border:1px solid rgba(192,57,43,0.2);">
-                            <i class="fas fa-times" style="font-size:8px;"></i> Not Taken
-                       </span>`
-                }
-            </div>
-
-            <!-- Row 2: Category + Attempts + History button -->
-            <div style="display:flex;align-items:center;gap:6px;padding:0 12px 10px;flex-wrap:nowrap;">
-                ${s.hasTaken && s.bestCategory
-                    ? `<span class="category-badge ${catClass}" style="font-size:10px;padding:3px 8px;flex-shrink:0;">
-                           ${catIcon} ${s.bestCategory}
-                       </span>
-                       ${aCnt > 0 ? `<span style="font-size:10px;color:#8a98ae;background:#f4f6fa;padding:3px 8px;border-radius:99px;border:1px solid #e1e6ef;flex-shrink:0;">
-                           ${aCnt} attempt${aCnt !== 1 ? 's' : ''}
-                       </span>` : ''}`
-                    : `<span style="font-size:11px;color:#8a98ae;flex:1;">No attempts yet</span>`
-                }
-                ${s.hasTaken
-                    ? `<button onclick="event.stopPropagation(); viewStudentDetails('${(s.email||'').replace(/'/g,"\\'")}');"
-                          style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#0a1628,#1a3a5c);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:600;cursor:pointer;flex-shrink:0;">
-                          <i class="fas fa-history" style="font-size:9px;"></i> History
-                       </button>`
-                    : ''
-                }
-            </div>
-
-        </div>`;
-    }).join('');
-}
 
     window.viewStudentDetails = function(email) {
         if (!currentTestData) return;
@@ -1697,9 +1739,8 @@ function getAgeGroupFromStudent(studentData) {
         document.getElementById('studentTestAttempts').innerHTML = sorted.map(a => {
             const isBest = a.category === td.bestCategory;
             const categoryBadge = renderCategoryBadge(a.category);
-           return `
+            return `
             <div style="border-radius:12px; border:1px solid ${isBest ? 'rgba(14,138,95,0.3)' : '#e1e6ef'}; background:${isBest ? 'rgba(212,240,230,0.3)' : '#f4f6fa'}; padding:12px; margin-bottom:6px;">
-                <!-- Row 1: Attempt number + Best badge + date -->
                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
                     <span style="font-size:13px; font-weight:700; color:#0a1628;">Attempt ${a.attemptNumber}</span>
                     ${isBest ? '<span style="font-size:10px; background:#d4f0e6; color:#0e8a5f; padding:2px 7px; border-radius:99px; font-weight:700;">Best</span>' : ''}
@@ -1725,17 +1766,32 @@ function getAgeGroupFromStudent(studentData) {
     // ─────────────────────────────────────────────────────────────────
     //  GLOBAL REFRESH
     // ─────────────────────────────────────────────────────────────────
-    window.refreshAll = async function() {
-        window.showToast('Refreshing', 'Updating all data...', 'info');
-        await loadAllTests();
-        await loadTestResults();
-        renderOverview();
-        updateStats();
-        updateTime();
+  window.refreshAll = async function() {
+    window.showToast('Refreshing', 'Updating all data...', 'info');
+    await loadAllTests();
+    await loadTestResults();
+    renderOverview();
+    updateStats(); // Tawagin agad para ma-update ang stats
+    updateTime();
+    const testsTab = document.getElementById('testsTab');
+    if (testsTab && testsTab.style.display !== 'none') { 
+        populateTestFilters(); 
+        renderAllTests(); 
+    }
+    window.showToast('Done', 'Dashboard updated', 'success');
+    
+    // Linisin ang existing intervals para hindi mag-multiple
+    if (window.statsInterval) clearInterval(window.statsInterval);
+    
+    // Auto-refresh stats every 30 seconds
+    window.statsInterval = setInterval(() => {
+        updateStats(); // Update stats regularly
         const testsTab = document.getElementById('testsTab');
-        if (testsTab && testsTab.style.display !== 'none') { populateTestFilters(); renderAllTests(); }
-        window.showToast('Done', 'Dashboard updated', 'success');
-    };
+        if (testsTab && testsTab.style.display !== 'none') {
+            renderAllTests(); // Refresh tests view kung nasa tests tab
+        }
+    }, 30000); // 30 seconds instead of 60
+};
 
     window.refreshAllTests = async function() {
         await loadAllTests(); await loadTestResults();
@@ -1743,9 +1799,10 @@ function getAgeGroupFromStudent(studentData) {
         window.showToast('Done', 'Tests refreshed', 'success');
     };
 
-    window.applyTestFilters = function() {
+window.applyTestFilters = function() {
         filterSection = document.getElementById('filterBySection').value;
         filterName    = document.getElementById('filterByName').value;
+        filterStatus  = document.getElementById('filterByStatus').value;
         filterDate    = document.getElementById('filterByDate').value;
         renderAllTests();
     };
@@ -1753,12 +1810,11 @@ function getAgeGroupFromStudent(studentData) {
     window.resetTestFilters = function() {
         document.getElementById('filterBySection').value = '';
         document.getElementById('filterByName').value    = '';
+        document.getElementById('filterByStatus').value  = '';
         document.getElementById('filterByDate').value    = '';
-        filterSection = filterName = filterDate = '';
+        filterSection = filterName = filterStatus = filterDate = '';
         renderAllTests();
-    };
-
-    // ─────────────────────────────────────────────────────────────────
+    };    // ─────────────────────────────────────────────────────────────────
     //  LOGOUT (styled popup)
     // ─────────────────────────────────────────────────────────────────
     function showLogoutConfirmPopup() {
