@@ -122,6 +122,26 @@
         .dir-down { background: #fee2e2; color: #dc2626; }
         .dir-same { background: #f1f5f9; color: #64748b; }
         .no-improvement-state { text-align: center; padding: 3rem 1rem; }
+        /* Notification dropdown scrollbar */
+        #notificationDropdown::-webkit-scrollbar,
+        #notificationDropdownMobile::-webkit-scrollbar,
+        #notificationDropdownBody::-webkit-scrollbar,
+        #notificationDropdownBodyMobile::-webkit-scrollbar { width: 6px; }
+
+        #notificationDropdown::-webkit-scrollbar-track,
+        #notificationDropdownMobile::-webkit-scrollbar-track,
+        #notificationDropdownBody::-webkit-scrollbar-track,
+        #notificationDropdownBodyMobile::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+
+        #notificationDropdown::-webkit-scrollbar-thumb,
+        #notificationDropdownMobile::-webkit-scrollbar-thumb,
+        #notificationDropdownBody::-webkit-scrollbar-thumb,
+        #notificationDropdownBodyMobile::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+
+        #notificationDropdown::-webkit-scrollbar-thumb:hover,
+        #notificationDropdownMobile::-webkit-scrollbar-thumb:hover,
+        #notificationDropdownBody::-webkit-scrollbar-thumb:hover,
+        #notificationDropdownBodyMobile::-webkit-scrollbar-thumb:hover { background: #2563eb; }
 
         @media (max-width: 1200px) { .stats-grid { grid-template-columns: 1fr; } .charts-grid { grid-template-columns: 1fr; } .main-container { padding: 2rem; } }
         @media (max-width: 1023px) { .hamburger { display: flex; } }
@@ -160,16 +180,17 @@
                         <i class="bi bi-bell-fill text-base xl:text-lg"></i>
                         <span id="navNotificationCount" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center pulse-animation">0</span>
                     </button>
+                   <!-- Desktop Notification Dropdown -->
                     <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl z-[9999] slide-down max-h-[480px] overflow-y-auto">
                         <div class="p-3 sm:p-4 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center rounded-t-xl sticky top-0 z-10">
-                            <h6 class="font-bold text-gray-900 text-sm flex items-center gap-2"><i class="bi bi-bell-fill text-blue-500"></i> Notifications</h6>
-                            <button id="closeNotificationBtn" class="text-gray-400 hover:text-gray-600 p-1"><i class="bi bi-x-lg"></i></button>
+                            <h6 class="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2"><i class="bi bi-bell-fill text-blue-500"></i> Notifications</h6>
+                            <button id="closeNotificationBtn" class="text-gray-400 hover:text-gray-600 p-1 transition-colors"><i class="bi bi-x-lg"></i></button>
                         </div>
-                        <div id="notificationDropdownBody" class="max-h-80 overflow-y-auto">
-                            <div class="p-6 text-center text-gray-400"><i class="bi bi-bell-slash text-4xl mb-3 block"></i><p class="text-gray-600 text-sm">No notifications yet</p></div>
+                        <div id="notificationDropdownBody" class="max-h-96 overflow-y-auto">
+                            <div class="p-6 sm:p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-4xl sm:text-5xl mb-3 block"></i><p class="text-gray-600 text-sm sm:text-base">No notifications yet</p></div>
                         </div>
-                        <div class="p-2 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl sticky bottom-0">
-                            <button onclick="window.location.href='./notification.html'" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg font-semibold text-xs hover:from-blue-600 hover:to-blue-700 transition-all">View All Notifications</button>
+                        <div class="p-2 sm:p-3 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl sticky bottom-0">
+                            <button onclick="window.location.href='./notification.html'" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-3 sm:px-4 rounded-lg font-semibold text-xs sm:text-sm hover:from-blue-600 hover:to-blue-700 hover:shadow-lg transition-all">View All Notifications</button>
                         </div>
                     </div>
                 </div>
@@ -197,16 +218,17 @@
                         <i class="bi bi-bell-fill text-base sm:text-lg"></i>
                         <span id="navNotificationCountMobile" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center pulse-animation">0</span>
                     </button>
+                   <!-- Mobile Notification Dropdown -->
                     <div id="notificationDropdownMobile" class="hidden fixed right-2 left-2 top-20 bg-white rounded-xl shadow-2xl z-[9999] slide-down max-h-[calc(100vh-6rem)] overflow-y-auto">
-                        <div class="p-3 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center rounded-t-xl sticky top-0 z-10">
-                            <h6 class="font-bold text-gray-900 text-sm flex items-center gap-2"><i class="bi bi-bell-fill text-blue-500"></i> Notifications</h6>
-                            <button id="closeNotificationBtnMobile" class="text-gray-400 hover:text-gray-600 p-1"><i class="bi bi-x-lg"></i></button>
+                        <div class="p-3 sm:p-4 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center rounded-t-xl sticky top-0 z-10">
+                            <h6 class="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2"><i class="bi bi-bell-fill text-blue-500"></i> Notifications</h6>
+                            <button id="closeNotificationBtnMobile" class="text-gray-400 hover:text-gray-600 p-1 transition-colors"><i class="bi bi-x-lg"></i></button>
                         </div>
-                        <div id="notificationDropdownBodyMobile" class="max-h-80 overflow-y-auto">
-                            <div class="p-6 text-center text-gray-400"><i class="bi bi-bell-slash text-4xl mb-3 block"></i><p class="text-gray-600 text-sm">No notifications yet</p></div>
+                        <div id="notificationDropdownBodyMobile" class="max-h-96 overflow-y-auto">
+                            <div class="p-6 sm:p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-4xl sm:text-5xl mb-3 block"></i><p class="text-gray-600 text-sm sm:text-base">No notifications yet</p></div>
                         </div>
-                        <div class="p-2 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl sticky bottom-0">
-                            <button onclick="window.location.href='./notification.html'" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg font-semibold text-xs hover:from-blue-600 hover:to-blue-700 transition-all">View All Notifications</button>
+                        <div class="p-2 sm:p-3 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl sticky bottom-0">
+                            <button onclick="window.location.href='./notification.html'" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-3 sm:px-4 rounded-lg font-semibold text-xs sm:text-sm hover:from-blue-600 hover:to-blue-700 hover:shadow-lg transition-all">View All Notifications</button>
                         </div>
                     </div>
                 </div>

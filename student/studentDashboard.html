@@ -949,7 +949,22 @@
             if (notificationBellBtnMobile) {
                 notificationBellBtnMobile.addEventListener('click', toggleNotificationDropdown);
             }
-            
+                // Close notification buttons
+                const closeNotifBtn = document.getElementById('closeNotificationBtn');
+                const closeNotifBtnMobile = document.getElementById('closeNotificationBtnMobile');
+
+                if (closeNotifBtn) {
+                    closeNotifBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeNotificationDropdown();
+                    });
+                }
+                if (closeNotifBtnMobile) {
+                    closeNotifBtnMobile.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeNotificationDropdown();
+                    });
+                }
             // Profile dropdowns
             if (profilePictureBtn) {
                 profilePictureBtn.addEventListener('click', toggleProfileDropdown);

@@ -2712,7 +2712,7 @@ function updateTimer() {
         
         setupTestInputs(currentTest.testName);
         updateInstructions(currentTest.testName);
-        
+        listenForTestDeletion(testId);
     } catch (error) {
         console.error('❌ Error loading test:', error);
         showErrorOnLoad('Error loading test data: ' + error.message);
@@ -3529,7 +3529,104 @@ function calculateScoreWithNorms(testName, rawResult, testTarget, student) {
         }
 
 
+            function listenForTestDeletion(testId) {
+    const deletedRef = doc(db, 'deletedTests', testId);
+    onSnapshot(deletedRef, (snap) => {
+        if (snap.exists()) {
+            showTestDeletedPopup();
+        }
+    });
+}
 
+function showTestDeletedPopup() {
+    document.getElementById('testDeletedOverlay')?.remove();
+
+    // Stop the timer if running
+    if (isRunning || isPaused) {
+        clearInterval(timerInterval);
+        stopMetronome();
+        isRunning = false;
+        isPaused = false;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'testDeletedOverlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.65);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 999999; padding: 1rem;
+    `;
+
+    overlay.innerHTML = `
+        <style>
+            @keyframes tdSlideUp {
+                from { opacity: 0; transform: translateY(24px) scale(0.97); }
+                to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+        </style>
+        <div style="
+            background: #fff;
+            border-radius: 24px;
+            padding: 2.5rem 2rem 2rem;
+            max-width: 400px; width: 100%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            animation: tdSlideUp 0.35s cubic-bezier(.4,0,.2,1);
+        ">
+            <div style="
+                width: 72px; height: 72px;
+                background: #fef2f2;
+                border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                margin: 0 auto 1.25rem;
+            ">
+                <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="18" stroke="#ef4444" stroke-width="3"/>
+                    <line x1="16" y1="16" x2="32" y2="32" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round"/>
+                    <line x1="32" y1="16" x2="16" y2="32" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem;">
+                Test No Longer Available
+            </div>
+            <div style="font-size: 0.9rem; color: #6b7280; line-height: 1.6; margin-bottom: 1.75rem;">
+                This test has been removed by your professor while you were taking it. Your progress has not been saved. You will be redirected back to the Tests page.
+            </div>
+            <div style="height: 1px; background: #e5e7eb; margin: 0 -2rem 1.5rem;"></div>
+            <button onclick="window.location.href='./test.html'" style="
+                width: 100%;
+                padding: 0.85rem 1.5rem;
+                border-radius: 100px;
+                border: none;
+                background: linear-gradient(135deg, #0D1B2A, #1d4ed8);
+                color: #fff;
+                font-size: 0.9375rem;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: 'Inter', sans-serif;
+            ">
+                Back to Tests
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Disable submit button so they can't submit a deleted test
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.4';
+    }
+
+    // Disable timer controls
+    ['startBtn','pauseBtn','stopBtn','resetBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = true;
+    });
+}
         // Auth state change
         onAuthStateChanged(auth, async (user) => {
     const loadingScreen = document.getElementById('loadingScreen');
