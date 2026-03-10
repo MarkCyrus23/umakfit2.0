@@ -1179,10 +1179,17 @@
             </div>
         </div>
 
-        <div class="col-12">
-            <label class="form-label fw-bold">Medical Condition</label>
-            <textarea class="form-control" id="editMedical" rows="3" placeholder="Enter any medical conditions or allergies"></textarea>
-        </div>
+<div class="col-12">
+    <label class="form-label fw-bold">Medical Condition</label>
+    <textarea class="form-control" id="editMedical" rows="3" 
+        placeholder="Enter any medical conditions or allergies"
+        maxlength="1000"
+        oninput="document.getElementById('medicalCharCount').textContent = this.value.length"></textarea>
+    <div class="d-flex justify-content-between mt-1">
+        <small class="text-muted">Maximum 1000 characters</small>
+        <small id="medicalCharCount" class="text-muted">0</small>
+    </div>
+</div>
      </div>
 </form>
         </div>
@@ -1744,7 +1751,6 @@ const notificationsQuery = query(
                 studentsSnapshot.forEach((doc) => {
                     studentData = doc.data();
                     studentDocId = doc.id;
-                    console.log('Student data found:', studentData);
                 });
             } else {
                 console.log('No student found by email, trying by UID');
@@ -2044,8 +2050,8 @@ document.getElementById('profileAgeGender').textContent =
     document.getElementById('editContact').value = data.contactNumber || '';
     document.getElementById('editHeight').value = data.height || '';
     document.getElementById('editWeight').value = data.weight || '';
-    document.getElementById('editMedical').value = data.medicalCondition || '';
-
+document.getElementById('editMedical').value = data.medicalCondition || '';
+document.getElementById('medicalCharCount').textContent = (data.medicalCondition || '').length;
     // Reset Save button and error states
     const saveBtn = document.querySelector('#editProfileModal .btn-primary');
     if (saveBtn) saveBtn.disabled = false;
@@ -2126,6 +2132,15 @@ document.getElementById('profileAgeGender').textContent =
                     lastName = '';
                 }
             }
+const medicalVal = document.getElementById('editMedical').value;
+if (medicalVal.length > 1000) {
+    document.getElementById('editMedical').focus();
+    document.getElementById('editMedical').setCustomValidity('Medical condition must not exceed 1000 characters.');
+    document.getElementById('editMedical').reportValidity();
+    return;
+} else {
+    document.getElementById('editMedical').setCustomValidity('');
+}
 
             const updatedData = {
                 firstName: firstName,
