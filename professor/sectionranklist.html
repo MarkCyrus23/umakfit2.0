@@ -95,7 +95,6 @@
         .modal-overlay { display: none; }
         .modal-overlay.open { display: flex; }
 
-        /* Match softer (non-blurred) overlay style from addactivities */
         .backdrop-blur-sm {
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
@@ -107,7 +106,7 @@
         .rank-bronze { background: linear-gradient(135deg,#CD7F32,#B87333); color:#fff; }
         .rank-other { background: linear-gradient(135deg,#1e3a8a,#3b82f6); color:#fff; }
 
-        /* Category badges - same as grades.html */
+        /* Category badges */
         .category-badge { display:inline-flex; align-items:center; gap:4px; padding:5px 14px; border-radius:20px; font-weight:700; font-size:12px; white-space:nowrap; }
         .category-excellent { background-color:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
         .category-good { background-color:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
@@ -129,6 +128,17 @@
         .progress-fill { transition: width 0.8s ease; }
         .student-rank-row { transition: all 0.2s ease; }
         .student-rank-row:hover { transform: translateX(4px); border-color: #2d6fc4; }
+
+        /* Mobile: make student rows tappable */
+        @media (max-width: 480px) {
+            .student-rank-row {
+                cursor: pointer;
+            }
+            .student-rank-row:active {
+                background: #f0f6ff;
+                border-color: #2d6fc4;
+            }
+        }
        
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
@@ -141,6 +151,13 @@
                 padding-right: 1rem !important;
             }
         }
+
+        /* Student detail modal slide up on mobile */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideUp { animation: slideUp 0.28s ease; }
     </style>
 </head>
 <body class="bg-surface font-sans">
@@ -212,6 +229,32 @@
     </div>
 </div>
 
+<!-- STUDENT DETAIL MODAL (mobile tap) -->
+<div id="studentDetailModal" class="modal-overlay fixed inset-0 bg-black/60 justify-center items-end sm:items-center z-[10001] backdrop-blur-sm p-0 sm:p-4" onclick="if(event.target===this) closeStudentDetailModal()">
+    <div class="bg-white w-full sm:max-w-[420px] rounded-t-3xl sm:rounded-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.18)] animate-slideUp overflow-hidden">
+        <!-- Handle bar -->
+        <div class="flex justify-center pt-3 pb-1 sm:hidden">
+            <div class="w-10 h-1 rounded-full bg-border"></div>
+        </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div class="font-display text-[16px] font-bold text-navy flex items-center gap-2">
+                <i class="fas fa-user-circle text-accent"></i>
+                Student Details
+            </div>
+            <button onclick="closeStudentDetailModal()" class="w-8 h-8 rounded-full bg-surface border-0 flex items-center justify-center cursor-pointer text-text-muted text-sm hover:bg-danger-bg hover:text-danger transition-all">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="p-5" id="studentDetailBody"></div>
+        <!-- Footer -->
+        <div class="px-5 pb-6 pt-2">
+            <button onclick="closeStudentDetailModal()" class="w-full py-3 bg-navy hover:bg-navy-light text-white rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- MAIN CONTENT -->
 <div id="mainContent" style="display:none;">
 
@@ -273,8 +316,9 @@
     </header>
 
     <!-- SIDEBAR -->
-<aside id="mainSidebar"
-    class="sidebar-transition sidebar-scroll fixed top-[70px] left-0 w-[260px] h-[calc(100vh-70px)] bg-navy-mid border-r border-white/[0.06] flex flex-col overflow-y-auto overflow-x-hidden z-[400] py-6">        <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mb-2">Main</div>
+    <aside id="mainSidebar"
+        class="sidebar-transition sidebar-scroll fixed top-[70px] left-0 w-[260px] h-[calc(100vh-70px)] bg-navy-mid border-r border-white/[0.06] flex flex-col overflow-y-auto overflow-x-hidden z-[400] py-6">
+        <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mb-2">Main</div>
         <a href="professor.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
             <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-tachometer-alt"></i></div>
             <span>Dashboard</span>
@@ -298,7 +342,7 @@
             <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-chart-bar"></i></div>
             <span>Monitoring</span>
         </a>
-       <a href="grades.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
+        <a href="grades.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
             <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-chart-line"></i></div>
             <span>Performance</span>
         </a>
@@ -381,7 +425,7 @@
             </div>
 
             <!-- Assigned Sections Panel -->
-           <div id="sectionsPanelCard" class="bg-white rounded-2xl border border-border shadow-sm mb-7 overflow-hidden" style="display:none;">
+            <div id="sectionsPanelCard" class="bg-white rounded-2xl border border-border shadow-sm mb-7 overflow-hidden" style="display:none;">
                 <div class="px-4 md:px-6 py-4 border-b border-border flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div class="flex items-center gap-2.5 text-[15px] font-semibold text-navy">
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0d7a5a] to-success flex items-center justify-center text-white text-[13px]">
@@ -390,7 +434,7 @@
                         My Assigned Sections
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-info-bg text-blue text-xs font-semibold" id="sectionsCount">0</span>
                     </div>
-                   <div class="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center md:flex-wrap">
+                    <div class="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center md:flex-wrap">
                         <div id="activeFilterBadge" class="hidden">
                             <div class="inline-flex items-center gap-1.5 bg-info-bg text-info text-xs font-semibold px-2.5 py-1 rounded-full border border-info/20">
                                 <i class="fas fa-filter text-[11px]"></i>
@@ -505,7 +549,8 @@
                             <div class="space-y-3">
                                 <a href="addlesson.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-book-open mr-2"></i>Lessons</a>
                                 <a href="monitoringactivities.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-bar mr-2"></i>Monitoring</a>
-                                <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-line mr-2"></i>Performance</a>                            </div>
+                                <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-line mr-2"></i>Performance</a>
+                            </div>
                         </div>
                     </div>
                     <div>
@@ -586,6 +631,85 @@
         document.getElementById('confirmModal').classList.add('open');
     };
     window.closeConfirmModal = () => document.getElementById('confirmModal').classList.remove('open');
+
+    /* ── Student detail modal (mobile tap) ── */
+    window.openStudentDetailModal = function(studentJson) {
+        const st = JSON.parse(decodeURIComponent(studentJson));
+        const rankLabels = ['', 'rank-gold', 'rank-silver', 'rank-bronze'];
+        const rc = st.rank <= 3 ? rankLabels[st.rank] : 'rank-other';
+
+        const categoryBadge = st.hasGrades
+            ? renderCategoryBadgeGlobal(st.overallCategory)
+            : '<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-surface text-text-muted border border-border">No Results yet</span>';
+
+        // Only show age group if the student has set their birthday/age
+        const ageGroupHtml = st.ageGroup && st.ageGroup !== '19-22_default'
+            ? `<div class="flex items-center gap-3 p-3 rounded-xl bg-surface">
+                    <div class="w-8 h-8 rounded-lg bg-info-bg flex items-center justify-center text-info text-sm flex-shrink-0"><i class="fas fa-birthday-cake"></i></div>
+                    <div>
+                        <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Age Group</div>
+                        <div class="text-[14px] font-semibold text-navy">${st.ageGroup}</div>
+                    </div>
+               </div>`
+            : '';
+
+        document.getElementById('studentDetailBody').innerHTML = `
+            <!-- Avatar + name -->
+            <div class="flex flex-col items-center text-center mb-5">
+                <div class="${rc} inline-flex items-center justify-center w-10 h-10 rounded-full text-[15px] font-bold mb-3">
+                    ${st.rank}
+                </div>
+                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-2xl mb-3">
+                    ${getInitialsGlobal(st.name)}
+                </div>
+                <div class="font-display font-bold text-navy text-[18px] leading-snug mb-1">${st.name}</div>
+                <div class="text-[12px] text-text-muted break-all px-2">${st.email}</div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="flex flex-col items-center p-3 rounded-xl bg-surface border border-border">
+                    <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1">Rank</div>
+                    <div class="font-mono font-bold text-navy text-xl">#${st.rank}</div>
+                </div>
+                <div class="flex flex-col items-center p-3 rounded-xl bg-surface border border-border">
+                    <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-1">Activities</div>
+                    <div class="font-mono font-bold text-navy text-xl">${st.activitiesCount}</div>
+                </div>
+            </div>
+
+            <!-- Overall category -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface mb-3">
+                <div class="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center text-accent text-sm flex-shrink-0"><i class="fas fa-star"></i></div>
+                <div>
+                    <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Overall Category</div>
+                    <div class="mt-0.5">${categoryBadge}</div>
+                </div>
+            </div>
+
+            ${ageGroupHtml}
+        `;
+
+        document.getElementById('studentDetailModal').classList.add('open');
+    };
+
+    window.closeStudentDetailModal = function() {
+        document.getElementById('studentDetailModal').classList.remove('open');
+    };
+
+    /* Global helpers needed by inline onclick */
+    window.renderCategoryBadgeGlobal = function(category) {
+        if (!category || category === 'No Assessments yet') return '<span class="category-badge category-default">— No Results yet</span>';
+        const icons = { Excellent:'⭐', Good:'👍', Average:'📊', 'Below Average':'📉', Poor:'⚠️' };
+        const cls   = { Excellent:'category-excellent', Good:'category-good', Average:'category-average', 'Below Average':'category-below-average', Poor:'category-poor' };
+        return `<span class="category-badge ${cls[category]||'category-default'}">${icons[category]||''} ${category}</span>`;
+    };
+
+    window.getInitialsGlobal = function(name) {
+        if (!name) return '?';
+        const p = name.split(' ');
+        return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : name.substring(0,2).toUpperCase();
+    };
 </script>
 
 <script type="module">
@@ -616,7 +740,7 @@
     let sectionRankings = [];
     let activeSectionFilter = null;
 
-    // ===== NORM-BASED CLASSIFICATION (same as grades.html) =====
+    // ===== NORM-BASED CLASSIFICATION =====
 
     function extractNumericResult(result) {
         if (typeof result === 'object' && result !== null) {
@@ -630,50 +754,50 @@
     }
 
     const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
-    // Helper function to get age group from student data
-function getAgeGroupFromStudent(studentData) {
-    if (!studentData) return '19-22'; // default
-    
-    // If student has birthday
-    if (studentData.birthday) {
-        try {
-            let birthDate;
-            if (studentData.birthday.toDate) {
-                birthDate = studentData.birthday.toDate();
-            } else {
-                birthDate = new Date(studentData.birthday);
+
+    // Helper: get age group from student data.
+    // Returns a special sentinel '19-22_default' when birthday/age is NOT set,
+    // so we can hide the age group label in the UI.
+    function getAgeGroupFromStudent(studentData) {
+        if (!studentData) return '19-22_default';
+
+        if (studentData.birthday) {
+            try {
+                let birthDate;
+                if (studentData.birthday.toDate) {
+                    birthDate = studentData.birthday.toDate();
+                } else {
+                    birthDate = new Date(studentData.birthday);
+                }
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+
+                if (!isNaN(age) && age > 0) {
+                    if (age <= 18) return '15-18';
+                    if (age <= 22) return '19-22';
+                    if (age <= 26) return '23-26';
+                    return '27-30';
+                }
+            } catch (e) {
+                console.error('Error computing age from birthday:', e);
             }
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            
+        }
+
+        if (studentData.age) {
+            const age = parseInt(studentData.age);
             if (!isNaN(age) && age > 0) {
                 if (age <= 18) return '15-18';
                 if (age <= 22) return '19-22';
                 if (age <= 26) return '23-26';
                 return '27-30';
             }
-        } catch (e) {
-            console.error('Error computing age from birthday:', e);
         }
+
+        // No birthday and no age → sentinel (means profile not yet edited)
+        return '19-22_default';
     }
-    
-    // If student has age field
-    if (studentData.age) {
-        const age = parseInt(studentData.age);
-        if (!isNaN(age)) {
-            if (age <= 18) return '15-18';
-            if (age <= 22) return '19-22';
-            if (age <= 26) return '23-26';
-            return '27-30';
-        }
-    }
-    
-    return '19-22'; // default fallback
-}
 
     function getCategoryIcon(category) {
         switch(category) {
@@ -791,17 +915,18 @@ function getAgeGroupFromStudent(studentData) {
     function getNormCategory(testName, result, genderKey = 'male', ageGroup = '19-22') {
         const normalized = (testName || '').toLowerCase();
         const value = extractNumericResult(result);
+        // Use actual norms table key (strip sentinel suffix if present)
+        const normKey = ageGroup.replace('_default', '');
 
         if (normalized.includes('push-up') || normalized.includes('pushup'))
-            return getPushUpCategory(genderKey, ageGroup, value);
+            return getPushUpCategory(genderKey, normKey, value);
         if (normalized.includes('curl-up') || normalized.includes('curl up'))
-            return getCurlUpCategory(genderKey, ageGroup, value);
+            return getCurlUpCategory(genderKey, normKey, value);
         if (normalized.includes('sit-and-reach') || normalized.includes('sit and reach'))
-            return getSitReachCategory(genderKey, ageGroup, value);
+            return getSitReachCategory(genderKey, normKey, value);
         if (normalized.includes('step test') || normalized.includes('3-minute'))
-            return getStepTestCategory(genderKey, ageGroup, value);
+            return getStepTestCategory(genderKey, normKey, value);
 
-        // For skinfold / other tests
         if (normalized.includes('skinfold') || normalized.includes('skin fold')) {
             if (typeof result === 'string') {
                 const classMatch = result.match(/\(([^)]+)\)/);
@@ -817,7 +942,6 @@ function getAgeGroupFromStudent(studentData) {
             return 'Average';
         }
 
-        // BMI
         if (normalized.includes('bmi')) {
             const bmi = extractNumericResult(result);
             if (bmi >= 18.5 && bmi <= 24.9) return 'Excellent';
@@ -838,20 +962,6 @@ function getAgeGroupFromStudent(studentData) {
         if (avg >= 2.5) return 'Average';
         if (avg >= 1.5) return 'Below Average';
         return 'Poor';
-    }
-
-    function extractResult(data) {
-        if (data.result !== undefined && data.result !== null) {
-            if (typeof data.result === 'number') return data.result;
-            if (typeof data.result === 'string') { const m = data.result.match(/(\d+\.?\d*)/); return m ? parseFloat(m[1]) : data.result; }
-            if (typeof data.result === 'object') return data.result.value || data.result.repetitions || data.result.time || data.result.distance || 0;
-        }
-        if (data.resultData) {
-            if (typeof data.resultData === 'object') return data.resultData.value || data.resultData.repetitions || data.resultData.time || 0;
-            return data.resultData;
-        }
-        if (data.repetitions !== undefined) return data.repetitions;
-        return '-';
     }
 
     function getInitials(name) {
@@ -890,172 +1000,133 @@ function getAgeGroupFromStudent(studentData) {
     }
 
     function setupUI(user) {
-    const displayName = user.displayName || currentProfessor.fullName || currentProfessor.name || 'Professor';
-    const email = currentProfessor.email || user.email;
-    const initial = displayName.charAt(0).toUpperCase();
-    const photo = user.photoURL || null;
+        const displayName = user.displayName || currentProfessor.fullName || currentProfessor.name || 'Professor';
+        const email = currentProfessor.email || user.email;
+        const initial = displayName.charAt(0).toUpperCase();
+        const photo = user.photoURL || null;
 
-    document.getElementById('headerName').textContent    = displayName;
-    document.getElementById('dropdownName').textContent  = displayName;
-    document.getElementById('dropdownEmail').textContent = email;
+        document.getElementById('headerName').textContent    = displayName;
+        document.getElementById('dropdownName').textContent  = displayName;
+        document.getElementById('dropdownEmail').textContent = email;
 
-    const as = document.getElementById('profileAvatarSmall');
-    const al = document.getElementById('profileDropdownAvatar');
-    const img = src => `<img src="${src}" class="w-full h-full object-cover rounded-full" alt="">`;
-    if (photo) { as.innerHTML = img(photo); al.innerHTML = img(photo); }
-    else { as.textContent = initial; al.textContent = initial; }
-}
+        const as = document.getElementById('profileAvatarSmall');
+        const al = document.getElementById('profileDropdownAvatar');
+        const img = src => `<img src="${src}" class="w-full h-full object-cover rounded-full" alt="">`;
+        if (photo) { as.innerHTML = img(photo); al.innerHTML = img(photo); }
+        else { as.textContent = initial; al.textContent = initial; }
+    }
 
- async function loadAssignedSections() {
-    assignedSections = [];
-    allSections = [];
-    const profEmail = (currentProfessor.email || currentUser.email).toLowerCase();
-    const profUid = currentUser.uid || '';
+    async function loadAssignedSections() {
+        assignedSections = [];
+        allSections = [];
+        const profEmail = (currentProfessor.email || currentUser.email).toLowerCase();
+        const profUid = currentUser.uid || '';
 
-    // Collect name variations (existing code remains the same)
-    const nameVariations = new Set();
-    ['fullName','name','displayName'].forEach(f => {
-        if (currentProfessor[f]) nameVariations.add(currentProfessor[f].toUpperCase().trim());
-    });
-    if (currentUser.displayName) nameVariations.add(currentUser.displayName.toUpperCase().trim());
+        const nameVariations = new Set();
+        ['fullName','name','displayName'].forEach(f => {
+            if (currentProfessor[f]) nameVariations.add(currentProfessor[f].toUpperCase().trim());
+        });
+        if (currentUser.displayName) nameVariations.add(currentUser.displayName.toUpperCase().trim());
 
-    const profSnap = await getDocs(query(collection(db,'professors'), where('email','==',profEmail)));
-    profSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
+        const profSnap = await getDocs(query(collection(db,'professors'), where('email','==',profEmail)));
+        profSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
 
-    const usrSnap = await getDocs(query(collection(db,'users'), where('email','==',profEmail)));
-    usrSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
+        const usrSnap = await getDocs(query(collection(db,'users'), where('email','==',profEmail)));
+        usrSnap.forEach(d => ['fullName','name','displayName'].forEach(f => { if (d.data()[f]) nameVariations.add(d.data()[f].toUpperCase().trim()); }));
 
-    nameVariations.add(profEmail.split('@')[0].toUpperCase().trim());
-    nameVariations.delete('');
+        nameVariations.add(profEmail.split('@')[0].toUpperCase().trim());
+        nameVariations.delete('');
 
-    const nameTokens = new Set();
-    nameVariations.forEach(n => n.split(/[\s,\.]+/).forEach(w => { if (w.length >= 3) nameTokens.add(w); }));
+        const nameTokens = new Set();
+        nameVariations.forEach(n => n.split(/[\s,\.]+/).forEach(w => { if (w.length >= 3) nameTokens.add(w); }));
 
-    const addedIds = new Set();
+        const addedIds = new Set();
 
-    // Direct query by professorId
-    if (profUid) {
+        if (profUid) {
+            try {
+                const q1 = await getDocs(query(collection(db,'sections'), where('professorId','==',profUid)));
+                q1.forEach(d => {
+                    if (addedIds.has(d.id)) return;
+                    addedIds.add(d.id);
+                    const data = d.data();
+                    assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
+                });
+            } catch(e) {}
+        }
+
         try {
-            const q1 = await getDocs(query(collection(db,'sections'), where('professorId','==',profUid)));
-            q1.forEach(d => {
+            const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
+            q2.forEach(d => {
                 if (addedIds.has(d.id)) return;
                 addedIds.add(d.id);
                 const data = d.data();
-                const section = { 
-                    id:d.id, 
-                    name:data.name||'Unnamed', 
-                    courseCode:data.courseCode||'PE', 
-                    students:data.students||[], 
-                    studentCount:(data.students||[]).length, 
-                    yearLevel:data.yearLevel||'', 
-                    professor:data.professor||'', 
-                    ...data 
-                };
-                assignedSections.push(section);
+                assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
             });
         } catch(e) {}
+
+        const secSnap = await getDocs(collection(db,'sections'));
+        secSnap.forEach(d => {
+            if (addedIds.has(d.id)) return;
+            const data = d.data();
+            const dbProf = (data.professor || '').toString().trim().toUpperCase();
+            let isMatch = false;
+
+            for (const v of nameVariations) { if (v && v.length>=3 && dbProf===v) { isMatch=true; break; } }
+            if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3 && (dbProf.includes(v)||v.includes(dbProf))) { isMatch=true; break; } }
+            if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3) { const ln=v.split(',')[0].trim(); if (ln.length>=3 && dbProf.includes(ln)) { isMatch=true; break; } } }
+            if (!isMatch && dbProf.length>=3) { const dbW=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch=true; break; } } }
+            if (!isMatch) { const eu=profEmail.split('@')[0].toUpperCase(); if (eu.length>3 && dbProf.includes(eu)) isMatch=true; }
+
+            if (isMatch) {
+                addedIds.add(d.id);
+                assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
+            }
+        });
+
+        await loadAllStudentsData();
+
+        allSections = [...assignedSections];
+        filteredSections = [...assignedSections];
+
+        document.getElementById('sectionsCount').textContent = assignedSections.length;
+        renderSections(filteredSections);
+        populateSectionNameFilter();
     }
 
-    // Direct query by professorEmail
-    try {
-        const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
-        q2.forEach(d => {
-            if (addedIds.has(d.id)) return;
-            addedIds.add(d.id);
-            const data = d.data();
-            const section = { 
-                id:d.id, 
-                name:data.name||'Unnamed', 
-                courseCode:data.courseCode||'PE', 
-                students:data.students||[], 
-                studentCount:(data.students||[]).length, 
-                yearLevel:data.yearLevel||'', 
-                professor:data.professor||'', 
-                ...data 
-            };
-            assignedSections.push(section);
+    async function loadAllStudentsData() {
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        const studentsMap = new Map();
+
+        studentsSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.email) {
+                studentsMap.set(data.email, {
+                    birthday: data.birthday || null,
+                    age: data.age || null,
+                    gender: data.gender || 'male'
+                });
+            }
         });
-    } catch(e) {}
 
-    // Full scan for fuzzy matching
-    const secSnap = await getDocs(collection(db,'sections'));
-    secSnap.forEach(d => {
-        if (addedIds.has(d.id)) return;
-        const data = d.data();
-        const dbProf = (data.professor || '').toString().trim().toUpperCase();
-        let isMatch = false;
-
-        for (const v of nameVariations) { if (v && v.length>=3 && dbProf===v) { isMatch=true; break; } }
-        if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3 && (dbProf.includes(v)||v.includes(dbProf))) { isMatch=true; break; } }
-        if (!isMatch) for (const v of nameVariations) { if (v && v.length>=3) { const ln=v.split(',')[0].trim(); if (ln.length>=3 && dbProf.includes(ln)) { isMatch=true; break; } } }
-        if (!isMatch && dbProf.length>=3) { const dbW=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch=true; break; } } }
-        if (!isMatch) { const eu=profEmail.split('@')[0].toUpperCase(); if (eu.length>3 && dbProf.includes(eu)) isMatch=true; }
-
-        if (isMatch) {
-            addedIds.add(d.id);
-            const section = { 
-                id:d.id, 
-                name:data.name||'Unnamed', 
-                courseCode:data.courseCode||'PE', 
-                students:data.students||[], 
-                studentCount:(data.students||[]).length, 
-                yearLevel:data.yearLevel||'', 
-                professor:data.professor||'', 
-                ...data 
-            };
-            assignedSections.push(section);
-        }
-    });
-
-    // AFTER loading sections, load student data including age/birthday
-    await loadAllStudentsData();
-
-    allSections = [...assignedSections];
-    filteredSections = [...assignedSections];
-    
-    document.getElementById('sectionsCount').textContent = assignedSections.length;
-    renderSections(filteredSections);
-    populateSectionNameFilter();
-}
-
-// New function to load all students data
-async function loadAllStudentsData() {
-    const studentsSnap = await getDocs(collection(db, 'students'));
-    const studentsMap = new Map();
-    
-    studentsSnap.forEach(doc => {
-        const data = doc.data();
-        if (data.email) {
-            studentsMap.set(data.email, {
-                birthday: data.birthday || null,
-                age: data.age || null,
-                gender: data.gender || 'male'
-            });
-        }
-    });
-    
-    // Attach student data to section students
-    assignedSections.forEach(section => {
-        if (section.students && Array.isArray(section.students)) {
-            section.students.forEach(student => {
-                const studentData = studentsMap.get(student.email);
-                if (studentData) {
-                    student.birthday = studentData.birthday;
-                    student.age = studentData.age;
-                    student.gender = studentData.gender;
-                }
-            });
-        }
-    });
-    
-    console.log('✅ Student data loaded with age/birthday info');
-}
+        assignedSections.forEach(section => {
+            if (section.students && Array.isArray(section.students)) {
+                section.students.forEach(student => {
+                    const studentData = studentsMap.get(student.email);
+                    if (studentData) {
+                        student.birthday = studentData.birthday;
+                        student.age = studentData.age;
+                        student.gender = studentData.gender;
+                    }
+                });
+            }
+        });
+    }
 
     function renderSections(sections) {
         const grid = document.getElementById('sectionsGrid');
         const empty = document.getElementById('noSectionsMsg');
+        const panel = document.getElementById('sectionsPanelCard');
 
-       const panel = document.getElementById('sectionsPanelCard');
         if (!sections.length) {
             grid.innerHTML = '';
             grid.style.padding = '0';
@@ -1072,7 +1143,7 @@ async function loadAllStudentsData() {
             const students = sec.students || [];
             const firstFew = students.slice(0, 4);
             const remaining = Math.max(0, students.length - 4);
-            const studentPills = firstFew.map(s => 
+            const studentPills = firstFew.map(s =>
                 `<span class="inline-flex items-center bg-surface border border-border rounded px-1.5 py-0.5 text-[11px] text-text-secondary m-0.5">${s.name || s.email || 'Student'}</span>`
             ).join('');
             const morePill = remaining > 0 ? `<span class="inline-flex items-center bg-info-bg text-info border border-border rounded px-1.5 py-0.5 text-[11px] m-0.5">+${remaining} more</span>` : '';
@@ -1136,172 +1207,163 @@ async function loadAllStudentsData() {
         document.getElementById('sectionsCount').textContent = filteredSections.length;
     };
 
- async function loadTestResults() {
-    allTestResults = [];
-    if (!assignedSections.length) return;
+    async function loadTestResults() {
+        allTestResults = [];
+        if (!assignedSections.length) return;
 
-    // Create a map for quick student lookup by email
-    const studentsMap = new Map();
-    assignedSections.forEach(section => {
-        if (section.students && Array.isArray(section.students)) {
-            section.students.forEach(student => {
-                if (student.email) {
-                    studentsMap.set(student.email, {
-                        ...student,
-                        section: section.name,
-                        sectionId: section.id
+        const studentsMap = new Map();
+        assignedSections.forEach(section => {
+            if (section.students && Array.isArray(section.students)) {
+                section.students.forEach(student => {
+                    if (student.email) {
+                        studentsMap.set(student.email, { ...student, section: section.name, sectionId: section.id });
+                    }
+                });
+            }
+        });
+
+        const bestMap = new Map();
+
+        try {
+            const snap = await getDocs(collection(db, 'testResults'));
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.status !== 'completed') return;
+
+                const studentEmail = data.studentEmail || '';
+                if (!studentEmail) return;
+
+                const studentSection = assignedSections.find(s => s.name === data.section)
+                    || assignedSections.find(s => s.students && s.students.some(st => st.email === studentEmail));
+                if (!studentSection) return;
+
+                const studentData = studentsMap.get(studentEmail);
+                const gender = (data.gender || studentData?.gender || '').toLowerCase();
+                const genderKey = gender.startsWith('f') ? 'female' : 'male';
+                const ageGroup = getAgeGroupFromStudent(studentData);
+
+                const category = getNormCategory(
+                    data.testName || '',
+                    data.result || data.resultData || data.repetitions || data,
+                    genderKey,
+                    ageGroup
+                );
+
+                const testId = data.testId || docSnap.id;
+                const testKey = `${studentEmail}_${testId}`;
+
+                if (!bestMap.has(testKey) ||
+                    (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestMap.get(testKey).category] || 0)) {
+                    bestMap.set(testKey, {
+                        studentName: data.studentName || 'Unknown',
+                        studentEmail,
+                        section: studentSection.name,
+                        sectionId: studentSection.id,
+                        testName: data.testName,
+                        testId,
+                        category,
+                        isOverdue: data.status === 'overdue' || data.status === 'late',
+                        ageGroup
                     });
                 }
             });
-        }
-    });
+        } catch(e) { console.error('testResults error:', e); }
 
-    const bestMap = new Map();
+        allTestResults = Array.from(bestMap.values());
+    }
 
-    try {
-        const snap = await getDocs(collection(db, 'testResults'));
-        snap.forEach(docSnap => {
-            const data = docSnap.data();
-            if (data.status !== 'completed') return;
+    function calculateRankings() {
+        sectionRankings = [];
 
-            const studentEmail = data.studentEmail || '';
-            if (!studentEmail) return;
+        assignedSections.forEach(sec => {
+            const studentsInSection = sec.students || [];
+            const sectionResults = allTestResults.filter(r => r.sectionId === sec.id || r.section === sec.name);
 
-            const studentSection = assignedSections.find(s => s.name === data.section)
-                || assignedSections.find(s => s.students && s.students.some(st => st.email === studentEmail));
-            if (!studentSection) return;
+            const studentMap = new Map();
+            studentsInSection.forEach(st => {
+                if (st.email) {
+                    studentMap.set(st.email, {
+                        name: st.name || st.email.split('@')[0],
+                        email: st.email,
+                        categories: [],
+                        hasGrades: false,
+                        ageGroup: getAgeGroupFromStudent(st)
+                    });
+                }
+            });
 
-            // Get student data for age
-            const studentData = studentsMap.get(studentEmail);
-            
-            // Get gender for norm-based classification
-            const gender = (data.gender || studentData?.gender || '').toLowerCase();
-            const genderKey = gender.startsWith('f') ? 'female' : 'male';
-            
-            // Get age group from student data
-            const ageGroup = getAgeGroupFromStudent(studentData);
-            
-            const category = getNormCategory(
-                data.testName || '', 
-                data.result || data.resultData || data.repetitions || data, 
-                genderKey, 
-                ageGroup  // ← GAMITIN ANG ACTUAL AGE GROUP!
-            );
+            sectionResults.forEach(r => {
+                if (studentMap.has(r.studentEmail)) {
+                    const s = studentMap.get(r.studentEmail);
+                    s.categories.push(r.category);
+                    s.hasGrades = true;
+                } else {
+                    studentMap.set(r.studentEmail, {
+                        name: r.studentName || r.studentEmail.split('@')[0],
+                        email: r.studentEmail,
+                        categories: [r.category],
+                        hasGrades: true,
+                        ageGroup: r.ageGroup || '19-22_default'
+                    });
+                }
+            });
 
-            const testId = data.testId || docSnap.id;
-            const testKey = `${studentEmail}_${testId}`;
+            const studentCategories = [];
+            studentMap.forEach((s, email) => {
+                const overallCategory = s.categories.length ? getOverallCategory(s.categories) : 'No Results yet';
+                const categoryScore = s.categories.length ?
+                    s.categories.reduce((sum, cat) => sum + (CATEGORY_ORDER[cat] || 3), 0) / s.categories.length : 0;
 
-            if (!bestMap.has(testKey) || 
-                (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestMap.get(testKey).category] || 0)) {
-                bestMap.set(testKey, {
-                    studentName: data.studentName || 'Unknown',
-                    studentEmail, 
-                    section: studentSection.name, 
-                    sectionId: studentSection.id,
-                    testName: data.testName, 
-                    testId, 
-                    category,
-                    isOverdue: data.status === 'overdue' || data.status === 'late',
-                    ageGroup: ageGroup // store for debugging
+                studentCategories.push({
+                    email,
+                    name: s.name,
+                    overallCategory,
+                    categoryScore,
+                    activitiesCount: s.categories.length,
+                    hasGrades: s.hasGrades,
+                    ageGroup: s.ageGroup
                 });
+            });
+            studentCategories.sort((a, b) => b.categoryScore - a.categoryScore);
+
+            const totalStudents = studentsInSection.length;
+            const studentsWithGrades = studentCategories.filter(s => s.hasGrades).length;
+            const completionRate = totalStudents > 0 ? (studentsWithGrades / totalStudents) * 100 : 0;
+
+            const sectionCategoryScore = studentsWithGrades > 0
+                ? studentCategories.filter(s => s.hasGrades).reduce((sum, s) => sum + s.categoryScore, 0) / studentsWithGrades
+                : 0;
+
+            let sectionOverallCategory = 'No data yet';
+            if (studentsWithGrades > 0) {
+                if (sectionCategoryScore >= 4.5) sectionOverallCategory = 'Excellent';
+                else if (sectionCategoryScore >= 3.5) sectionOverallCategory = 'Good';
+                else if (sectionCategoryScore >= 2.5) sectionOverallCategory = 'Average';
+                else if (sectionCategoryScore >= 1.5) sectionOverallCategory = 'Below Average';
+                else sectionOverallCategory = 'Poor';
             }
-        });
-    } catch(e) { console.error('testResults error:', e); }
 
-    allTestResults = Array.from(bestMap.values());
-}
-
-function calculateRankings() {
-    sectionRankings = [];
-
-    assignedSections.forEach(sec => {
-        const studentsInSection = sec.students || [];
-        const sectionResults = allTestResults.filter(r => r.sectionId === sec.id || r.section === sec.name);
-
-        const studentMap = new Map();
-        studentsInSection.forEach(st => {
-            if (st.email) {
-                studentMap.set(st.email, { 
-                    name: st.name || st.email.split('@')[0], 
-                    email: st.email, 
-                    categories: [], 
-                    hasGrades: false,
-                    ageGroup: getAgeGroupFromStudent(st) // store age group
-                });
-            }
-        });
-
-        sectionResults.forEach(r => {
-            if (studentMap.has(r.studentEmail)) {
-                const s = studentMap.get(r.studentEmail);
-                s.categories.push(r.category);
-                s.hasGrades = true;
-            } else {
-                studentMap.set(r.studentEmail, { 
-                    name: r.studentName || r.studentEmail.split('@')[0], 
-                    email: r.studentEmail, 
-                    categories: [r.category], 
-                    hasGrades: true,
-                    ageGroup: r.ageGroup || '19-22'
-                });
-            }
-        });
-
-        const studentCategories = [];
-        studentMap.forEach((s, email) => {
-            const overallCategory = s.categories.length ? getOverallCategory(s.categories) : 'No Results yet';
-            const categoryScore = s.categories.length ? 
-                s.categories.reduce((sum, cat) => sum + (CATEGORY_ORDER[cat] || 3), 0) / s.categories.length : 0;
-            
-            studentCategories.push({ 
-                email, 
-                name: s.name, 
-                overallCategory, 
-                categoryScore,
-                activitiesCount: s.categories.length, 
-                hasGrades: s.hasGrades,
-                ageGroup: s.ageGroup // include age group in student data
+            sectionRankings.push({
+                id: sec.id,
+                name: sec.name,
+                courseCode: sec.courseCode,
+                yearLevel: sec.yearLevel,
+                totalStudents,
+                studentsWithGrades,
+                completionRate: parseFloat(completionRate.toFixed(2)),
+                categoryScore: parseFloat(sectionCategoryScore.toFixed(2)),
+                overallCategory: sectionOverallCategory,
+                studentCategories,
             });
         });
-        studentCategories.sort((a, b) => b.categoryScore - a.categoryScore);
 
-        const totalStudents = studentsInSection.length;
-        const studentsWithGrades = studentCategories.filter(s => s.hasGrades).length;
-        const completionRate = totalStudents > 0 ? (studentsWithGrades / totalStudents) * 100 : 0;
-        
-        const sectionCategoryScore = studentsWithGrades > 0
-            ? studentCategories.filter(s => s.hasGrades).reduce((sum, s) => sum + s.categoryScore, 0) / studentsWithGrades
-            : 0;
-        
-        let sectionOverallCategory = 'No data yet';
-        if (studentsWithGrades > 0) {
-            if (sectionCategoryScore >= 4.5) sectionOverallCategory = 'Excellent';
-            else if (sectionCategoryScore >= 3.5) sectionOverallCategory = 'Good';
-            else if (sectionCategoryScore >= 2.5) sectionOverallCategory = 'Average';
-            else if (sectionCategoryScore >= 1.5) sectionOverallCategory = 'Below Average';
-            else sectionOverallCategory = 'Poor';
-        }
+        sectionRankings.sort((a, b) => b.categoryScore - a.categoryScore);
+        sectionRankings = sectionRankings.map((s, i) => ({ ...s, rank: i + 1 }));
 
-        sectionRankings.push({
-            id: sec.id, 
-            name: sec.name, 
-            courseCode: sec.courseCode, 
-            yearLevel: sec.yearLevel,
-            totalStudents, 
-            studentsWithGrades, 
-            completionRate: parseFloat(completionRate.toFixed(2)),
-            categoryScore: parseFloat(sectionCategoryScore.toFixed(2)),
-            overallCategory: sectionOverallCategory,
-            studentCategories,
-        });
-    });
+        renderRankings(sectionRankings);
+        updateStats(sectionRankings);
+    }
 
-    sectionRankings.sort((a, b) => b.categoryScore - a.categoryScore);
-    sectionRankings = sectionRankings.map((s, i) => ({ ...s, rank: i + 1 }));
-
-    renderRankings(sectionRankings);
-    updateStats(sectionRankings);
-}
     function renderRankings(rankings) {
         const tbody = document.getElementById('rankTableBody');
 
@@ -1359,9 +1421,8 @@ function calculateRankings() {
         document.getElementById('statTopCategory').innerHTML = renderCategoryBadge(top.overallCategory);
         document.getElementById('statTotalSections').textContent = rankings.length;
         document.getElementById('statTotalStudents').textContent = rankings.reduce((s, r) => s + r.totalStudents, 0);
-        
-        // Calculate overall category for all sections combined
-         const sectionsWithGrades = rankings.filter(r => r.studentsWithGrades > 0);
+
+        const sectionsWithGrades = rankings.filter(r => r.studentsWithGrades > 0);
         let overallCategory = 'No data yet';
         if (sectionsWithGrades.length > 0) {
             const avgScore = sectionsWithGrades.reduce((s, r) => s + r.categoryScore, 0) / sectionsWithGrades.length;
@@ -1371,7 +1432,7 @@ function calculateRankings() {
             else if (avgScore >= 1.5) overallCategory = 'Below Average';
             else overallCategory = 'Poor';
         }
-        
+
         document.getElementById('statOverallCategory').innerHTML = renderCategoryBadge(overallCategory);
     }
 
@@ -1384,7 +1445,7 @@ function calculateRankings() {
         if (card) card.classList.add('active-section');
 
         const sec = assignedSections.find(s => s.id === sectionId);
-        
+
         document.getElementById('activeFilterBadge').classList.remove('hidden');
         document.getElementById('activeFilterBadge').classList.add('flex');
         document.getElementById('activeFilterBadgeHero').classList.remove('hidden');
@@ -1408,92 +1469,130 @@ function calculateRankings() {
         updateStats(sectionRankings);
     };
 
-window.viewSectionDetails = function(sectionId) {
-    const sec = sectionRankings.find(s => s.id === sectionId);
-    if (!sec) { showAlert('Section not found', 'error'); return; }
+    window.viewSectionDetails = function(sectionId) {
+        const sec = sectionRankings.find(s => s.id === sectionId);
+        if (!sec) { showAlert('Section not found', 'error'); return; }
 
-    document.getElementById('modalSectionName').textContent = `${sec.name} — Student Rankings`;
+        document.getElementById('modalSectionName').textContent = `${sec.name} — Student Rankings`;
 
-    const categoryBadge = renderCategoryBadge(sec.overallCategory);
+        const categoryBadge = renderCategoryBadge(sec.overallCategory);
 
-    let studentsHtml = '';
-    if (!sec.studentCategories || !sec.studentCategories.length) {
-        studentsHtml = `<div class="text-center py-10 text-text-muted text-sm"><i class="fas fa-user-graduate text-4xl mb-3 opacity-30"></i><div>No students found in this section.</div></div>`;
-    } else {
-        studentsHtml = sec.studentCategories.map((st, i) => {
-            const sr = i < 3 ? ['rank-gold','rank-silver','rank-bronze'][i] : 'rank-other';
-            const studentBadge = st.hasGrades ? renderCategoryBadge(st.overallCategory) : '';
-            
-            // Optional: Add age group badge
-            // const ageBadge = `<span class="text-[10px] ml-2 px-1.5 py-0.5 rounded bg-info-bg text-info">Age: ${st.ageGroup}</span>`;
-            
-            return `
-                <div class="student-rank-row flex items-center gap-3 p-3 rounded-xl border border-border mb-2 bg-white">
-                    <div class="${sr} inline-flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold flex-shrink-0">${i+1}</div>
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${getInitials(st.name)}</div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-semibold text-navy text-[14px] truncate">${st.name}</div>
-                        <div class="text-[12px] text-text-muted truncate">${st.email} ${st.ageGroup ? `· Age Group: ${st.ageGroup}` : ''}</div>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        ${st.hasGrades
-                            ? studentBadge
-                            : `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-surface text-text-muted border border-border">No Results yet</span>`
-                        }
-                    </div>
-                </div>`;
-        }).join('');
-    }
+        let studentsHtml = '';
+        if (!sec.studentCategories || !sec.studentCategories.length) {
+            studentsHtml = `<div class="text-center py-10 text-text-muted text-sm"><i class="fas fa-user-graduate text-4xl mb-3 opacity-30"></i><div>No students found in this section.</div></div>`;
+        } else {
+            studentsHtml = sec.studentCategories.map((st, i) => {
+                const sr = i < 3 ? ['rank-gold','rank-silver','rank-bronze'][i] : 'rank-other';
+                const studentBadge = st.hasGrades ? renderCategoryBadge(st.overallCategory) : '';
 
-    document.getElementById('sectionDetailsBody').innerHTML = `
-        <div class="flex items-center gap-4 mb-5 pb-5 border-b border-border flex-wrap">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                <i class="fas fa-chalkboard-teacher"></i>
-            </div>
-            <div class="flex-1">
-                <div class="font-display font-bold text-navy text-xl">${sec.name}</div>
-                <div class="text-[13px] text-text-muted mt-0.5">${sec.courseCode || 'PE'} · ${sec.yearLevel || 'N/A'}</div>
-            </div>
-        </div>
+                // Only show age group when student has actually set their profile (not default sentinel)
+                const showAgeGroup = st.ageGroup && st.ageGroup !== '19-22_default';
+                const ageGroupLabel = showAgeGroup
+                    ? `<span class="text-[11px] ml-1 px-1.5 py-0.5 rounded bg-info-bg text-info font-medium">Age: ${st.ageGroup}</span>`
+                    : '';
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Total Students</div>
-                <div class="font-mono font-bold text-navy text-2xl">${sec.totalStudents}</div>
-            </div>
-            <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">With Grades</div>
-                <div class="font-mono font-bold text-navy text-2xl">${sec.studentsWithGrades}</div>
-                <div class="text-[11px] text-text-muted mt-0.5">${sec.completionRate}% done</div>
-            </div>
-            <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Section Rank</div>
-                <div class="font-mono font-bold text-navy text-2xl">#${sec.rank}</div>
-                <div class="text-[11px] text-text-muted mt-0.5">of ${sectionRankings.length}</div>
-            </div>
-            <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Overall Category</div>
-                <div class="font-mono font-bold text-navy text-lg mt-1">${categoryBadge}</div>
-            </div>
-        </div>
+                // Build student JSON for mobile tap — only include displayable ageGroup
+                const studentPayload = {
+                    rank: i + 1,
+                    name: st.name,
+                    email: st.email,
+                    overallCategory: st.overallCategory,
+                    hasGrades: st.hasGrades,
+                    activitiesCount: st.activitiesCount,
+                    // Pass sentinel as-is so the modal JS can decide whether to show it
+                    ageGroup: st.ageGroup || '19-22_default'
+                };
+                const encodedStudent = encodeURIComponent(JSON.stringify(studentPayload));
 
-        <div class="mb-6">
-            <div class="flex justify-between text-[12px] text-text-muted mb-1.5">
-                <span>Completion Progress</span><span>${sec.completionRate}%</span>
-            </div>
-            <div class="h-2 bg-border rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-success to-emerald-400 rounded-full" style="width:${sec.completionRate}%"></div>
-            </div>
-        </div>
+                return `
+                    <div class="student-rank-row flex items-center gap-3 p-3 rounded-xl border border-border mb-2 bg-white"
+                         onclick="handleStudentRowClick(event, '${encodedStudent}')">
+                        <div class="${sr} inline-flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold flex-shrink-0">${i+1}</div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${getInitials(st.name)}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-navy text-[14px] truncate">${st.name}</div>
+                            <div class="text-[12px] text-text-muted truncate">${st.email}${ageGroupLabel}</div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0 mobile-badge-hide">
+                            ${st.hasGrades
+                                ? studentBadge
+                                : `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-surface text-text-muted border border-border">No Results yet</span>`
+                            }
+                        </div>
+                        <!-- Mobile tap hint -->
+                        <div class="mobile-tap-hint hidden items-center justify-center w-6 h-6 rounded-full bg-surface text-text-muted text-[10px] flex-shrink-0">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
 
-        <div class="font-display font-bold text-navy text-[15px] mb-3 flex items-center gap-2">
-            <i class="fas fa-users text-accent text-base"></i> All Students
-        </div>
-        ${studentsHtml}
-    `;
+        document.getElementById('sectionDetailsBody').innerHTML = `
+            <style>
+                @media (max-width: 480px) {
+                    .mobile-badge-hide { display: none !important; }
+                    .mobile-tap-hint  { display: flex !important; }
+                    .student-rank-row .text-\\[12px\\].text-text-muted { white-space: normal; word-break: break-all; }
+                }
+            </style>
 
-    document.getElementById('sectionDetailsModal').classList.add('open');
-};
+            <div class="flex items-center gap-4 mb-5 pb-5 border-b border-border flex-wrap">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="font-display font-bold text-navy text-xl">${sec.name}</div>
+                    <div class="text-[13px] text-text-muted mt-0.5">${sec.courseCode || 'PE'} · ${sec.yearLevel || 'N/A'}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Total Students</div>
+                    <div class="font-mono font-bold text-navy text-2xl">${sec.totalStudents}</div>
+                </div>
+                <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">With Grades</div>
+                    <div class="font-mono font-bold text-navy text-2xl">${sec.studentsWithGrades}</div>
+                    <div class="text-[11px] text-text-muted mt-0.5">${sec.completionRate}% done</div>
+                </div>
+                <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Section Rank</div>
+                    <div class="font-mono font-bold text-navy text-2xl">#${sec.rank}</div>
+                    <div class="text-[11px] text-text-muted mt-0.5">of ${sectionRankings.length}</div>
+                </div>
+                <div class="bg-surface rounded-xl p-4 border border-border text-center">
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Overall Category</div>
+                    <div class="font-mono font-bold text-navy text-lg mt-1">${categoryBadge}</div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex justify-between text-[12px] text-text-muted mb-1.5">
+                    <span>Completion Progress</span><span>${sec.completionRate}%</span>
+                </div>
+                <div class="h-2 bg-border rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-success to-emerald-400 rounded-full" style="width:${sec.completionRate}%"></div>
+                </div>
+            </div>
+
+            <div class="font-display font-bold text-navy text-[15px] mb-3 flex items-center gap-2">
+                <i class="fas fa-users text-accent text-base"></i> All Students
+                <span class="text-[11px] font-sans font-normal text-text-muted sm:hidden">(tap a student for details)</span>
+            </div>
+            ${studentsHtml}
+        `;
+
+        document.getElementById('sectionDetailsModal').classList.add('open');
+    };
+
+    /* Tap handler: mobile → open detail modal; desktop → no-op (badge already visible) */
+    window.handleStudentRowClick = function(event, encodedStudent) {
+        if (window.innerWidth <= 480) {
+            openStudentDetailModal(encodedStudent);
+        }
+    };
+
     window.closeSectionDetailsModal = function() {
         document.getElementById('sectionDetailsModal').classList.remove('open');
     };
@@ -1546,69 +1645,25 @@ window.viewSectionDetails = function(sectionId) {
                 @keyframes slideUpLogout { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
             </style>
             <div style="
-                background:#fff;
-                border-radius:24px;
-                padding:2rem 1.5rem 1.5rem;
-                max-width:360px;
-                width:100%;
+                background:#fff; border-radius:24px; padding:2rem 1.5rem 1.5rem;
+                max-width:360px; width:100%;
                 box-shadow:0 8px 40px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.10);
                 animation:slideUpLogout 0.35s cubic-bezier(.4,0,.2,1);
-                text-align:center;
-                font-family:'Inter',sans-serif;
+                text-align:center; font-family:'Inter',sans-serif;
             ">
-                <div style="
-                    width:68px; height:68px;
-                    background:#fce8e6;
-                    border-radius:50%;
-                    display:flex; align-items:center; justify-content:center;
-                    margin:0 auto 1.25rem;
-                ">
+                <div style="width:68px;height:68px;background:#fce8e6;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
                     <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
                         <path d="M20 8H10C8.9 8 8 8.9 8 10V38C8 39.1 8.9 40 10 40H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/>
                         <path d="M32 16L40 24L32 32" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M40 24H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/>
                     </svg>
                 </div>
-
-                <div style="font-size:1.25rem; font-weight:600; color:#202124; margin-bottom:0.35rem; letter-spacing:-0.01em;">
-                    Log Out
-                </div>
-
-                <div style="font-size:0.875rem; color:#5f6368; margin-bottom:1.5rem; line-height:1.5;">
-                    Are you sure you want to log out of your account?
-                </div>
-
-                <div style="height:1px; background:#e8eaed; margin:0 -1.5rem 1.25rem;"></div>
-
-                <div style="display:flex; gap:0.75rem;">
-                    <button id="logoutCancelBtn" style="
-                        flex:1;
-                        padding:0.75rem 0.5rem;
-                        border-radius:100px;
-                        border:1.5px solid #dadce0;
-                        background:#fff;
-                        color:#3c4043;
-                        font-size:0.9375rem;
-                        font-weight:500;
-                        cursor:pointer;
-                        font-family:'Inter',sans-serif;
-                        transition:background 0.15s;
-                        min-height:48px;
-                    ">Cancel</button>
-                    <button id="logoutConfirmBtn" style="
-                        flex:1;
-                        padding:0.75rem 0.5rem;
-                        border-radius:100px;
-                        border:none;
-                        background:#ea4335;
-                        color:#fff;
-                        font-size:0.9375rem;
-                        font-weight:500;
-                        cursor:pointer;
-                        font-family:'Inter',sans-serif;
-                        transition:background 0.15s, box-shadow 0.15s;
-                        min-height:48px;
-                    ">Log Out</button>
+                <div style="font-size:1.25rem;font-weight:600;color:#202124;margin-bottom:0.35rem;letter-spacing:-0.01em;">Log Out</div>
+                <div style="font-size:0.875rem;color:#5f6368;margin-bottom:1.5rem;line-height:1.5;">Are you sure you want to log out of your account?</div>
+                <div style="height:1px;background:#e8eaed;margin:0 -1.5rem 1.25rem;"></div>
+                <div style="display:flex;gap:0.75rem;">
+                    <button id="logoutCancelBtn" style="flex:1;padding:0.75rem 0.5rem;border-radius:100px;border:1.5px solid #dadce0;background:#fff;color:#3c4043;font-size:0.9375rem;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:background 0.15s;min-height:48px;">Cancel</button>
+                    <button id="logoutConfirmBtn" style="flex:1;padding:0.75rem 0.5rem;border-radius:100px;border:none;background:#ea4335;color:#fff;font-size:0.9375rem;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:background 0.15s,box-shadow 0.15s;min-height:48px;">Log Out</button>
                 </div>
             </div>
         `;
@@ -1618,20 +1673,14 @@ window.viewSectionDetails = function(sectionId) {
         const profileDropdown = document.getElementById('profileDropdown');
         if (profileDropdown) profileDropdown.classList.remove('show');
 
-        document.getElementById('logoutCancelBtn').addEventListener('click', () => {
-            overlay.remove();
-        });
-
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.remove();
-        });
+        document.getElementById('logoutCancelBtn').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
         document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
             const confirmBtn = document.getElementById('logoutConfirmBtn');
             confirmBtn.textContent = 'Logging out...';
             confirmBtn.disabled = true;
             confirmBtn.style.opacity = '0.7';
-
             try {
                 await signOut(auth);
                 window.location.href = '/login/index.html';
