@@ -81,11 +81,7 @@
         .profile-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
         #hamburgerBtn { display: none; }
         @media (max-width: 768px) {
-            #hamburgerBtn {
-                display: flex !important;
-                align-items: center;
-                justify-content: center;
-            }
+            #hamburgerBtn { display: flex !important; align-items: center; justify-content: center; }
         }
         .hamburger-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
         .hamburger-open span:nth-child(2) { opacity: 0; }
@@ -112,13 +108,15 @@
         .lesson-modal-footer { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 10px; padding: 16px 28px; border-top: 1px solid #e1e6ef; background: #f4f6fa; }
         .form-input { width: 100%; padding: 10px 14px; border: 1.5px solid #e1e6ef; border-radius: 10px; font-size: 13.5px; font-weight: 400; color: #0a1628; background: #f4f6fa; transition: all 0.18s; outline: none; }
         .form-input:focus { border-color: #2d6fc4; background: white; box-shadow: 0 0 0 3px rgba(45,111,196,0.1); }
+        .form-input.border-danger { border-color: #c0392b !important; background: #fff8f8 !important; box-shadow: 0 0 0 3px rgba(192,57,43,0.08) !important; }
         textarea.form-input { resize: vertical; }
         .form-label { display: block; font-size: 11px; font-weight: 700; color: #4a5a72; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
         .yt-preview { background: #f4f6fa; border: 2px dashed #e1e6ef; border-radius: 12px; padding: 14px; margin-top: 10px; }
         .yt-iframe { width: 100%; height: 200px; border-radius: 8px; border: none; }
-        .section-filter-active { border-color: #2d6fc4 !important; background: rgba(45,111,196,0.04) !important; box-shadow: 0 0 0 3px rgba(45,111,196,0.12); }
-        /* Soften global small backdrop blur (used by alert/confirm/sidebar overlays) to reduce lag */
         .backdrop-blur-sm { backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); }
+        .error-message { color: #c0392b; font-size: 11px; font-weight: 500; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+        .error-message i { font-size: 12px; }
+        .error-message.hidden { display: none; }
         @media (max-width: 768px) {
             .lesson-modal { max-height: 92vh; }
             .lesson-modal-header { padding: 16px 20px 14px; }
@@ -177,7 +175,6 @@
 
     <div id="sidebarOverlay" onclick="closeSidebar()" class="hidden fixed inset-0 bg-navy/60 backdrop-blur-sm z-[399]"></div>
 
-    <!-- HEADER — pixel-perfect match to professor.html -->
     <header class="fixed top-0 left-0 right-0 h-[70px] bg-navy flex items-center px-8 z-[500] border-b border-white/[0.06] shadow-[0_2px_20px_rgba(0,0,0,0.25)]">
         <button id="hamburgerBtn" onclick="toggleSidebar()"
             class="flex-col gap-[5px] w-10 h-10 bg-white/[0.08] border border-white/[0.12] rounded-lg cursor-pointer mr-3 flex-shrink-0">
@@ -185,8 +182,6 @@
             <span class="block w-[18px] h-0.5 bg-white/80 rounded transition-all"></span>
             <span class="block w-[18px] h-0.5 bg-white/80 rounded transition-all"></span>
         </button>
-
-        <!-- Brand — identical to professor.html -->
         <div class="flex items-center gap-3.5 flex-1">
             <div class="w-10 h-10 bg-accent/15 border border-accent/30 rounded-xl flex items-center justify-center overflow-hidden">
                 <img src="UMakfit Logo (2).png" alt="UMakFIT Logo" class="w-8 h-8 object-contain"
@@ -198,7 +193,6 @@
                 <div class="text-[11px] text-accent tracking-[1.5px] uppercase font-medium">UMakFit — Professor Portal</div>
             </div>
         </div>
-
         <div class="flex items-center gap-4">
             <div class="text-xs text-white/40 tracking-[0.5px] max-[768px]:hidden" id="headerDate"></div>
             <div class="w-px h-7 bg-white/10 max-[768px]:hidden"></div>
@@ -235,46 +229,33 @@
         </div>
     </header>
 
-    <!-- SIDEBAR — identical to professor.html, Lessons = active -->
     <aside id="mainSidebar"
         class="sidebar-transition sidebar-scroll fixed top-[70px] left-0 w-[260px] h-[calc(100vh-70px)] bg-navy-mid border-r border-white/[0.06] flex flex-col overflow-y-auto overflow-x-hidden z-[400] py-6">
-
         <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mb-2">Main</div>
         <a href="professor.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-tachometer-alt"></i></div>
-            <span>Dashboard</span>
+            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-tachometer-alt"></i></div><span>Dashboard</span>
         </a>
-
         <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mt-5 mb-2">Classes</div>
         <a href="studentmanagement.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-users"></i></div>
-            <span>Students</span>
+            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-users"></i></div><span>Students</span>
         </a>
-
         <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mt-5 mb-2">Content</div>
         <a href="addactivities.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-dumbbell"></i></div>
-            <span>Activities</span>
+            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-dumbbell"></i></div><span>Activities</span>
         </a>
         <a href="addlesson.html" class="nav-active flex items-center gap-3 px-5 py-2.5 text-white bg-gradient-to-r from-accent/12 to-accent/[0.04] no-underline text-[13.5px] font-medium">
-            <div class="w-8 h-8 rounded-lg bg-accent/20 text-accent flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-book-open"></i></div>
-            <span>Lessons</span>
+            <div class="w-8 h-8 rounded-lg bg-accent/20 text-accent flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-book-open"></i></div><span>Lessons</span>
         </a>
-
         <div class="text-[10px] font-bold text-white/25 uppercase tracking-[1.5px] px-5 mt-5 mb-2">Analytics</div>
         <a href="monitoringactivities.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-chart-bar"></i></div>
-            <span>Monitoring</span>
+            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-chart-bar"></i></div><span>Monitoring</span>
         </a>
         <a href="grades.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-chart-line"></i></div>
-            <span>Performance</span>
+            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-chart-line"></i></div><span>Performance</span>
         </a>
         <a href="sectionranklist.html" class="flex items-center gap-3 px-5 py-2.5 text-white/55 no-underline text-[13.5px] font-medium hover:text-white/90 hover:bg-white/5 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-trophy"></i></div>
-            <span>Section Rank</span>
+            <div class="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center text-[13px] flex-shrink-0"><i class="fas fa-trophy"></i></div><span>Section Rank</span>
         </a>
-
         <div class="mt-auto px-5 pt-4">
             <div class="bg-accent/10 border border-accent/20 rounded-xl p-3 flex items-center gap-2.5">
                 <div class="w-[30px] h-[30px] rounded-lg bg-accent/15 flex items-center justify-center text-accent text-[13px]"><i class="fas fa-shield-alt"></i></div>
@@ -286,7 +267,6 @@
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="ml-[260px] pt-[70px] min-h-screen max-[768px]:ml-0">
         <div class="px-10 py-9 pb-20 max-[1024px]:px-6 max-[768px]:px-3.5 max-[768px]:py-4">
 
@@ -296,9 +276,7 @@
                 <div class="absolute -bottom-10 right-20 w-36 h-36 rounded-full bg-blue/10 pointer-events-none"></div>
                 <div class="relative flex items-center justify-between gap-5 max-[768px]:flex-col max-[768px]:items-start">
                     <div class="flex items-center gap-4">
-                        <div class="w-[52px] h-[52px] rounded-2xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent text-[22px] flex-shrink-0">
-                            <i class="fas fa-book-open"></i>
-                        </div>
+                        <div class="w-[52px] h-[52px] rounded-2xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent text-[22px] flex-shrink-0"><i class="fas fa-book-open"></i></div>
                         <div>
                             <div class="text-xs text-white/50 uppercase tracking-[2px] mb-1">Faculty Member</div>
                             <div class="font-display text-2xl font-bold text-white mb-1 max-[768px]:text-xl">Lesson Management</div>
@@ -308,8 +286,7 @@
                     <div class="flex items-center gap-3">
                         <div id="heroFilterBadge" class="hidden">
                             <div class="inline-flex items-center gap-1.5 bg-info-bg text-info text-[13px] font-semibold px-3.5 py-1.5 rounded-full border border-info/20">
-                                <i class="fas fa-filter text-[11px]"></i>
-                                <span>Section: </span>
+                                <i class="fas fa-filter text-[11px]"></i><span>Section: </span>
                                 <span id="heroFilterName" class="font-bold"></span>
                                 <span onclick="clearSectionFilter()" class="cursor-pointer text-blue text-base leading-none hover:text-danger transition-colors ml-1">✕</span>
                             </div>
@@ -325,43 +302,34 @@
             <!-- Stats -->
             <div class="grid grid-cols-3 gap-3 mb-7 max-[500px]:grid-cols-1 max-[390px]:gap-2">
                 <div class="stat-card bg-white rounded-2xl p-5 border border-border border-t-4 border-t-[#7c3aed] shadow-sm">
-                    <div class="w-[42px] h-[42px] rounded-xl bg-purple-bg text-[#7c3aed] flex items-center justify-center text-[17px] mb-3.5">
-                        <i class="fas fa-book"></i>
-                    </div>
+                    <div class="w-[42px] h-[42px] rounded-xl bg-purple-bg text-[#7c3aed] flex items-center justify-center text-[17px] mb-3.5"><i class="fas fa-book"></i></div>
                     <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.8px] mb-1.5">Total Lessons</div>
                     <div class="text-[34px] font-bold font-mono text-text-primary leading-none" id="statTotalLessons">0</div>
                     <div class="text-xs text-text-muted mt-1.5">All created lessons</div>
                 </div>
                 <div class="stat-card bg-white rounded-2xl p-5 border border-border border-t-4 border-t-success shadow-sm">
-                    <div class="w-[42px] h-[42px] rounded-xl bg-success-bg text-success flex items-center justify-center text-[17px] mb-3.5">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
+                    <div class="w-[42px] h-[42px] rounded-xl bg-success-bg text-success flex items-center justify-center text-[17px] mb-3.5"><i class="fas fa-check-circle"></i></div>
                     <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.8px] mb-1.5">Published</div>
                     <div class="text-[34px] font-bold font-mono text-success leading-none" id="statPublished">0</div>
                     <div class="text-xs text-text-muted mt-1.5">Visible to students</div>
                 </div>
                 <div class="stat-card bg-white rounded-2xl p-5 border border-border border-t-4 border-t-warning shadow-sm">
-                    <div class="w-[42px] h-[42px] rounded-xl bg-warning-bg text-warning flex items-center justify-center text-[17px] mb-3.5">
-                        <i class="fas fa-pencil-alt"></i>
-                    </div>
+                    <div class="w-[42px] h-[42px] rounded-xl bg-warning-bg text-warning flex items-center justify-center text-[17px] mb-3.5"><i class="fas fa-pencil-alt"></i></div>
                     <div class="text-[11px] font-semibold text-text-muted uppercase tracking-[0.8px] mb-1.5">Drafts</div>
                     <div class="text-[34px] font-bold font-mono text-warning leading-none" id="statDrafts">0</div>
                     <div class="text-xs text-text-muted mt-1.5">Not yet published</div>
                 </div>
             </div>
 
-            <!-- Lessons Panel with Section Filter -->
+            <!-- Lessons Panel -->
             <div class="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3 max-[768px]:flex-col max-[768px]:items-start">
                     <div class="flex items-center gap-2.5 text-[15px] font-semibold text-navy">
-                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[13px]">
-                            <i class="fas fa-book"></i>
-                        </div>
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[13px]"><i class="fas fa-book"></i></div>
                         My Lessons
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-info-bg text-blue text-xs font-semibold" id="lessonsCount">0</span>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <!-- Section Filter Badge -->
                         <div id="activeSectionBadge" class="hidden">
                             <div class="inline-flex items-center gap-1.5 bg-info-bg text-info text-xs font-semibold px-2.5 py-1 rounded-full border border-info/20">
                                 <i class="fas fa-filter text-[11px]"></i>
@@ -369,12 +337,10 @@
                                 <span onclick="clearSectionFilter()" class="cursor-pointer text-blue text-sm leading-none hover:text-danger ml-1 transition-colors">✕</span>
                             </div>
                         </div>
-                        <!-- Section Dropdown Filter -->
                         <select id="sectionFilter" onchange="filterBySection()"
                             class="px-3.5 py-2 border border-border rounded-lg font-sans text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue transition-all min-w-[180px]">
                             <option value="">All Sections</option>
                         </select>
-                        <!-- Type Filter -->
                         <select id="lessonTypeFilter" onchange="filterLessons()"
                             class="px-3.5 py-2 border border-border rounded-lg font-sans text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue transition-all">
                             <option value="all">All Types</option>
@@ -384,13 +350,9 @@
                         </select>
                     </div>
                 </div>
-
                 <div id="lessonsGrid" class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5 p-6 max-[768px]:grid-cols-1 max-[768px]:p-4"></div>
-
                 <div id="noLessonsMsg" class="hidden py-16 px-8 text-center">
-                    <div class="w-[60px] h-[60px] rounded-2xl bg-surface flex items-center justify-center text-2xl text-text-muted mx-auto mb-4">
-                        <i class="fas fa-book-open"></i>
-                    </div>
+                    <div class="w-[60px] h-[60px] rounded-2xl bg-surface flex items-center justify-center text-2xl text-text-muted mx-auto mb-4"><i class="fas fa-book-open"></i></div>
                     <div class="text-base font-semibold text-text-primary mb-1.5">No Lessons Found</div>
                     <div class="text-[13px] text-text-muted" id="noLessonsMsgText">Click "Create New Lesson" above to get started!</div>
                 </div>
@@ -398,17 +360,13 @@
 
         </div>
 
-        <!-- Footer -->
         <footer class="bg-gradient-to-r from-navy to-navy-light text-white py-8 sm:py-12">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 text-center lg:text-left">
                     <div>
                         <div class="flex items-center justify-center lg:justify-start gap-3 mb-4">
                             <img src="UMakfit Logo (2).png" alt="UMak Logo" class="h-12 w-auto object-contain">
-                            <div>
-                                <h6 class="text-accent font-bold text-lg lg:text-xl mb-1">UMakFit</h6>
-                                <p class="text-xs lg:text-sm text-white/60 font-medium">College of Human Kinetics</p>
-                            </div>
+                            <div><h6 class="text-accent font-bold text-lg lg:text-xl mb-1">UMakFit</h6><p class="text-xs lg:text-sm text-white/60 font-medium">College of Human Kinetics</p></div>
                         </div>
                         <p class="text-sm leading-relaxed text-white/70">UMakFit is the official fitness assessment and tracking platform of the College of Human Kinetics at University of Makati.</p>
                     </div>
@@ -423,24 +381,16 @@
                             <div class="space-y-3">
                                 <a href="addlesson.html" class="block text-accent font-semibold text-sm"><i class="fas fa-book-open mr-2"></i>Lessons</a>
                                 <a href="monitoringactivities.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-bar mr-2"></i>Monitoring</a>
-                                <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-line mr-2"></i>Performance</a>                            </div>
+                                <a href="grades.html" class="block text-white/70 hover:text-accent transition-colors text-sm"><i class="fas fa-chart-line mr-2"></i>Performance</a>
+                            </div>
                         </div>
                     </div>
                     <div>
                         <h6 class="text-accent font-bold text-lg lg:text-xl mb-4">Get In Touch</h6>
                         <div class="space-y-3">
-                            <div class="flex items-start gap-3">
-                                <i class="fas fa-map-marker-alt text-accent mt-1"></i>
-                                <p class="text-sm text-white/70">College of Human Kinetics<br>University of Makati<br>JP Rizal Ext., West Rembo, Taguig City</p>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-envelope text-accent"></i>
-                                <a href="mailto:chk@umak.edu.ph" class="text-white/70 hover:text-accent transition-colors text-sm">chk@umak.edu.ph</a>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-phone text-accent"></i>
-                                <span class="text-white/70 text-sm">+63 933 189 7230</span>
-                            </div>
+                            <div class="flex items-start gap-3"><i class="fas fa-map-marker-alt text-accent mt-1"></i><p class="text-sm text-white/70">College of Human Kinetics<br>University of Makati<br>JP Rizal Ext., West Rembo, Taguig City</p></div>
+                            <div class="flex items-center gap-3"><i class="fas fa-envelope text-accent"></i><a href="mailto:chk@umak.edu.ph" class="text-white/70 hover:text-accent transition-colors text-sm">chk@umak.edu.ph</a></div>
+                            <div class="flex items-center gap-3"><i class="fas fa-phone text-accent"></i><span class="text-white/70 text-sm">+63 933 189 7230</span></div>
                         </div>
                     </div>
                 </div>
@@ -452,14 +402,12 @@
     </main>
 </div>
 
-<!-- ADD/EDIT LESSON MODAL -->
+<!-- ADD / EDIT LESSON MODAL -->
 <div class="lesson-modal-overlay" id="lessonModal">
     <div class="lesson-modal" onclick="event.stopPropagation()">
         <div class="lesson-modal-header">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[15px]">
-                    <i class="fas fa-book-open"></i>
-                </div>
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[15px]"><i class="fas fa-book-open"></i></div>
                 <h3 class="font-display text-[18px] font-bold text-navy" id="modalTitle">Create New Lesson</h3>
             </div>
             <button onclick="closeLessonModal()" style="background:none;border:none;cursor:pointer;"
@@ -469,19 +417,30 @@
         </div>
         <div class="lesson-modal-body">
             <form id="lessonForm" onsubmit="return false;">
+
+                <!-- Title + Section -->
                 <div class="grid grid-cols-2 gap-4 mb-5 max-[500px]:grid-cols-1">
                     <div>
-                        <label class="form-label">Lesson Title <span style="color:#c0392b;text-transform:none;letter-spacing:0;font-weight:400;">*</span></label>
-                        <input type="text" id="lessonTitle" class="form-input" placeholder="Enter lesson title" required>
+                        <label class="form-label">Lesson Title <span style="color:#c0392b;text-transform:none;letter-spacing:0;font-weight:400;">*</span> <span class="text-text-muted font-normal lowercase ml-1">(max 1000 chars)</span></label>
+                        <input type="text" id="lessonTitle" class="form-input" placeholder="Enter lesson title" maxlength="1000"
+                               oninput="updateCharCount(this,'titleCounter',1000); clearFieldError('lessonTitle','lessonTitleError')">
+                        <div class="flex justify-between items-start mt-1.5">
+                            <div id="lessonTitleError" class="error-message hidden"><i class="fas fa-exclamation-circle"></i> <span></span></div>
+                            <div id="titleCounter" class="text-[11px] font-medium text-text-muted ml-auto">0/1000</div>
+                        </div>
                     </div>
                     <div>
                         <label class="form-label">Section <span style="color:#c0392b;text-transform:none;letter-spacing:0;font-weight:400;">*</span></label>
-                        <select id="lessonSection" class="form-input" required onchange="updateSectionInfo()">
+                        <select id="lessonSection" class="form-input"
+                                onchange="updateSectionInfo(); clearFieldError('lessonSection','lessonSectionError')">
                             <option value="">— Select Section —</option>
                         </select>
+                        <div id="lessonSectionError" class="error-message hidden mt-1"><i class="fas fa-exclamation-circle"></i> <span></span></div>
                         <div id="sectionStudentInfo" class="text-[12px] mt-1.5 font-medium"></div>
                     </div>
                 </div>
+
+                <!-- Lesson Type -->
                 <div class="mb-5">
                     <label class="form-label">Lesson Type</label>
                     <select id="lessonType" class="form-input">
@@ -490,21 +449,28 @@
                         <option value="video">Video Lesson</option>
                     </select>
                 </div>
+
+                <!-- Description (optional) -->
                 <div class="mb-5">
-                    <label class="form-label">Description</label>
-                    <textarea id="lessonDescription" class="form-input" rows="2" placeholder="Brief description of the lesson"></textarea>
+                    <label class="form-label">Description <span class="text-text-muted font-normal lowercase ml-1">(max 2000 characters)</span></label>
+                    <textarea id="lessonDescription" class="form-input" rows="2" placeholder="Brief description of the lesson"
+                              oninput="updateCharCount(this,'descCounter',2000)" maxlength="2000"></textarea>
+                    <div class="flex justify-between items-center mt-1.5">
+                        <div class="text-[11px] text-text-muted">Brief overview of the lesson content</div>
+                        <div id="descCounter" class="text-[11px] font-medium text-text-muted">0/2000</div>
+                    </div>
                 </div>
+
+                <!-- YouTube Video Link -->
                 <div class="mb-5">
-                    <label class="form-label">Content <span style="color:#c0392b;text-transform:none;letter-spacing:0;font-weight:400;">*</span></label>
-                    <textarea id="lessonContent" class="form-input" rows="6" placeholder="Enter lesson content here…" required></textarea>
-                    <div class="text-[11px] text-text-muted mt-1.5">You can use HTML formatting for rich text content.</div>
-                </div>
-                <div class="mb-5">
-                    <label class="form-label">YouTube Video Link <span style="text-transform:none;letter-spacing:0;font-weight:400;color:#8a98ae;">(Optional)</span></label>
+                    <label class="form-label">YouTube Video Link <span style="text-transform:none;letter-spacing:0;font-weight:400;color:#8a98ae;">(Optional — required if no file uploaded)</span></label>
                     <input type="url" id="youtubeLink" class="form-input" placeholder="https://www.youtube.com/watch?v=...">
                     <div class="text-[11px] text-text-muted mt-1.5">📹 Paste a full YouTube URL to embed a video in the lesson.</div>
+                    <div id="youtubeLinkError" class="error-message hidden mt-1"><i class="fas fa-exclamation-circle"></i> <span></span></div>
                     <div id="youtubePreview"></div>
                 </div>
+
+                <!-- Publish Date + Status -->
                 <div class="grid grid-cols-2 gap-4 mb-5 max-[500px]:grid-cols-1">
                     <div>
                         <label class="form-label">Publish Date</label>
@@ -518,12 +484,16 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- Upload Files -->
                 <div class="mb-2">
-                    <label class="form-label">Upload Files <span style="text-transform:none;letter-spacing:0;font-weight:400;color:#8a98ae;">(Optional)</span></label>
+                    <label class="form-label">Upload Files <span style="text-transform:none;letter-spacing:0;font-weight:400;color:#8a98ae;">(Optional — required if no YouTube link)</span></label>
                     <input type="file" id="lessonFiles" class="form-input" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png" style="padding:8px 14px;cursor:pointer;">
                     <div class="text-[11px] text-text-muted mt-1.5">📎 Supported: PDF, Word, PowerPoint, Images — max 50 MB per file.</div>
+                    <div id="lessonFilesError" class="error-message hidden mt-1"><i class="fas fa-exclamation-circle"></i> <span></span></div>
                     <div id="filePreviewContainer" class="mt-3"></div>
                 </div>
+
                 <input type="hidden" id="lessonId">
             </form>
         </div>
@@ -540,35 +510,18 @@
     </div>
 </div>
 
+<!-- NON-MODULE UTILITIES -->
 <script>
-    function updateHeaderDate() {
-        const el = document.getElementById('headerDate');
-        if (el) el.textContent = new Date().toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' });
-    }
-    updateHeaderDate(); setInterval(updateHeaderDate, 60000);
+    function updateHeaderDate(){const el=document.getElementById('headerDate');if(el)el.textContent=new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});}
+    updateHeaderDate(); setInterval(updateHeaderDate,60000);
 
-    function toggleSidebar() {
-        const sb = document.getElementById('mainSidebar');
-        const ov = document.getElementById('sidebarOverlay');
-        const hb = document.getElementById('hamburgerBtn');
-        sb.classList.toggle('sidebar-open');
-        ov.classList.toggle('hidden');
-        hb.classList.toggle('hamburger-open');
-    }
-    function closeSidebar() {
-        const sb = document.getElementById('mainSidebar');
-        const ov = document.getElementById('sidebarOverlay');
-        const hb = document.getElementById('hamburgerBtn');
-        sb.classList.remove('sidebar-open');
-        ov.classList.add('hidden');
-        hb.classList.remove('hamburger-open');
-    }
-    window.toggleProfileDropdown = function() { document.getElementById('profileDropdown').classList.toggle('show'); };
-    document.addEventListener('click', e => {
-        const dd = document.getElementById('profileDropdown');
-        if (dd && !e.target.closest('#profileCircle') && !dd.contains(e.target)) dd.classList.remove('show');
-    });
-    window.showAlert = function(msg, type='info', title='') {
+    function toggleSidebar(){const sb=document.getElementById('mainSidebar'),ov=document.getElementById('sidebarOverlay'),hb=document.getElementById('hamburgerBtn');sb.classList.toggle('sidebar-open');ov.classList.toggle('hidden');hb.classList.toggle('hamburger-open');}
+    function closeSidebar(){const sb=document.getElementById('mainSidebar'),ov=document.getElementById('sidebarOverlay'),hb=document.getElementById('hamburgerBtn');sb.classList.remove('sidebar-open');ov.classList.add('hidden');hb.classList.remove('hamburger-open');}
+
+    window.toggleProfileDropdown=function(){document.getElementById('profileDropdown').classList.toggle('show');};
+    document.addEventListener('click',e=>{const dd=document.getElementById('profileDropdown');if(dd&&!e.target.closest('#profileCircle')&&!dd.contains(e.target))dd.classList.remove('show');});
+
+    window.showAlert=function(msg,type='info',title=''){
         const icons={success:'check-circle',error:'times-circle',warning:'exclamation-triangle',info:'info-circle'};
         const titles={success:'Success',error:'Error',warning:'Warning',info:'Information'};
         const colors={success:'bg-success-bg text-success',error:'bg-danger-bg text-danger',warning:'bg-warning-bg text-warning',info:'bg-info-bg text-info'};
@@ -587,23 +540,88 @@
         document.getElementById('confirmModal').classList.add('open');
     };
     window.closeConfirmModal=()=>document.getElementById('confirmModal').classList.remove('open');
+
+    window.updateCharCount=function(el,counterId,max){
+        const n=el.value.length;
+        const counter=document.getElementById(counterId);
+        counter.textContent=`${n}/${max}`;
+        if(n>max){counter.classList.add('text-danger');counter.classList.remove('text-text-muted','text-warning');el.classList.add('border-danger');}
+        else if(n>max*0.9){counter.classList.add('text-warning');counter.classList.remove('text-text-muted','text-danger');el.classList.remove('border-danger');}
+        else{counter.classList.add('text-text-muted');counter.classList.remove('text-danger','text-warning');el.classList.remove('border-danger');}
+        counter.title=`${max-n} characters remaining`;
+    };
+
+    function showFieldError(inputId, errorDivId, msg){
+        const field=document.getElementById(inputId);
+        const errDiv=document.getElementById(errorDivId);
+        if(field) field.classList.add('border-danger');
+        if(errDiv){errDiv.querySelector('span').textContent=msg;errDiv.classList.remove('hidden');}
+    }
+    window.clearFieldError=function(inputId,errorDivId){
+        const field=document.getElementById(inputId);
+        const errDiv=document.getElementById(errorDivId);
+        if(field) field.classList.remove('border-danger');
+        if(errDiv) errDiv.classList.add('hidden');
+    };
+    function clearAllErrors(){
+        ['lessonTitle','lessonSection','youtubeLink','lessonFiles'].forEach(id=>{
+            const el=document.getElementById(id);if(el)el.classList.remove('border-danger');
+        });
+        ['lessonTitleError','lessonSectionError','youtubeLinkError','lessonFilesError'].forEach(id=>{
+            const el=document.getElementById(id);if(el)el.classList.add('hidden');
+        });
+    }
+
+    function resetCharCounters(){
+        [['titleCounter',1000],['descCounter',2000]].forEach(([id,max])=>{
+            const el=document.getElementById(id);
+            if(el){el.textContent=`0/${max}`;el.classList.remove('text-danger','text-warning');el.classList.add('text-text-muted');}
+        });
+        ['lessonTitle','lessonDescription'].forEach(id=>{
+            const el=document.getElementById(id);if(el)el.classList.remove('border-danger');
+        });
+    }
+
+    function extractYouTubeId(url){
+        if(!url)return null;
+        const pts=[/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/];
+        for(const p of pts){const m=url.match(p);if(m)return m[1];}
+        try{const u=new URL(url);if(u.searchParams.get('v'))return u.searchParams.get('v');if(u.hostname.includes('youtu.be'))return u.pathname.substring(1);}catch(e){}
+        return null;
+    }
+    function showYTPreview(url){
+        const div=document.getElementById('youtubePreview');if(!div)return;
+        const id=extractYouTubeId(url);
+        if(url&&!id){
+            div.innerHTML=`<div class="yt-preview" style="border-color:#c0392b;background:#fff8f8;"><div class="flex items-center gap-2 mb-2 text-[12px] font-semibold text-danger"><i class="fas fa-exclamation-circle"></i> Invalid YouTube Link</div><p class="text-[12px]" style="color:#c0392b;opacity:0.8;">Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=...)</p></div>`;
+            document.getElementById('youtubeLink').classList.add('border-danger');
+        }else if(id){
+            div.innerHTML=`<div class="yt-preview"><div class="flex items-center gap-2 mb-2 text-[12px] font-semibold text-text-secondary"><i class="fab fa-youtube text-danger"></i> YouTube Preview</div><iframe src="https://www.youtube.com/embed/${id}" class="yt-iframe" allowfullscreen></iframe></div>`;
+            document.getElementById('youtubeLink').classList.remove('border-danger');
+            clearFieldError('youtubeLink','youtubeLinkError');
+        }else{
+            div.innerHTML='';
+            document.getElementById('youtubeLink').classList.remove('border-danger');
+        }
+    }
+
+    function formatFileSize(b){if(!b)return'0 B';const k=1024,s=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k));return(b/Math.pow(k,i)).toFixed(1)+' '+s[i];}
+    function getFileIcon(n){const e=(n||'').split('.').pop().toLowerCase();const m={pdf:'fas fa-file-pdf',doc:'fas fa-file-word',docx:'fas fa-file-word',ppt:'fas fa-file-powerpoint',pptx:'fas fa-file-powerpoint',jpg:'fas fa-file-image',jpeg:'fas fa-file-image',png:'fas fa-file-image',gif:'fas fa-file-image',mp4:'fas fa-file-video',zip:'fas fa-file-archive',rar:'fas fa-file-archive'};return m[e]||'fas fa-file';}
+    async function fileToBase64(f){return new Promise((r,j)=>{const rd=new FileReader();rd.readAsDataURL(f);rd.onload=()=>r(rd.result);rd.onerror=e=>j(e);});}
 </script>
 
+<!-- FIREBASE MODULE SCRIPT -->
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
     import { getFirestore, collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, deleteDoc, orderBy, serverTimestamp }
         from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-    const firebaseConfig = {
-        apiKey:"AIzaSyAgaLunqEf2gs6dSpF_sz1hV5XQ5Wm52jo",authDomain:"umakfit-e3b1d.firebaseapp.com",
-        projectId:"umakfit-e3b1d",storageBucket:"umakfit-e3b1d.appspot.com",
-        messagingSenderId:"276569891504",appId:"1:276569891504:web:39b1732b519f4d8b785175"
-    };
+    const firebaseConfig={apiKey:"AIzaSyAgaLunqEf2gs6dSpF_sz1hV5XQ5Wm52jo",authDomain:"umakfit-e3b1d.firebaseapp.com",projectId:"umakfit-e3b1d",storageBucket:"umakfit-e3b1d.appspot.com",messagingSenderId:"276569891504",appId:"1:276569891504:web:39b1732b519f4d8b785175"};
     const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
-    let currentUser=null, currentProfessor=null, assignedSections=[], allLessons=[], filteredLessons=[], editingLessonId=null, selectedFiles=[], activeSectionFilter=null;
+    let currentUser=null,currentProfessor=null,assignedSections=[],allLessons=[],filteredLessons=[],editingLessonId=null,selectedFiles=[],activeSectionFilter=null;
 
-    onAuthStateChanged(auth, async user=>{
+    onAuthStateChanged(auth,async user=>{
         if(user){
             try{
                 currentUser=user;
@@ -614,55 +632,41 @@
                 initListeners();
                 document.getElementById('loadingScreen').style.display='none';
                 document.getElementById('mainContent').style.display='block';
-            }catch(err){
-                console.error(err);
-                document.getElementById('loadingScreen').style.display='none';
-                showAlert(err.message||'Error loading page.','error');
-            }
-        }else{ window.location.href='/login/index.html'; }
+            }catch(err){console.error(err);document.getElementById('loadingScreen').style.display='none';showAlert(err.message||'Error loading page.','error');}
+        }else{window.location.href='/login/index.html';}
     });
 
     async function loadProfessorData(user){
         const email=user.email.toLowerCase();
         const ps=await getDocs(query(collection(db,'professors'),where('email','==',email)));
-        if(!ps.empty){ currentProfessor={id:ps.docs[0].id,...ps.docs[0].data(),email}; }
+        if(!ps.empty){currentProfessor={id:ps.docs[0].id,...ps.docs[0].data(),email};}
         else{
             const us=await getDocs(query(collection(db,'users'),where('email','==',email)));
-            if(!us.empty){ const ud=us.docs[0].data(); if(ud.role&&ud.role!=='professor'){await signOut(auth);window.location.href='/login/index.html';return;} currentProfessor={id:us.docs[0].id,...ud,email}; }
-            else{ currentProfessor={id:user.uid,email,name:user.displayName}; }
+            if(!us.empty){const ud=us.docs[0].data();if(ud.role&&ud.role!=='professor'){await signOut(auth);window.location.href='/login/index.html';return;}currentProfessor={id:us.docs[0].id,...ud,email};}
+            else{currentProfessor={id:user.uid,email,name:user.displayName};}
         }
         window.currentProfessor=currentProfessor;
     }
 
-        function setupUI(user){
-        const displayName = user.displayName || currentProfessor.fullName || currentProfessor.name || 'Professor';
-        const email = currentProfessor.email || user.email;
-        const initial = displayName.charAt(0).toUpperCase();
-        const photoURL = user.photoURL || null;
-
-        // All name fields use Google displayName directly
-        document.getElementById('headerName').textContent = displayName;
-        document.getElementById('dropdownName').textContent = displayName;
-        document.getElementById('dropdownEmail').textContent = email;
-
-        const as = document.getElementById('profileAvatarSmall');
-        const al = document.getElementById('profileDropdownAvatar');
-
-        if(photoURL){
-            const img = `<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
-            as.innerHTML = img;
-            al.innerHTML = img;
-        } else {
-            as.textContent = initial;
-            al.textContent = initial;
-        }
+    function setupUI(user){
+        const displayName=user.displayName||currentProfessor.fullName||currentProfessor.name||'Professor';
+        const email=currentProfessor.email||user.email;
+        const initial=displayName.charAt(0).toUpperCase();
+        const photoURL=user.photoURL||null;
+        document.getElementById('headerName').textContent=displayName;
+        document.getElementById('dropdownName').textContent=displayName;
+        document.getElementById('dropdownEmail').textContent=email;
+        const as=document.getElementById('profileAvatarSmall'),al=document.getElementById('profileDropdownAvatar');
+        if(photoURL){const img=`<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover rounded-full">`;as.innerHTML=img;al.innerHTML=img;}
+        else{as.textContent=initial;al.textContent=initial;}
     }
+
     async function loadAssignedSections(){
         assignedSections=[];
         const profEmail=currentProfessor.email;
         const nameVariations=new Set();
-        if(currentProfessor) ['fullName','name','displayName'].forEach(f=>{if(currentProfessor[f])nameVariations.add(currentProfessor[f].toUpperCase().trim());});
-        if(currentUser.displayName) nameVariations.add(currentUser.displayName.toUpperCase().trim());
+        if(currentProfessor)['fullName','name','displayName'].forEach(f=>{if(currentProfessor[f])nameVariations.add(currentProfessor[f].toUpperCase().trim());});
+        if(currentUser.displayName)nameVariations.add(currentUser.displayName.toUpperCase().trim());
         const ps=await getDocs(query(collection(db,'professors'),where('email','==',profEmail)));
         ps.forEach(d=>['fullName','name','displayName'].forEach(f=>{if(d.data()[f])nameVariations.add(d.data()[f].toUpperCase().trim());}));
         const us=await getDocs(query(collection(db,'users'),where('email','==',profEmail)));
@@ -677,182 +681,90 @@
             const dbProf=(data.professor||'').toString().trim().toUpperCase();
             const dbProfEmail=(data.professorEmail||'').toString().trim().toLowerCase();
             let isMatch=false;
-            if(dbProfEmail&&dbProfEmail===profEmail.toLowerCase()) isMatch=true;
-            if(!isMatch) for(const v of nameVariations){if(v&&v.length>=3&&dbProf===v){isMatch=true;break;}}
-            if(!isMatch) for(const v of nameVariations){if(v&&v.length>=3&&(dbProf.includes(v)||v.includes(dbProf))){isMatch=true;break;}}
-            if(!isMatch) for(const v of nameVariations){if(v&&v.length>=3){const ln=v.split(',')[0].trim();if(ln.length>=3&&dbProf.includes(ln)){isMatch=true;break;}}}
+            if(dbProfEmail&&dbProfEmail===profEmail.toLowerCase())isMatch=true;
+            if(!isMatch)for(const v of nameVariations){if(v&&v.length>=3&&dbProf===v){isMatch=true;break;}}
+            if(!isMatch)for(const v of nameVariations){if(v&&v.length>=3&&(dbProf.includes(v)||v.includes(dbProf))){isMatch=true;break;}}
+            if(!isMatch)for(const v of nameVariations){if(v&&v.length>=3){const ln=v.split(',')[0].trim();if(ln.length>=3&&dbProf.includes(ln)){isMatch=true;break;}}}
             if(!isMatch&&dbProf.length>=3){const words=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3);for(const w of words){if(nameTokens.has(w)){isMatch=true;break;}}}
             if(!isMatch){const eu=profEmail.split('@')[0].toUpperCase();if(eu.length>3&&dbProf.includes(eu))isMatch=true;}
-            if(isMatch){
-                const students=Array.isArray(data.students)?data.students:[];
-                assignedSections.push({id:d.id,section:data.name||'Unnamed Section',courseCode:data.courseCode||'',time:data.time||'',day:data.day||'',room:data.room||'',students:students.length,studentList:students});
-            }
+            if(isMatch){const students=Array.isArray(data.students)?data.students:[];assignedSections.push({id:d.id,section:data.name||'Unnamed Section',courseCode:data.courseCode||'',time:data.time||'',day:data.day||'',room:data.room||'',students:students.length,studentList:students});}
         });
         const sel=document.getElementById('lessonSection');
-        if(!sel) return;
+        if(!sel)return;
         sel.innerHTML='<option value="">— Select Section —</option>';
-        if(!assignedSections.length){ const o=document.createElement('option');o.disabled=true;o.textContent='No sections assigned';sel.appendChild(o); }
-        else{
-            assignedSections.forEach(s=>{
-                const o=document.createElement('option');
-                o.value=s.section;
-                const sched=[s.time,s.day,s.room].filter(Boolean).join(' / ');
-                const cnt=s.students;
-                o.textContent=`${s.section}${sched?' — '+sched:''} (${cnt} student${cnt!==1?'s':''})`;
-                sel.appendChild(o);
-            });
-        }
-
-        // Populate section filter dropdown
-        const sectionFilter = document.getElementById('sectionFilter');
-        if (sectionFilter) {
-            sectionFilter.innerHTML = '<option value="">All Sections</option>';
-            assignedSections.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.section;
-                opt.textContent = s.section;
-                sectionFilter.appendChild(opt);
-            });
-        }
+        if(!assignedSections.length){const o=document.createElement('option');o.disabled=true;o.textContent='No sections assigned';sel.appendChild(o);}
+        else{assignedSections.forEach(s=>{const o=document.createElement('option');o.value=s.section;const sched=[s.time,s.day,s.room].filter(Boolean).join(' / ');const cnt=s.students;o.textContent=`${s.section}${sched?' — '+sched:''} (${cnt} student${cnt!==1?'s':''})`;sel.appendChild(o);});}
+        const sf=document.getElementById('sectionFilter');
+        if(sf){sf.innerHTML='<option value="">All Sections</option>';assignedSections.forEach(s=>{const o=document.createElement('option');o.value=s.section;o.textContent=s.section;sf.appendChild(o);});}
     }
 
     window.updateSectionInfo=function(){
         const val=document.getElementById('lessonSection').value;
         const info=assignedSections.find(s=>s.section===val);
         const el=document.getElementById('sectionStudentInfo');
-        if(!el) return;
-        if(info){
-            const cnt=info.students;
-            el.className=cnt>0?'text-[12px] mt-1.5 font-medium text-success':'text-[12px] mt-1.5 font-medium text-warning';
-            el.textContent=cnt>0?`✓ ${cnt} student${cnt!==1?'s':''} will receive this lesson`:'⚠ No students enrolled in this section';
-        }else{el.textContent='';}
+        if(!el)return;
+        if(info){const cnt=info.students;el.className=cnt>0?'text-[12px] mt-1.5 font-medium text-success':'text-[12px] mt-1.5 font-medium text-warning';el.textContent=cnt>0?`✓ ${cnt} student${cnt!==1?'s':''} will receive this lesson`:'⚠ No students enrolled in this section';}
+        else{el.textContent='';}
     };
 
     async function loadLessons(){
         allLessons=[];
-        try{
-            const snap=await getDocs(query(collection(db,'lessons'),where('professorEmail','==',currentProfessor.email),orderBy('createdAt','desc')));
-            snap.forEach(d=>allLessons.push({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()||new Date(),publishDate:d.data().publishDate?.toDate()||null}));
-        }catch(e){
-            const snap=await getDocs(query(collection(db,'lessons'),where('professorEmail','==',currentProfessor.email)));
-            snap.forEach(d=>allLessons.push({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()||new Date(),publishDate:d.data().publishDate?.toDate()||null}));
-            allLessons.sort((a,b)=>b.createdAt-a.createdAt);
-        }
-        updateStats();
-        applyFilters();
+        try{const snap=await getDocs(query(collection(db,'lessons'),where('professorEmail','==',currentProfessor.email),orderBy('createdAt','desc')));snap.forEach(d=>allLessons.push({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()||new Date(),publishDate:d.data().publishDate?.toDate()||null}));}
+        catch(e){const snap=await getDocs(query(collection(db,'lessons'),where('professorEmail','==',currentProfessor.email)));snap.forEach(d=>allLessons.push({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()||new Date(),publishDate:d.data().publishDate?.toDate()||null}));allLessons.sort((a,b)=>b.createdAt-a.createdAt);}
+        updateStats();applyFilters();
     }
 
     function updateStats(){
         document.getElementById('statTotalLessons').textContent=allLessons.length;
         document.getElementById('statPublished').textContent=allLessons.filter(l=>l.status==='published').length;
         document.getElementById('statDrafts').textContent=allLessons.filter(l=>!l.status||l.status==='draft').length;
-        document.getElementById('lessonsCount').textContent=filteredLessons.length || allLessons.length;
+        document.getElementById('lessonsCount').textContent=filteredLessons.length||allLessons.length;
     }
 
-    // Filter functions
-    window.filterBySection = function() {
-        const sectionValue = document.getElementById('sectionFilter').value;
-        activeSectionFilter = sectionValue || null;
-        
-        // Update badges
-        if (activeSectionFilter) {
-            document.getElementById('activeSectionName').textContent = activeSectionFilter;
-            document.getElementById('heroFilterName').textContent = activeSectionFilter;
-            document.getElementById('activeSectionBadge').classList.remove('hidden');
-            document.getElementById('heroFilterBadge').classList.remove('hidden');
-        } else {
-            document.getElementById('activeSectionBadge').classList.add('hidden');
-            document.getElementById('heroFilterBadge').classList.add('hidden');
-        }
-        
+    window.filterBySection=function(){
+        const v=document.getElementById('sectionFilter').value;activeSectionFilter=v||null;
+        if(activeSectionFilter){document.getElementById('activeSectionName').textContent=activeSectionFilter;document.getElementById('heroFilterName').textContent=activeSectionFilter;document.getElementById('activeSectionBadge').classList.remove('hidden');document.getElementById('heroFilterBadge').classList.remove('hidden');}
+        else{document.getElementById('activeSectionBadge').classList.add('hidden');document.getElementById('heroFilterBadge').classList.add('hidden');}
         applyFilters();
     };
+    window.filterLessons=()=>applyFilters();
+    window.clearSectionFilter=function(){document.getElementById('sectionFilter').value='';activeSectionFilter=null;document.getElementById('activeSectionBadge').classList.add('hidden');document.getElementById('heroFilterBadge').classList.add('hidden');applyFilters();};
 
-    window.filterLessons = function() {
-        applyFilters();
-    };
-
-    window.clearSectionFilter = function() {
-        document.getElementById('sectionFilter').value = '';
-        activeSectionFilter = null;
-        document.getElementById('activeSectionBadge').classList.add('hidden');
-        document.getElementById('heroFilterBadge').classList.add('hidden');
-        applyFilters();
-    };
-
-    function applyFilters() {
-        const sectionFilter = document.getElementById('sectionFilter').value;
-        const typeFilter = document.getElementById('lessonTypeFilter').value;
-        
-        filteredLessons = allLessons.filter(lesson => {
-            // Section filter
-            if (sectionFilter && lesson.section !== sectionFilter) return false;
-            // Type filter
-            if (typeFilter !== 'all' && lesson.type !== typeFilter) return false;
-            return true;
-        });
-        
-        displayLessons(filteredLessons);
-        document.getElementById('lessonsCount').textContent = filteredLessons.length;
-        
-        // Update empty state message
-        const noLessonsMsg = document.getElementById('noLessonsMsg');
-        const noLessonsText = document.getElementById('noLessonsMsgText');
-        if (filteredLessons.length === 0) {
-            if (sectionFilter || typeFilter !== 'all') {
-                noLessonsText.textContent = 'No lessons match your current filters. Try adjusting your filters.';
-            } else {
-                noLessonsText.textContent = 'Click "Create New Lesson" above to get started!';
-            }
-        }
+    function applyFilters(){
+        const sf=document.getElementById('sectionFilter').value,tf=document.getElementById('lessonTypeFilter').value;
+        filteredLessons=allLessons.filter(l=>{if(sf&&l.section!==sf)return false;if(tf!=='all'&&l.type!==tf)return false;return true;});
+        displayLessons(filteredLessons);document.getElementById('lessonsCount').textContent=filteredLessons.length;
+        if(filteredLessons.length===0)document.getElementById('noLessonsMsgText').textContent=(sf||tf!=='all')?'No lessons match your current filters. Try adjusting your filters.':'Click "Create New Lesson" above to get started!';
     }
 
-    /* Lesson type config — icon + color per type */
-    const LESSON_TYPE_CFG = {
-        lecture:    { icon:'fas fa-chalkboard',       color:'bg-purple-bg text-[#7c3aed]', label:'Lecture'          },
-        reading:    { icon:'fas fa-book-open',         color:'bg-info-bg text-blue',        label:'Reading Material' },
-        video:      { icon:'fab fa-youtube',           color:'bg-danger-bg text-danger',    label:'Video Lesson'     },
-    };
+    const LESSON_TYPE_CFG={lecture:{icon:'fas fa-chalkboard',color:'bg-purple-bg text-[#7c3aed]',label:'Lecture'},reading:{icon:'fas fa-book-open',color:'bg-info-bg text-blue',label:'Reading Material'},video:{icon:'fab fa-youtube',color:'bg-danger-bg text-danger',label:'Video Lesson'}};
 
     function displayLessons(lessons){
-        const grid=document.getElementById('lessonsGrid'), empty=document.getElementById('noLessonsMsg');
+        const grid=document.getElementById('lessonsGrid'),empty=document.getElementById('noLessonsMsg');
         if(!lessons.length){grid.innerHTML='';grid.style.display='none';empty.classList.remove('hidden');return;}
-        empty.classList.add('hidden'); grid.style.display='grid';
+        empty.classList.add('hidden');grid.style.display='grid';
         grid.innerHTML=lessons.map(lesson=>{
             const date=(lesson.publishDate||lesson.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-            const preview=(lesson.content||'').replace(/<[^>]*>/g,'').substring(0,130)+((lesson.content||'').length>130?'\u2026':'');
+            const preview=(lesson.content||'').replace(/<[^>]*>/g,'').substring(0,130)+((lesson.content||'').length>130?'…':'');
             const st=lesson.status||'draft';
             const badgeCls=st==='published'?'badge-published':st==='scheduled'?'badge-scheduled':'badge-draft';
             const badgeIcon=st==='published'?'<i class="fas fa-check-circle text-[10px]"></i>':st==='scheduled'?'<i class="fas fa-clock text-[10px]"></i>':'<i class="fas fa-pencil-alt text-[10px]"></i>';
             const badgeTxt=st==='published'?'Published':st==='scheduled'?'Scheduled':'Draft';
-            const fileCount=lesson.materials?.length||0;
-            const hasYT=lesson.youtubeVideoId?.trim();
+            const fileCount=lesson.materials?.length||0,hasYT=lesson.youtubeVideoId?.trim();
             const typeCfg=LESSON_TYPE_CFG[lesson.type]||LESSON_TYPE_CFG.lecture;
             const cardAccent=st==='published'?'border-t-success':st==='scheduled'?'border-t-info':'border-t-[#c5cfe0]';
-            return `
-            <div class="lesson-card bg-white rounded-2xl border border-border border-t-4 ${cardAccent} shadow-sm flex flex-col">
+            return `<div class="lesson-card bg-white rounded-2xl border border-border border-t-4 ${cardAccent} shadow-sm flex flex-col">
                 <div class="p-5 pb-3.5">
                     <div class="flex justify-between items-start gap-2 mb-3.5">
                         <div class="flex items-start gap-3 flex-1 min-w-0">
-                            <div class="w-9 h-9 rounded-xl ${typeCfg.color} flex items-center justify-center text-[14px] flex-shrink-0 mt-0.5">
-                                <i class="${typeCfg.icon}"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="font-display text-[15px] font-bold text-navy leading-snug">${lesson.title||'Untitled Lesson'}</h4>
-                                <div class="inline-block bg-surface text-text-muted text-[11px] font-semibold px-2 py-0.5 rounded mt-1">${typeCfg.label}</div>
-                            </div>
+                            <div class="w-9 h-9 rounded-xl ${typeCfg.color} flex items-center justify-center text-[14px] flex-shrink-0 mt-0.5"><i class="${typeCfg.icon}"></i></div>
+                            <div class="min-w-0"><h4 class="font-display text-[15px] font-bold text-navy leading-snug">${lesson.title||'Untitled Lesson'}</h4><div class="inline-block bg-surface text-text-muted text-[11px] font-semibold px-2 py-0.5 rounded mt-1">${typeCfg.label}</div></div>
                         </div>
                         <span class="badge ${badgeCls} flex-shrink-0 mt-0.5 gap-1">${badgeIcon} ${badgeTxt}</span>
                     </div>
                     <div class="flex flex-wrap gap-x-4 gap-y-1.5">
-                        <div class="flex items-center gap-1.5 text-[12px] text-text-secondary">
-                            <i class="fas fa-chalkboard-teacher text-text-muted text-[11px]"></i>
-                            <span class="inline-block bg-info-bg/60 text-blue text-[11px] font-semibold px-2 py-0.5 rounded">${lesson.section||'No Section'}</span>
-                        </div>
-                        <div class="flex items-center gap-1.5 text-[12px] text-text-muted">
-                            <i class="fas fa-calendar-alt text-[11px]"></i>
-                            <span>${date}</span>
-                        </div>
+                        <div class="flex items-center gap-1.5 text-[12px] text-text-secondary"><i class="fas fa-chalkboard-teacher text-text-muted text-[11px]"></i><span class="inline-block bg-info-bg/60 text-blue text-[11px] font-semibold px-2 py-0.5 rounded">${lesson.section||'No Section'}</span></div>
+                        <div class="flex items-center gap-1.5 text-[12px] text-text-muted"><i class="fas fa-calendar-alt text-[11px]"></i><span>${date}</span></div>
                         ${hasYT?`<div class="flex items-center gap-1.5 text-[12px] text-danger font-medium"><i class="fab fa-youtube text-[11px]"></i><span>Video</span></div>`:''}
                         ${fileCount>0?`<div class="flex items-center gap-1.5 text-[12px] text-text-muted"><i class="fas fa-paperclip text-[11px]"></i><span>${fileCount} file${fileCount>1?'s':''}</span></div>`:''}
                     </div>
@@ -860,67 +772,53 @@
                 <div class="h-px bg-border mx-5"></div>
                 <div class="px-5 py-3.5 flex-1">
                     ${lesson.description?`<div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Description</div><p class="text-[12.5px] text-text-secondary leading-relaxed mb-3">${lesson.description}</p>`:''}
-                    <div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Content Preview</div>
-                    <p class="text-[12.5px] text-text-secondary leading-relaxed">${preview||'No content available.'}</p>
-                    ${fileCount>0?`
-                    <div class="mt-3 pt-3 border-t border-dashed border-border">
-                        <div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2 flex items-center gap-1.5">
-                            <i class="fas fa-folder-open text-blue"></i> Attached Files
-                        </div>
-                        ${lesson.materials.map((f,i)=>`
-                        <div class="flex items-center gap-2 py-1">
-                            <div class="w-6 h-6 rounded bg-info-bg flex items-center justify-center flex-shrink-0">
-                                <i class="${getFileIcon(f.name)} text-blue text-[10px]"></i>
-                            </div>
-                            <a href="#" onclick="viewFile('${lesson.id}',${i}); return false;"
-                               class="text-[12px] text-royal hover:underline flex-1 truncate font-medium">${f.name}</a>
-                            <span class="text-text-muted text-[11px] flex-shrink-0">${formatFileSize(f.size)}</span>
-                        </div>`).join('')}
-                    </div>`:''}
+                    ${preview?`<div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Content Preview</div><p class="text-[12.5px] text-text-secondary leading-relaxed">${preview}</p>`:''}
+                    ${fileCount>0?`<div class="mt-3 pt-3 border-t border-dashed border-border"><div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2 flex items-center gap-1.5"><i class="fas fa-folder-open text-blue"></i> Attached Files</div>${lesson.materials.map((f,i)=>`<div class="flex items-center gap-2 py-1"><div class="w-6 h-6 rounded bg-info-bg flex items-center justify-center flex-shrink-0"><i class="${getFileIcon(f.name)} text-blue text-[10px]"></i></div><a href="#" onclick="viewFile('${lesson.id}',${i}); return false;" class="text-[12px] text-royal hover:underline flex-1 truncate font-medium">${f.name}</a><span class="text-text-muted text-[11px] flex-shrink-0">${formatFileSize(f.size)}</span></div>`).join('')}</div>`:''}
                 </div>
                 <div class="px-5 py-3.5 border-t border-border bg-surface rounded-b-2xl flex items-center justify-between gap-2">
                     <div class="flex gap-1.5">
-                        <button onclick="editLesson('${lesson.id}')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/15 text-accent font-bold text-[12px] rounded-lg hover:bg-accent/25 transition-all"
-                            style="border:none;cursor:pointer;">
-                            <i class="fas fa-edit text-[10px]"></i> Edit
-                        </button>
-                        <button onclick="deleteLesson('${lesson.id}')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-danger-bg text-danger font-bold text-[12px] rounded-lg hover:bg-red-200 transition-all"
-                            style="border:none;cursor:pointer;">
-                            <i class="fas fa-trash-alt text-[10px]"></i> Delete
-                        </button>
+                        <button onclick="editLesson('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/15 text-accent font-bold text-[12px] rounded-lg hover:bg-accent/25 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-edit text-[10px]"></i> Edit</button>
+                        <button onclick="deleteLesson('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-danger-bg text-danger font-bold text-[12px] rounded-lg hover:bg-red-200 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-trash-alt text-[10px]"></i> Delete</button>
                     </div>
                     ${st==='published'
-                        ?`<button onclick="viewLessonDetails('${lesson.id}')"
-                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-success-bg text-success font-bold text-[12px] rounded-lg hover:bg-green-200 transition-all"
-                               style="border:none;cursor:pointer;">
-                               <i class="fas fa-eye text-[10px]"></i> View
-                           </button>`
-                        :`<button onclick="publishLesson('${lesson.id}')"
-                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-br from-royal to-blue text-white font-bold text-[12px] rounded-lg hover:opacity-90 transition-all"
-                               style="border:none;cursor:pointer;">
-                               <i class="fas fa-paper-plane text-[10px]"></i> Publish
-                           </button>`
+                        ?`<button onclick="viewLessonDetails('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-success-bg text-success font-bold text-[12px] rounded-lg hover:bg-green-200 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-eye text-[10px]"></i> View</button>`
+                        :`<button onclick="publishLesson('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-br from-royal to-blue text-white font-bold text-[12px] rounded-lg hover:opacity-90 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-paper-plane text-[10px]"></i> Publish</button>`
                     }
                 </div>
             </div>`;
         }).join('');
     }
 
-    function formatFileSize(b){if(!b)return'0 B';const k=1024,s=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k));return(b/Math.pow(k,i)).toFixed(1)+' '+s[i];}
-    function getFileIcon(n){const e=(n||'').split('.').pop().toLowerCase();const m={pdf:'fas fa-file-pdf',doc:'fas fa-file-word',docx:'fas fa-file-word',ppt:'fas fa-file-powerpoint',pptx:'fas fa-file-powerpoint',jpg:'fas fa-file-image',jpeg:'fas fa-file-image',png:'fas fa-file-image',gif:'fas fa-file-image',mp4:'fas fa-file-video',zip:'fas fa-file-archive',rar:'fas fa-file-archive'};return m[e]||'fas fa-file';}
-    function extractYouTubeId(url){if(!url)return null;const pts=[/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,/(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/];for(const p of pts){const m=url.match(p);if(m)return m[1];}try{const u=new URL(url);if(u.searchParams.get('v'))return u.searchParams.get('v');if(u.hostname.includes('youtu.be'))return u.pathname.substring(1);}catch(e){}return null;}
-    function showYTPreview(url){const div=document.getElementById('youtubePreview');if(!div)return;const id=extractYouTubeId(url);div.innerHTML=id?`<div class="yt-preview"><div class="flex items-center gap-2 mb-2 text-[12px] font-semibold text-text-secondary"><i class="fab fa-youtube text-danger"></i> YouTube Preview</div><iframe src="https://www.youtube.com/embed/${id}" class="yt-iframe" allowfullscreen></iframe></div>`:'';} 
-    async function fileToBase64(f){return new Promise((r,j)=>{const rd=new FileReader();rd.readAsDataURL(f);rd.onload=()=>r(rd.result);rd.onerror=e=>j(e);});}
-
     function initListeners(){
-        const fi=document.getElementById('lessonFiles');if(fi)fi.addEventListener('change',handleFileSelection);
-        const yi=document.getElementById('youtubeLink');if(yi)yi.addEventListener('input',e=>showYTPreview(e.target.value));
+        const fi=document.getElementById('lessonFiles');
+        if(fi) fi.addEventListener('change',handleFileSelection);
+        const yi=document.getElementById('youtubeLink');
+        if(yi){
+            yi.addEventListener('input',e=>{
+                showYTPreview(e.target.value);
+                if(extractYouTubeId(e.target.value)){
+                    clearFieldError('youtubeLink','youtubeLinkError');
+                    clearFieldError('lessonFiles','lessonFilesError');
+                }
+            });
+            yi.addEventListener('blur',function(){
+                const url=this.value.trim();
+                if(url&&!extractYouTubeId(url)){this.classList.add('border-danger');}
+                else{this.classList.remove('border-danger');clearFieldError('youtubeLink','youtubeLinkError');}
+            });
+        }
     }
+
     function handleFileSelection(e){
-        Array.from(e.target.files).forEach(f=>{if(f.size>50*1024*1024){showAlert(`"${f.name}" exceeds 50 MB limit.`,'warning');return;}if(!selectedFiles.find(x=>x.name===f.name&&x.size===f.size))selectedFiles.push(f);});
-        renderFilePreview();e.target.value='';
+        Array.from(e.target.files).forEach(f=>{
+            if(f.size>50*1024*1024){showAlert(`"${f.name}" exceeds 50 MB limit.`,'warning');return;}
+            if(!selectedFiles.find(x=>x.name===f.name&&x.size===f.size))selectedFiles.push(f);
+        });
+        renderFilePreview(); e.target.value='';
+        if(selectedFiles.length>0){
+            clearFieldError('youtubeLink','youtubeLinkError');
+            clearFieldError('lessonFiles','lessonFilesError');
+        }
     }
     function renderFilePreview(){
         const c=document.getElementById('filePreviewContainer');if(!c)return;
@@ -939,31 +837,71 @@
         document.getElementById('sectionStudentInfo').textContent='';
         document.getElementById('youtubePreview').innerHTML='';
         document.getElementById('publishDate').value=new Date().toISOString().split('T')[0];
+        clearAllErrors();
+        resetCharCounters();
         document.getElementById('lessonModal').classList.add('open');
     };
     window.closeLessonModal=function(){
         document.getElementById('lessonModal').classList.remove('open');
         editingLessonId=null;selectedFiles=[];
         document.getElementById('filePreviewContainer').innerHTML='';
+        clearAllErrors();
     };
 
     window.saveLesson=async function(){
-        const title=document.getElementById('lessonTitle').value.trim();
+        const title  =document.getElementById('lessonTitle').value.trim();
         const section=document.getElementById('lessonSection').value;
-        const type=document.getElementById('lessonType').value;
-        const desc=document.getElementById('lessonDescription').value.trim();
-        const content=document.getElementById('lessonContent').value.trim();
-        const ytLink=document.getElementById('youtubeLink').value.trim();
+        const type   =document.getElementById('lessonType').value;
+        const desc   =document.getElementById('lessonDescription').value.trim();
+        const ytLink =document.getElementById('youtubeLink').value.trim();
         const pubDate=document.getElementById('publishDate').value;
-        const status=document.getElementById('lessonStatus').value;
-        if(!title||!section||!content){showAlert('Please fill in all required fields: Title, Section, and Content.','warning');return;}
+        const status =document.getElementById('lessonStatus').value;
+
+        clearAllErrors();
+        let hasError=false;
+
+        // Required: Title
+        if(!title){showFieldError('lessonTitle','lessonTitleError','Title is required');hasError=true;}
+        else if(title.length>1000){showFieldError('lessonTitle','lessonTitleError','Title exceeds 1000 character limit');hasError=true;}
+
+        // Required: Section
+        if(!section){showFieldError('lessonSection','lessonSectionError','Please select a section');hasError=true;}
+
+        // Optional char limit: Description
+        if(desc.length>2000){document.getElementById('lessonDescription').classList.add('border-danger');hasError=true;}
+
+        // YouTube format check (only if filled)
+        if(ytLink&&!extractYouTubeId(ytLink)){
+            showFieldError('youtubeLink','youtubeLinkError','Invalid YouTube URL. Use https://www.youtube.com/watch?v=...');
+            hasError=true;
+        }
+
+        // YouTube OR File required
+        const ytValid=!!(ytLink&&extractYouTubeId(ytLink));
+        const hasNewFiles=selectedFiles.length>0;
+        let existingFiles=0;
+        if(editingLessonId){const ex=allLessons.find(l=>l.id===editingLessonId);existingFiles=ex?.materials?.length||0;}
+
+        if(!ytValid&&!hasNewFiles&&existingFiles===0){
+            showFieldError('youtubeLink','youtubeLinkError','Provide a YouTube link OR upload at least one file');
+            showFieldError('lessonFiles','lessonFilesError','Provide a YouTube link OR upload at least one file');
+            hasError=true;
+        }
+
+        if(hasError){
+            showAlert('Please fix the highlighted fields before saving.','warning');
+            const firstErr=document.querySelector('.form-input.border-danger');
+            if(firstErr)firstErr.scrollIntoView({behavior:'smooth',block:'center'});
+            return;
+        }
+
         const sectionInfo=assignedSections.find(s=>s.section===section);
-        const doSave=async()=>await saveLessonAction(title,section,type,desc,content,ytLink,pubDate,status);
+        const doSave=async()=>await saveLessonAction(title,section,type,desc,ytLink,pubDate,status);
         if(!sectionInfo||sectionInfo.students===0){showConfirm('This section has no students enrolled. Continue anyway?',doSave);}
         else{await doSave();}
     };
 
-    async function saveLessonAction(title,section,type,desc,content,ytLink,pubDate,status){
+    async function saveLessonAction(title,section,type,desc,ytLink,pubDate,status){
         const btn=document.getElementById('saveLessonBtn');
         btn.disabled=true;btn.textContent='Saving…';
         try{
@@ -975,7 +913,7 @@
             }
             const ytId=extractYouTubeId(ytLink);
             const profName=currentProfessor.fullName||currentProfessor.name||currentUser.displayName||'Professor';
-            const data={title,section,type,description:desc,content,youtubeLink:ytLink||'',youtubeVideoId:ytId||'',publishDate:pubDate?new Date(pubDate):new Date(),status,professorEmail:currentProfessor.email,professorName:profName,professorId:currentProfessor.id,updatedAt:serverTimestamp()};
+            const data={title,section,type,description:desc,youtubeLink:ytLink||'',youtubeVideoId:ytId||'',publishDate:pubDate?new Date(pubDate):new Date(),status,professorEmail:currentProfessor.email,professorName:profName,professorId:currentProfessor.id,updatedAt:serverTimestamp()};
             if(editingLessonId){
                 const ref=doc(db,'lessons',editingLessonId);
                 const existing=await getDoc(ref);
@@ -1013,7 +951,9 @@
         document.getElementById('lessonSection').value=lesson.section||'';
         document.getElementById('lessonType').value=lesson.type||'lecture';
         document.getElementById('lessonDescription').value=lesson.description||'';
-        document.getElementById('lessonContent').value=lesson.content||'';
+        clearAllErrors();
+        if(lesson.title)updateCharCount(document.getElementById('lessonTitle'),'titleCounter',1000);else resetCharCounters();
+        if(lesson.description)updateCharCount(document.getElementById('lessonDescription'),'descCounter',2000);
         document.getElementById('youtubeLink').value=lesson.youtubeLink||'';
         document.getElementById('lessonStatus').value=lesson.status||'draft';
         document.getElementById('lessonId').value=id;
@@ -1046,8 +986,7 @@
     };
 
     window.viewLessonDetails=function(id){
-        const lesson=allLessons.find(l=>l.id===id);
-        if(!lesson){showAlert('Lesson not found.','error');return;}
+        const lesson=allLessons.find(l=>l.id===id);if(!lesson){showAlert('Lesson not found.','error');return;}
         const date=(lesson.publishDate||lesson.createdAt).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
         const ov=document.createElement('div');ov.className='lesson-modal-overlay open';ov.style.zIndex='3000';
         ov.innerHTML=`<div class="lesson-modal" style="max-width:700px;" onclick="event.stopPropagation()">
@@ -1061,7 +1000,6 @@
                 </div>
                 ${lesson.description?`<div class="mb-4"><div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2">Description</div><p class="text-[13px] text-text-secondary leading-relaxed">${lesson.description}</p></div>`:''}
                 ${lesson.youtubeVideoId?`<div class="mb-4"><div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2 flex items-center gap-1.5"><i class="fab fa-youtube text-danger"></i> YouTube Video</div><div class="yt-preview"><iframe src="https://www.youtube.com/embed/${lesson.youtubeVideoId}" class="yt-iframe" allowfullscreen></iframe></div></div>`:''}
-                <div class="mb-4"><div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2">Lesson Content</div><div class="bg-surface p-4 rounded-xl border border-border text-[13px] text-text-secondary leading-relaxed">${lesson.content.replace(/\n/g,'<br>')}</div></div>
                 ${lesson.materials?.length>0?`<div><div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2 flex items-center gap-1.5"><i class="fas fa-paperclip"></i> Attached Files (${lesson.materials.length})</div>${lesson.materials.map((f,i)=>`<div class="file-item"><div class="file-icon"><i class="${getFileIcon(f.name)} text-[13px]"></i></div><div class="flex-1 min-w-0"><a href="#" onclick="viewFile('${lesson.id}',${i}); return false;" class="text-[13px] font-semibold text-royal hover:underline truncate block">${f.name}</a><div class="text-[11px] text-text-muted">${formatFileSize(f.size)}</div></div></div>`).join('')}</div>`:''}
             </div>
             <div class="lesson-modal-footer">
@@ -1092,117 +1030,34 @@
     };
 
     function showLogoutConfirmPopup(){
-        const existing=document.getElementById('logoutOverlay');
-        if(existing) existing.remove();
-
-        const overlay=document.createElement('div');
-        overlay.id='logoutOverlay';
-        overlay.style.cssText=`
-            position:fixed;inset:0;background:rgba(0,0,0,0.5);
-            display:flex;align-items:center;justify-content:center;
-            z-index:99999;padding:1rem;
-            animation:fadeInLogout 0.2s ease;
-        `;
-
-        overlay.innerHTML=`
-            <style>
-                @keyframes fadeInLogout{from{opacity:0;}to{opacity:1;}}
-                @keyframes slideUpLogout{from{opacity:0;transform:translateY(24px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
-            </style>
-            <div style="
-                background:#fff;
-                border-radius:24px;
-                padding:2rem 1.5rem 1.5rem;
-                max-width:360px;
-                width:100%;
-                box-shadow:0 8px 40px rgba(60,64,67,0.18),0 2px 8px rgba(60,64,67,0.10);
-                animation:slideUpLogout 0.35s cubic-bezier(.4,0,.2,1);
-                text-align:center;
-                font-family:'Inter',sans-serif;
-            ">
-                <div style="
-                    width:68px;height:68px;
-                    background:#fce8e6;
-                    border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;
-                    margin:0 auto 1.25rem;
-                ">
-                    <svg width="34"height="34"viewBox="0 0 48 48"fill="none">
-                        <path d="M20 8H10C8.9 8 8 8.9 8 10V38C8 39.1 8.9 40 10 40H20"stroke="#ea4335"stroke-width="3.5"stroke-linecap="round"/>
-                        <path d="M32 16L40 24L32 32"stroke="#ea4335"stroke-width="3.5"stroke-linecap="round"stroke-linejoin="round"/>
-                        <path d="M40 24H20"stroke="#ea4335"stroke-width="3.5"stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div style="font-size:1.25rem;font-weight:600;color:#202124;margin-bottom:0.35rem;letter-spacing:-0.01em;">
-                    Log Out
-                </div>
-                <div style="font-size:0.875rem;color:#5f6368;margin-bottom:1.5rem;line-height:1.5;">
-                    Are you sure you want to log out of your account?
-                </div>
-                <div style="height:1px;background:#e8eaed;margin:0 -1.5rem 1.25rem;"></div>
-                <div style="display:flex;gap:0.75rem;">
-                    <button id="logoutCancelBtn"style="
-                        flex:1;
-                        padding:0.75rem 0.5rem;
-                        border-radius:100px;
-                        border:1.5px solid #dadce0;
-                        background:#fff;
-                        color:#3c4043;
-                        font-size:0.9375rem;
-                        font-weight:500;
-                        cursor:pointer;
-                        font-family:'Inter',sans-serif;
-                        transition:background 0.15s;
-                        min-height:48px;
-                    ">Cancel</button>
-                    <button id="logoutConfirmBtn"style="
-                        flex:1;
-                        padding:0.75rem 0.5rem;
-                        border-radius:100px;
-                        border:none;
-                        background:#ea4335;
-                        color:#fff;
-                        font-size:0.9375rem;
-                        font-weight:500;
-                        cursor:pointer;
-                        font-family:'Inter',sans-serif;
-                        transition:background 0.15s,box-shadow 0.15s;
-                        min-height:48px;
-                    ">Log Out</button>
-                </div>
+        const existing=document.getElementById('logoutOverlay');if(existing)existing.remove();
+        const overlay=document.createElement('div');overlay.id='logoutOverlay';
+        overlay.style.cssText=`position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:1rem;animation:fadeInLogout 0.2s ease;`;
+        overlay.innerHTML=`<style>@keyframes fadeInLogout{from{opacity:0;}to{opacity:1;}}@keyframes slideUpLogout{from{opacity:0;transform:translateY(24px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}</style>
+        <div style="background:#fff;border-radius:24px;padding:2rem 1.5rem 1.5rem;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(60,64,67,0.18);animation:slideUpLogout 0.35s cubic-bezier(.4,0,.2,1);text-align:center;font-family:'Inter',sans-serif;">
+            <div style="width:68px;height:68px;background:#fce8e6;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+                <svg width="34" height="34" viewBox="0 0 48 48" fill="none"><path d="M20 8H10C8.9 8 8 8.9 8 10V38C8 39.1 8.9 40 10 40H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/><path d="M32 16L40 24L32 32" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 24H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/></svg>
             </div>
-        `;
-
+            <div style="font-size:1.25rem;font-weight:600;color:#202124;margin-bottom:0.35rem;">Log Out</div>
+            <div style="font-size:0.875rem;color:#5f6368;margin-bottom:1.5rem;line-height:1.5;">Are you sure you want to log out of your account?</div>
+            <div style="height:1px;background:#e8eaed;margin:0 -1.5rem 1.25rem;"></div>
+            <div style="display:flex;gap:0.75rem;">
+                <button id="logoutCancelBtn" style="flex:1;padding:0.75rem 0.5rem;border-radius:100px;border:1.5px solid #dadce0;background:#fff;color:#3c4043;font-size:0.9375rem;font-weight:500;cursor:pointer;min-height:48px;">Cancel</button>
+                <button id="logoutConfirmBtn" style="flex:1;padding:0.75rem 0.5rem;border-radius:100px;border:none;background:#ea4335;color:#fff;font-size:0.9375rem;font-weight:500;cursor:pointer;min-height:48px;">Log Out</button>
+            </div>
+        </div>`;
         document.body.appendChild(overlay);
-
-        const profileDropdown=document.getElementById('profileDropdown');
-        if(profileDropdown) profileDropdown.classList.remove('show');
-
+        const pd=document.getElementById('profileDropdown');if(pd)pd.classList.remove('show');
         document.getElementById('logoutCancelBtn').addEventListener('click',()=>overlay.remove());
         overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-
         document.getElementById('logoutConfirmBtn').addEventListener('click',async()=>{
-            const confirmBtn=document.getElementById('logoutConfirmBtn');
-            confirmBtn.textContent='Logging out...';
-            confirmBtn.disabled=true;
-            confirmBtn.style.opacity='0.7';
-            try{
-                await signOut(auth);
-                window.location.href='/login/index.html';
-            }catch(error){
-                console.error('Logout error:',error);
-                overlay.remove();
-                alert('Error logging out. Please try again.');
-            }
+            const cb=document.getElementById('logoutConfirmBtn');cb.textContent='Logging out...';cb.disabled=true;cb.style.opacity='0.7';
+            try{await signOut(auth);window.location.href='/login/index.html';}
+            catch(err){console.error(err);overlay.remove();alert('Error logging out. Please try again.');}
         });
     }
-
-    window.handleLogout=async function(e){
-        if(e){e.preventDefault();e.stopPropagation();}
-        showLogoutConfirmPopup();
-    };
+    window.handleLogout=async function(e){if(e){e.preventDefault();e.stopPropagation();}showLogoutConfirmPopup();};
 </script>
-
 
 </body>
 </html>
