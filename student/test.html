@@ -1221,16 +1221,25 @@ if (hamburger) {
             uniqueTests.forEach(test => { const category = getCategoryForTest(test.testName); if (categorizedTests[category]) categorizedTests[category].push(test); else categorizedTests['Cardiorespiratory Endurance'].push(test); });
             let html = '';
             const attemptPromises = uniqueTests.map(async (test) => {
-                try {
-                    const attemptQuery = query(collection(db, 'testResults'), where('testId', '==', test.id), where('studentEmail', '==', (studentData.email || '').trim().toLowerCase()));
-                    const attemptQueryAlt = query(collection(db, 'testResults'), where('testId', '==', test.id), where('studentEmail', '==', studentData.email));
-                    const [attemptSnapshot, attemptSnapshotAlt] = await Promise.all([getDocs(attemptQuery), getDocs(attemptQueryAlt)]);
-                    const seenDocs = new Set();
-                    let currentAttempts = 0;
-                    [...attemptSnapshot.docs, ...attemptSnapshotAlt.docs].forEach(doc => { if (!seenDocs.has(doc.id)) { seenDocs.add(doc.id); currentAttempts++; } });
-                    return { testId: test.id, attempts: currentAttempts, testData: test };
-                } catch (error) { return { testId: test.id, attempts: 0, testData: test }; }
-            });
+            try {
+                const attemptQuery = query(collection(db, 'testResults'), where('testId', '==', test.id), where('studentEmail', '==', (studentData.email || '').trim().toLowerCase()));
+                const attemptQueryAlt = query(collection(db, 'testResults'), where('testId', '==', test.id), where('studentEmail', '==', studentData.email));
+                const [attemptSnapshot, attemptSnapshotAlt] = await Promise.all([getDocs(attemptQuery), getDocs(attemptQueryAlt)]);
+                const seenDocs = new Set();
+                let currentAttempts = 0;
+                let hasExcellent = false;
+                [...attemptSnapshot.docs, ...attemptSnapshotAlt.docs].forEach(doc => {
+                    if (!seenDocs.has(doc.id)) {
+                        seenDocs.add(doc.id);
+                        currentAttempts++;
+                        const resultData = doc.data();
+                        const normCat = getNormCategory(resultData.testName, resultData.result ?? resultData.resultData ?? resultData.rawResult);
+                        if (normCat === 'Excellent') hasExcellent = true;
+                    }
+                });
+                return { testId: test.id, attempts: currentAttempts, testData: test, hasExcellent };
+            } catch (error) { return { testId: test.id, attempts: 0, testData: test, hasExcellent: false }; }
+        });
             const attemptsData = await Promise.all(attemptPromises);
             const attemptsMap = new Map();
             attemptsData.forEach(data => { attemptsMap.set(data.testId, data); });
@@ -1239,8 +1248,7 @@ if (hamburger) {
                 const categoryData = testCategories[category];
                 if (!categoryData) continue;
                 const categoryId = category.replace(/\s+/g, '-').toLowerCase();
-                const remainingTests = tests.filter(t => { const a = attemptsMap.get(t.id) || { attempts: 0 }; const isUnlimited = t.attemptsAllowed === 0; return isUnlimited || a.attempts < t.attemptsAllowed; }).length;
-
+                const remainingTests = tests.filter(t => { const a = attemptsMap.get(t.id) || { attempts: 0, hasExcellent: false }; if (a.hasExcellent) return false; const isUnlimited = t.attemptsAllowed === 0; return isUnlimited || a.attempts < t.attemptsAllowed; }).length;
                 html += `
                 <div class="fitness-category-card group category-collapsed" id="category-${categoryId}">
                     <!-- Category Header - CLICKABLE -->
@@ -1286,6 +1294,8 @@ if (hamburger) {
                         const isUnlimited = test.attemptsAllowed === 0;
                         const hasAttempts = currentAttempts > 0;
                         const canRetry = isUnlimited ? true : (currentAttempts < test.attemptsAllowed);
+                        const hasExcellent = attemptData.hasExcellent || false;
+                        if (hasExcellent) return;
                         if (!isUnlimited && hasAttempts && currentAttempts >= test.attemptsAllowed) return;
                         const isViewOnly = test.isViewOnly === true;
                         let statusIcon = 'circle';
