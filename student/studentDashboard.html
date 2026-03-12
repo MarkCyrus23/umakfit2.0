@@ -2948,81 +2948,185 @@ async function calculateAndUpdateStats() {
         }
 
         // Calculate class ranking
-        async function calculateClassRanking() {
-            try {
-                if (!studentData || !studentData.section || studentData.section === 'Not Assigned') {
-                    document.getElementById('classRanking').textContent = '--';
-                    document.getElementById('classRankingDetails').textContent = 'No section assigned';
-                    return;
-                }
-                    
-                    // Get all students in the same section
-                    const studentsQuery = query(
-                        collection(db, 'students'),
-                        where('section', '==', studentData.section)
-                    );
-                    const studentsSnapshot = await getDocs(studentsQuery);
-                    
-                    if (studentsSnapshot.empty) {
-                        document.getElementById('classRanking').textContent = 'No Data';
-                        document.getElementById('classRankingDetails').textContent = 'No students found in section';
-                        return;
+        // Calculate class ranking
+async function calculateClassRanking() {
+    try {
+        if (!studentData || !studentData.section || studentData.section === 'Not Assigned') {
+            document.getElementById('classRanking').textContent = '--';
+            document.getElementById('classRankingDetails').textContent = 'No section assigned';
+            return;
+        }
+
+        // ── Norm helpers (mirrors sectionranklist.html) ──────────────────
+        const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+
+        function extractNum(r) {
+            if (typeof r === 'object' && r !== null)
+                return parseFloat(r.value ?? r.result ?? r.score ?? r.count ?? r.repetitions ?? r.time ?? 0) || 0;
+            if (typeof r === 'string') { const m = r.match(/(\d+\.?\d*)/); return m ? parseFloat(m[1]) : 0; }
+            return parseFloat(r) || 0;
+        }
+
+        function getAgeGroupFromStudent(sd) {
+            if (!sd) return '19-22';
+            if (sd.birthday) {
+                try {
+                    const b = sd.birthday.toDate ? sd.birthday.toDate() : new Date(sd.birthday);
+                    const today = new Date();
+                    let age = today.getFullYear() - b.getFullYear();
+                    const m = today.getMonth() - b.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+                    if (!isNaN(age) && age > 0) {
+                        if (age <= 18) return '15-18';
+                        if (age <= 22) return '19-22';
+                        if (age <= 26) return '23-26';
+                        return '27-30';
                     }
-                    
-                    // Calculate each student's average score
-                    const studentScores = [];
-                    for (const studentDoc of studentsSnapshot.docs) {
-                        const student = studentDoc.data();
-                        
-                        const resultsQuery = query(
-                            collection(db, 'testResults'),
-                            where('studentEmail', '==', student.email),
-                            where('status', '==', 'completed')
-                        );
-                        const resultsSnapshot = await getDocs(resultsQuery);
-                        
-                        let totalScore = 0;
-                        let count = 0;
-                        resultsSnapshot.forEach(doc => {
-                            const result = doc.data();
-                            const score = result.score || calculateTestScore(result.testName, result.resultData);
-                            totalScore += score;
-                            count++;
-                        });
-                        
-                        const avgScore = count > 0 ? totalScore / count : 0;
-                        studentScores.push({
-                            email: student.email,
-                            name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
-                            avgScore: avgScore,
-                            testsCompleted: count
-                        });
-                    }
-                    
-                    // Sort by average score (descending)
-                    studentScores.sort((a, b) => b.avgScore - a.avgScore);
-                    
-                    // Find current student's rank
-                    const myRank = studentScores.findIndex(s => s.email === studentData.email) + 1;
-                    const totalStudents = studentScores.length;
-                    
-                    if (myRank > 0) {
-                        document.getElementById('classRanking').textContent = `#${myRank} of ${totalStudents}`;
-                        
-                        // Calculate percentile
-                        const percentile = Math.round(((totalStudents - myRank + 1) / totalStudents) * 100);
-                        document.getElementById('classRankingDetails').textContent = `Top ${percentile}% in your section`;
-                    } else {
-                        document.getElementById('classRanking').textContent = 'Not Ranked';
-                        document.getElementById('classRankingDetails').textContent = 'Complete tests to get ranked';
-                    }
-                    
-                } catch (error) {
-                    console.error('Error calculating class ranking:', error);
-                    document.getElementById('classRanking').textContent = 'Error';
-                    document.getElementById('classRankingDetails').textContent = 'Unable to calculate ranking';
+                } catch(e) {}
+            }
+            if (sd.age) {
+                const age = parseInt(sd.age);
+                if (!isNaN(age) && age > 0) {
+                    if (age <= 18) return '15-18';
+                    if (age <= 22) return '19-22';
+                    if (age <= 26) return '23-26';
+                    return '27-30';
                 }
             }
+            return '19-22';
+        }
+
+        function normCategory(testName, result, genderKey, ageGroup) {
+            const n = (testName || '').toLowerCase();
+            const v = extractNum(result);
+            const ag = ageGroup || '19-22';
+            const gen = genderKey === 'female' ? 'female' : 'male';
+
+            if (n.includes('push-up') || n.includes('pushup')) {
+                const t = { male: {'15-18':[40,31,21,11],'19-22':[38,28,18,9],'23-26':[35,25,16,8],'27-30':[32,23,14,6]}, female: {'15-18':[25,19,13,7],'19-22':[23,17,11,6],'23-26':[20,15,9,5],'27-30':[18,13,8,4]} }[gen][ag] || [38,28,18,9];
+                if (v >= t[0]) return 'Excellent'; if (v >= t[1]) return 'Good'; if (v >= t[2]) return 'Average'; if (v >= t[3]) return 'Below Average'; return 'Poor';
+            }
+            if (n.includes('curl-up') || n.includes('curl up')) {
+                const t = { male: {'15-18':[50,41,31,21],'19-22':[47,38,28,19],'23-26':[44,35,25,17],'27-30':[40,32,22,15]}, female: {'15-18':[45,36,26,16],'19-22':[42,34,24,15],'23-26':[39,31,21,13],'27-30':[36,28,19,11]} }[gen][ag] || [47,38,28,19];
+                if (v >= t[0]) return 'Excellent'; if (v >= t[1]) return 'Good'; if (v >= t[2]) return 'Average'; if (v >= t[3]) return 'Below Average'; return 'Poor';
+            }
+            if (n.includes('sit-and-reach') || n.includes('sit and reach')) {
+                const t = { male: {'15-18':[38,33,26,18],'19-22':[37,32,25,17],'23-26':[35.5,30.5,23.5,15.5],'27-30':[34,29,22,14]}, female: {'15-18':[39,34,27,19],'19-22':[38,33,26,18],'23-26':[37,32,25,17],'27-30':[36,31,24,16]} }[gen][ag] || [37,32,25,17];
+                if (v >= t[0]) return 'Excellent'; if (v >= t[1]) return 'Good'; if (v >= t[2]) return 'Average'; if (v >= t[3]) return 'Below Average'; return 'Poor';
+            }
+            if (n.includes('step test') || n.includes('3-minute')) {
+                const t = { male: {'15-18':[84,97,108,118],'19-22':[79,89,105,116],'23-26':[80,90,106,117],'27-30':[81,91,107,118]}, female: {'15-18':[89,103,113,124],'19-22':[85,98,109,118],'23-26':[86,99,110,119],'27-30':[88,101,112,121]} }[gen][ag] || [79,89,105,116];
+                if (v <= t[0]) return 'Excellent'; if (v <= t[1]) return 'Good'; if (v <= t[2]) return 'Average'; if (v <= t[3]) return 'Below Average'; return 'Poor';
+            }
+            if (n.includes('skinfold')) {
+                if (typeof result === 'string') { const m = result.match(/\(([^)]+)\)/); if (m) { const c = m[1]; if (c==='Athletic'||c==='Fitness') return 'Excellent'; if (c==='Average') return 'Average'; if (c==='Essential Fat') return 'Good'; if (c==='Overfat') return 'Below Average'; if (c==='Obese') return 'Poor'; } }
+                return 'Average';
+            }
+            if (n.includes('bmi')) {
+                const bmi = v;
+                if (bmi >= 18.5 && bmi <= 24.9) return 'Excellent';
+                if ((bmi >= 17.0 && bmi < 18.5) || (bmi >= 25.0 && bmi < 27.0)) return 'Good';
+                if ((bmi >= 16.0 && bmi < 17.0) || (bmi >= 27.0 && bmi < 30.0)) return 'Average';
+                return 'Below Average';
+            }
+            return 'Average';
+        }
+
+            function getOverallCategoryScore(categories) {
+                if (!categories.length) return 0;
+                return categories.reduce((s, c) => s + (CATEGORY_ORDER[c] || 3), 0) / categories.length;
+            }
+           
+
+            // 1. Get all students in section
+            const studentsQuery = query(
+                collection(db, 'students'),
+                where('section', '==', studentData.section)
+            );
+            const studentsSnapshot = await getDocs(studentsQuery);
+
+            if (studentsSnapshot.empty) {
+                document.getElementById('classRanking').textContent = 'No Data';
+                document.getElementById('classRankingDetails').textContent = 'No students found in section';
+                return;
+            }
+
+            // 2. Build student map with age group & gender
+            const studentMap = new Map();
+            studentsSnapshot.forEach(d => {
+                const sd = d.data();
+                if (!sd.email) return;
+                const genderKey = (sd.gender || '').toLowerCase().startsWith('f') ? 'female' : 'male';
+                const ageGroup  = getAgeGroupFromStudent(sd);
+                studentMap.set(sd.email, { genderKey, ageGroup, categories: [] });
+            });
+
+            // 3. Fetch all completed test results for these students
+            const emails = Array.from(studentMap.keys());
+
+            // Firestore 'in' supports max 30 items; chunk if needed
+            const chunkSize = 30;
+            const chunks = [];
+            for (let i = 0; i < emails.length; i += chunkSize) chunks.push(emails.slice(i, i + chunkSize));
+
+            const bestPerTest = new Map(); // key: email_testId → best category score
+
+            for (const chunk of chunks) {
+                const q = query(
+                    collection(db, 'testResults'),
+                    where('studentEmail', 'in', chunk),
+                    where('status', '==', 'completed')
+                );
+                const snap = await getDocs(q);
+                snap.forEach(d => {
+                    const r = d.data();
+                    const email = r.studentEmail;
+                    if (!studentMap.has(email)) return;
+
+                    const { genderKey, ageGroup } = studentMap.get(email);
+                    const cat = normCategory(r.testName, r.result ?? r.resultData, genderKey, ageGroup);
+                    const catScore = CATEGORY_ORDER[cat] || 3;
+                    const key = `${email}_${r.testId || d.id}`;
+
+                    if (!bestPerTest.has(key) || catScore > (bestPerTest.get(key).score)) {
+                        bestPerTest.set(key, { email, cat, score: catScore });
+                    }
+                });
+            }
+
+            // 4. Aggregate per student
+            bestPerTest.forEach(({ email, cat }) => {
+                if (studentMap.has(email)) {
+                    studentMap.get(email).categories.push(cat);
+                }
+            });
+
+            // 5. Rank all students by their overall category score
+            const ranked = [];
+            studentMap.forEach((sd, email) => {
+                ranked.push({ email, avgScore: getOverallCategoryScore(sd.categories) });
+            });
+            ranked.sort((a, b) => b.avgScore - a.avgScore);
+
+            // 6. Find current student's rank
+            const myRank = ranked.findIndex(s => s.email === studentData.email) + 1;
+            const totalStudents = ranked.length;
+
+            if (myRank > 0) {
+                document.getElementById('classRanking').textContent = `#${myRank} of ${totalStudents}`;
+                const percentile = Math.round(((totalStudents - myRank + 1) / totalStudents) * 100);
+                document.getElementById('classRankingDetails').textContent = `Top ${percentile}% in your section`;
+            } else {
+                document.getElementById('classRanking').textContent = 'Not Ranked';
+                document.getElementById('classRankingDetails').textContent = 'Complete tests to get ranked';
+            }
+
+        } catch (error) {
+            console.error('Error calculating class ranking:', error);
+            document.getElementById('classRanking').textContent = 'Error';
+            document.getElementById('classRankingDetails').textContent = 'Unable to calculate ranking';
+        }
+    }
 
         // Best at: based on norm classification (where student is best)
         const NORM_LABELS_RANK = { 1: 'Poor', 2: 'Below Average', 3: 'Average', 4: 'Good', 5: 'Excellent' };
