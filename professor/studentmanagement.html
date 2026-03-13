@@ -2313,7 +2313,7 @@ window.onTestFilterChange = function() {
 
         // Listen for section changes
         sectionsUnsubscribe = onSnapshot(collection(db, 'sections'), async () => {
-            console.log('Sections updated, reloading...');
+            // debug log removed
             await loadSections();
             await loadStudents();
         });
