@@ -478,12 +478,11 @@
 
                 <!-- All Students View -->
                 <div id="allStudentsView">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-5">
                         <input type="text" id="searchStudents" placeholder="Search students by name or ID..."
                             class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm transition-all w-full"
                             onkeyup="filterStudents()">
-                        <select id="filterSection" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()"></select>
-                        <select id="filterCategory" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()">
+                            <select id="filterSection" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents(); onTestFilterChange()"></select>                        <select id="filterCategory" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()">
                             <option value="">All Categories</option>
                             <option value="Excellent">Excellent</option>
                             <option value="Good">Good</option>
@@ -491,6 +490,12 @@
                             <option value="Below Average">Below Average</option>
                             <option value="Poor">Poor</option>
                             <option value="no-attempts">No Attempts Yet</option>
+                        </select>
+                       <select id="filterTest" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="onTestFilterChange()">
+                            <option value="">Select Test</option>
+                        </select>
+                        <select id="filterTestDate" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()">
+                            <option value="">Select Date</option>
                         </select>
                     </div>
                     <div class="table-responsive">
@@ -1453,7 +1458,7 @@ function renderCategoryBadge(category) {
                                     bestCategoriesPerTest.set(testId, category);
                                 }
                             });
-                        } catch (e) { console.warn('Error loading attempts for student:', fullName, e); }
+                       } catch (e) { console.warn('Error loading attempts for student:', fullName, e); }
                     }
 
                     // Get all unique best categories
@@ -1465,6 +1470,22 @@ function renderCategoryBadge(category) {
                     
                     // Calculate numeric representation for sorting
                     const overallScore = CATEGORY_ORDER[overallCategory] || 3;
+
+                    // Build rawResults from testResults query
+                    const rawResults = [];
+                    if (studentEmail) {
+                        try {
+                            const rawQuery = query(
+                                collection(db, 'testResults'),
+                                where('studentEmail', '==', studentEmail),
+                                where('status', '==', 'completed')
+                            );
+                            const rawSnap = await getDocs(rawQuery);
+                            rawSnap.forEach(docSnap => {
+                                rawResults.push({ id: docSnap.id, ...docSnap.data() });
+                            });
+                        } catch (e) { console.warn('Error loading raw results:', e); }
+                    }
 
                     window.students.push({
                         id: studentEmail,
@@ -1478,6 +1499,8 @@ function renderCategoryBadge(category) {
                         totalAttempts: totalAttempts || 0,
                         uniqueTestCount: uniqueTestCount || 0,
                         categories: uniqueCategories,
+                        testNames: Array.from(new Set(rawResults.map(r => r.testName).filter(Boolean))),
+                        testResultsRaw: rawResults,
                         overallCategory: overallCategory,
                         overallScore: overallScore,
                         status: 'active',
@@ -1488,8 +1511,42 @@ function renderCategoryBadge(category) {
                 }
             }
             
-            window.filteredStudents = [...window.students];
-            window.currentPage = 1;
+            // Load scheduledTests para makuha ang professor-created dates
+        const scheduledTestsSnap = await getDocs(query(
+            collection(db, 'scheduledTests'),
+            where('professorEmail', '==', window.currentUser.email)
+        ));
+        window.scheduledTestsMap = new Map();
+        scheduledTestsSnap.forEach(docSnap => {
+            const d = docSnap.data();
+            const key = `${d.testName}_${d.section}`;
+            if (!window.scheduledTestsMap.has(key)) {
+                window.scheduledTestsMap.set(key, []);
+            }
+            // Store deadline date for the date filter dropdown
+            let deadlineDate = d.deadline || '';
+            // Also keep createdDate for matching testResults to scheduled tests
+            let createdDate = '';
+            if (d.createdAt) {
+                let cd;
+                if (typeof d.createdAt.toDate === 'function') cd = d.createdAt.toDate();
+                else cd = new Date(d.createdAt);
+                if (!isNaN(cd)) createdDate = cd.toISOString().split('T')[0];
+            } else if (d.date) {
+                createdDate = d.date;
+            }
+            window.scheduledTestsMap.get(key).push({ 
+                id: docSnap.id, 
+                createdDate, 
+                date: d.date || '',
+                deadline: deadlineDate,        // ← deadline of the test
+                deadlineTime: d.deadlineTime || '23:59'
+            });
+        });
+
+window.filteredStudents = [...window.students];
+window.currentPage = 1;
+buildTestFilter();
             updateStudentsTable(window.filteredStudents);
             await loadOverdueStudents();
             document.getElementById('allStudentsCount').textContent = window.students.length;
@@ -1536,7 +1593,17 @@ function renderCategoryBadge(category) {
             document.getElementById('currentPage').textContent = window.currentPage;
         }
         studentCount.textContent = students.length;
-        
+
+             const activeTest = document.getElementById('filterTest')?.value || '';
+    const thead = document.querySelector('#studentsTable thead tr');
+    if (thead) {
+       if (activeTest) {
+        thead.innerHTML = `<th>ID</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Health Condition</th><th>Test Result</th><th>Submitted At</th><th>Overall Performance</th><th>Actions</th>`;
+    } else {
+        thead.innerHTML = `<th>ID</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Health Condition</th><th>Overall Performance</th><th>Actions</th>`;
+    }
+    }
+    
         if (displayStudents.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">No Students Found</div><div class="text-gray-500 text-sm">Try adjusting your search or filters.</div></div></td></tr>`;
             return;
@@ -1546,18 +1613,66 @@ function renderCategoryBadge(category) {
         displayStudents.forEach(student => {
             const badge = renderCategoryBadge(student.overallCategory);
             
-const healthDisplay = student.medicalCondition
-    ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;color:#92400e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">🏥 ${student.medicalCondition}</span>`
-    : `<span style="color:#94a3b8;font-size:13px;">—</span>`;
+        const healthDisplay = student.medicalCondition
+            ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;color:#92400e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">🏥 ${student.medicalCondition}</span>`
+            : `<span style="color:#94a3b8;font-size:13px;">—</span>`;
+        const activeTestFilter = document.getElementById('filterTest')?.value || '';
+        const activeDateFilter = document.getElementById('filterTestDate')?.value || '';
+
+        let testDisplay = '';
+        let dateDisplay = '';
+        if (activeTestFilter && student.testResultsRaw) {
+           let rows = activeTestFilter ? student.testResultsRaw.filter(r => (r.testName || '') === activeTestFilter) : [];
+            if (activeTestFilter && activeDateFilter) {
+                // Filter by matching scheduled test deadline only when both are selected
+                rows = rows.filter(r => {
+                    const testId = r.testId || r.scheduledTestId;
+                    if (!testId) return false;
+                    if (window.scheduledTestsMap) {
+                        for (const tests of window.scheduledTestsMap.values()) {
+                            const matched = tests.find(t => t.id === testId);
+                            if (matched) return matched.deadline === activeDateFilter;
+                        }
+                    }
+                    return false;
+                });
+            }
+           if (rows.length > 0) {
+            const latest = rows[rows.length - 1];
+            let resultVal = '—';
+            if (latest.result !== undefined && latest.result !== null) {
+                resultVal = typeof latest.result === 'object'
+                    ? (latest.result.value || latest.result.repetitions || latest.result.time || '—')
+                    : latest.result;
+            } else if (latest.repetitions !== undefined) resultVal = latest.repetitions;
+            testDisplay = `<strong>${activeTestFilter}</strong><br><small style="color:#64748b;">${resultVal} ${latest.testUnit || ''}</small>`;
+
+            if (latest.submittedAt) {
+                let d;
+                if (typeof latest.submittedAt.toDate === 'function') d = latest.submittedAt.toDate();
+                else if (latest.submittedAt.seconds) d = new Date(latest.submittedAt.seconds * 1000);
+                else d = new Date(latest.submittedAt);
+                const submittedStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+                const submittedTime = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                dateDisplay = `${submittedStr}<br><small style="color:#64748b;">${submittedTime}</small>`;
+            }
+        } else {
+            // Student is in section but hasn't submitted — still show the row
+            testDisplay = `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">❌ Not Submitted</span>`;
+            dateDisplay = `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef9c3;border:1px solid #fde047;color:#854d0e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">⏳ Pending</span>`;
+        }
+}
+
 rowsHTML += `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
                 <td data-label="ID"><strong>${student.umakId || 'N/A'}</strong></td>
                 <td data-label="Student Name">${student.firstName} ${student.lastName}</td>
                 <td data-label="Section">${student.section || 'N/A'}</td>
                 <td data-label="Activities"><strong>${student.uniqueTestCount}</strong></td>
                 <td data-label="Health Condition">${healthDisplay}</td>
+                ${activeTestFilter ? `<td data-label="Test">${testDisplay}</td><td data-label="Date">${dateDisplay}</td>` : ''}
                 <td data-label="Overall">${badge}</td>
                 <td data-label="Actions"><div class="action-buttons"><button class="btn-action btn-view" onclick="event.stopPropagation(); viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i> View</button></div></td>
-            </tr>`;        });
+            </tr>`;       });
         tableBody.innerHTML = rowsHTML;
         updateResponsiveViews();
     }
@@ -1956,45 +2071,265 @@ rowsHTML += `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:poi
         if (window.innerWidth <= 768) populateMobileSections(window.filteredSections); else populateSectionsTable();
     };
 
-    window.filterStudents = function() {
-        const searchTerm = document.getElementById('searchStudents').value.toLowerCase();
-        const sectionFilter = document.getElementById('filterSection').value;
-        const categoryFilter = document.getElementById('filterCategory').value;
-        window.filteredStudents = window.students.filter(student => {
-            const matchesSearch = !searchTerm || student.firstName.toLowerCase().includes(searchTerm) || student.lastName.toLowerCase().includes(searchTerm) || (student.umakId && student.umakId.toLowerCase().includes(searchTerm));
-            const matchesSection = !sectionFilter || student.section === sectionFilter;
-            let matchesCategory = true;
-            if (categoryFilter) {
-                if (categoryFilter === 'no-attempts') {
-                    matchesCategory = student.uniqueTestCount === 0;
-                } else {
-                    matchesCategory = student.overallCategory === categoryFilter;
-                }
+   window.buildTestFilter = function() {
+    const testFilter = document.getElementById('filterTest');
+    if (!testFilter) return;
+    const testNames = new Set();
+    window.students.forEach(student => {
+        if (student.testNames) student.testNames.forEach(n => testNames.add(n));
+    });
+   testFilter.innerHTML = '<option value="">Select Test</option>';
+    Array.from(testNames).sort().forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        testFilter.appendChild(opt);
+    });
+};
+
+window.onTestFilterChange = function() {
+    const selectedTest = document.getElementById('filterTest').value;
+    const selectedSection = document.getElementById('filterSection').value;
+    const dateFilter = document.getElementById('filterTestDate');
+    dateFilter.innerHTML = '<option value="">Select Date</option>';
+
+    if (!selectedTest) {
+        filterStudents();
+        return;
+    }
+
+    if (selectedTest && window.scheduledTestsMap) {
+        const dates = new Set();
+        window.scheduledTestsMap.forEach((tests, key) => {
+            if (!key.startsWith(selectedTest + '_')) return;
+            
+            // If a section is selected, only show dates for that section
+            if (selectedSection) {
+                const sectionInKey = key.slice(selectedTest.length + 1);
+                if (sectionInKey !== selectedSection) return;
             }
-            return matchesSearch && matchesSection && matchesCategory;
+            
+            tests.forEach(t => {
+                if (t.deadline) dates.add(t.deadline);
+            });
         });
-        window.currentPage = 1;
-        if (window.innerWidth <= 768) populateMobileStudents(window.filteredStudents); else updateStudentsTable(window.filteredStudents);
-    };
+
+        Array.from(dates).sort().forEach(dateStr => {
+            const d = new Date(dateStr + 'T00:00:00');
+            const label = d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+            const opt = document.createElement('option');
+            opt.value = dateStr;
+            opt.textContent = label;
+            dateFilter.appendChild(opt);
+        });
+    }
+
+    filterStudents();
+};
+
+        window.filterStudents = function() {
+    const searchTerm = document.getElementById('searchStudents').value.toLowerCase();
+    const sectionFilter = document.getElementById('filterSection').value;
+    const categoryFilter = document.getElementById('filterCategory').value;
+    const testFilter = document.getElementById('filterTest')?.value || '';
+    const dateFilter = document.getElementById('filterTestDate')?.value || '';
+
+    window.filteredStudents = window.students.filter(student => {
+        const matchesSearch = !searchTerm || student.firstName.toLowerCase().includes(searchTerm) || student.lastName.toLowerCase().includes(searchTerm) || (student.umakId && student.umakId.toLowerCase().includes(searchTerm));
+        const matchesSection = !sectionFilter || student.section === sectionFilter;
+        let matchesCategory = true;
+        
+        if (categoryFilter) {
+            if (categoryFilter === 'no-attempts') matchesCategory = student.uniqueTestCount === 0;
+            else matchesCategory = student.overallCategory === categoryFilter;
+        }
+
+        // When test filter is active, show ALL students in the section (including non-submitters)
+        let matchesTest = true;
+        if (testFilter && !dateFilter) {
+            // Only filter by test name if no date is selected
+            matchesTest = student.testNames && student.testNames.includes(testFilter);
+        }
+
+        let matchesDate = true;
+        if (testFilter && dateFilter) {
+            // When both test AND date selected: show all students in sections that have this scheduled test on that date
+            const studentSection = student.section;
+            let sectionHasThisTest = false;
+            if (window.scheduledTestsMap) {
+                window.scheduledTestsMap.forEach((tests, key) => {
+                    if (key === `${testFilter}_${studentSection}`) {
+                        tests.forEach(t => {
+                            if (t.deadline === dateFilter) sectionHasThisTest = true;
+                        });
+                    }
+                });
+            }
+            matchesDate = sectionHasThisTest;
+            matchesTest = true; // Override matchesTest — show all students in matching section
+        }
+
+        return matchesSearch && matchesSection && matchesCategory && matchesTest && matchesDate;
+    });
+    window.currentPage = 1;
+    if (window.innerWidth <= 768) populateMobileStudents(window.filteredStudents);
+    else updateStudentsTable(window.filteredStudents);
+};
 
     window.previousPage = function() { if (window.currentPage > 1) { window.currentPage--; updateStudentsTable(window.filteredStudents); } };
     window.nextPage = function() { const totalPages = Math.ceil(window.filteredStudents.length / window.itemsPerPage); if (window.currentPage < totalPages) { window.currentPage++; updateStudentsTable(window.filteredStudents); } };
 
     window.exportStudents = function() {
-        if (window.filteredStudents.length === 0) { showWarningModal('No students to export.', () => {}, () => {}); return; }
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "ID,Student Name,Email,Section,Tests Taken,Overall Category\n";
+    if (window.filteredStudents.length === 0) { showWarningModal('No students to export.', () => {}, () => {}); return; }
+    const testFilter = document.getElementById('filterTest')?.value || '';
+    const dateFilter = document.getElementById('filterTestDate')?.value || '';
+
+    let csvRows = [];
+
+    if (testFilter) {
+        // Header matches table columns + attempt number
+        csvRows.push([
+            'ID',
+            'Student Name',
+            'Section',
+            'Activities',
+            'Health Condition',
+            'Test Name',
+            'Test Result',
+            'Submitted At',
+            'Attempt #',
+            'Overall Performance'
+        ]);
+
         window.filteredStudents.forEach(student => {
-            const row = [student.umakId || '', `${student.firstName} ${student.lastName}`, student.email || '', student.section || '', student.uniqueTestCount || 0, student.overallCategory || 'N/A'];
-            csvContent += row.map(field => `"${field}"`).join(',') + "\n";
+            // Get all attempts for this test sorted chronologically (oldest first) for attempt numbering
+            const allRowsForTest = (student.testResultsRaw || [])
+                .filter(r => (r.testName || '') === testFilter)
+                .sort((a, b) => {
+                    const getTs = (r) => {
+                        if (!r.submittedAt) return 0;
+                        if (typeof r.submittedAt.toDate === 'function') return r.submittedAt.toDate().getTime();
+                        if (r.submittedAt.seconds) return r.submittedAt.seconds * 1000;
+                        return new Date(r.submittedAt).getTime();
+                    };
+                    return getTs(a) - getTs(b);
+                });
+
+            // Filter by date if selected
+            let rows = [...allRowsForTest];
+            if (dateFilter) {
+                rows = rows.filter(r => {
+                    const testId = r.testId || r.scheduledTestId;
+                    if (!testId) return false;
+                    if (window.scheduledTestsMap) {
+                        for (const tests of window.scheduledTestsMap.values()) {
+                            const matched = tests.find(t => t.id === testId);
+                            if (matched) return matched.deadline === dateFilter;
+                        }
+                    }
+                    return false;
+                });
+            }
+
+            const healthCondition = student.medicalCondition || '—';
+            const activities = student.uniqueTestCount || 0;
+
+            if (rows.length === 0) {
+                // Not submitted — show row with N/A like in the table
+                csvRows.push([
+                    student.umakId || 'N/A',
+                    `${student.firstName} ${student.lastName}`,
+                    student.section || 'N/A',
+                    activities,
+                    healthCondition,
+                    testFilter,
+                    'Not Submitted',
+                    'Pending',
+                    'N/A',
+                    student.overallCategory || 'N/A'
+                ]);
+            } else {
+                // One row per attempt
+                rows.forEach(r => {
+                    // Attempt number = position in full chronological list
+                    const attemptNumber = allRowsForTest.findIndex(a => a.id === r.id) + 1;
+
+                    // Format result — same logic as table display
+                    let resultVal = '—';
+                    if (r.result !== undefined && r.result !== null) {
+                        if (typeof r.result === 'object') {
+                            resultVal = r.result.value || r.result.repetitions || r.result.time || '—';
+                        } else {
+                            resultVal = r.result;
+                        }
+                    } else if (r.repetitions !== undefined) {
+                        resultVal = r.repetitions;
+                    }
+                    const resultWithUnit = `${resultVal} ${r.testUnit || ''}`.trim();
+
+                    // Format submitted at — same as table display
+                    let submittedStr = 'N/A';
+                    if (r.submittedAt) {
+                        let d;
+                        if (typeof r.submittedAt.toDate === 'function') d = r.submittedAt.toDate();
+                        else if (r.submittedAt.seconds) d = new Date(r.submittedAt.seconds * 1000);
+                        else d = new Date(r.submittedAt);
+                        const datePart = d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+                        const timePart = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                        submittedStr = `${datePart} ${timePart}`;
+                    }
+
+                    csvRows.push([
+                        student.umakId || 'N/A',
+                        `${student.firstName} ${student.lastName}`,
+                        student.section || 'N/A',
+                        activities,
+                        healthCondition,
+                        r.testName || testFilter,
+                        resultWithUnit,
+                        submittedStr,
+                        `Attempt ${attemptNumber}`,
+                        student.overallCategory || 'N/A'
+                    ]);
+                });
+            }
         });
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `student_categories_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        showSuccessModal('Students exported successfully!');
-    };
+
+    } else {
+        // No test filter — summary export matching table: ID, Name, Section, Activities, Health Condition, Overall Performance
+        csvRows.push([
+            'ID',
+            'Student Name',
+            'Section',
+            'Activities',
+            'Health Condition',
+            'Overall Performance'
+        ]);
+
+        window.filteredStudents.forEach(student => {
+            csvRows.push([
+                student.umakId || 'N/A',
+                `${student.firstName} ${student.lastName}`,
+                student.section || 'N/A',
+                student.uniqueTestCount || 0,
+                student.medicalCondition || '—',
+                student.overallCategory || 'N/A'
+            ]);
+        });
+    }
+
+    // Build CSV string safely (handles commas/quotes in values)
+    const csvContent = "data:text/csv;charset=utf-8,"
+        + csvRows.map(row => row.map(f => `"${String(f).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `student_${testFilter ? testFilter.replace(/\s+/g, '_') + '_scores' : 'performance'}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showSuccessModal('Students exported successfully!');
+};
 
     window.refreshData = async function(event) {
         try {
