@@ -76,6 +76,16 @@
         @media (max-width:1023px) {
             #notificationDropdown, #notificationDropdownMobile { width: calc(100vw - 2rem); right:0; left:auto; }
         }
+
+        /* dropdown empty state style */
+        .notification-dropdown-empty { padding: 2rem 1.5rem; text-align: center; color: #9ca3af; }
+        .notification-dropdown-empty i { font-size: 3rem; margin-bottom: 0.75rem; display: block; }
+        .notification-dropdown-empty p { color: #6b7280; font-size: 0.9rem; }
+        .notification-dropdown-item { padding: 1rem 1.25rem; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
+        .notification-dropdown-item:hover { background: #f9fafb; }
+        .notification-dropdown-item strong { font-size: 0.9rem; color: #111827; display: block; margin-bottom: 0.2rem; }
+        .notification-dropdown-item p { font-size: 0.8rem; color: #4b5563; margin-bottom: 0.25rem; line-height: 1.4; }
+        .notification-dropdown-item small { font-size: 0.7rem; color: #9ca3af; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
@@ -140,7 +150,7 @@
                                     <button id="closeNotificationBtn" class="text-gray-400 hover:text-gray-600 p-1 transition-colors"><i class="bi bi-x-lg"></i></button>
                                 </div>
                                 <div id="notificationDropdownBody" class="max-h-96 overflow-y-auto">
-                                    <div class="p-6 sm:p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-4xl sm:text-5xl mb-3 block"></i><p class="text-gray-600 text-sm sm:text-base">No notifications yet</p></div>
+                                    <!-- dynamic content -->
                                 </div>
                                 <div class="sticky bottom-0 p-2 sm:p-3 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl">
                                     <button onclick="window.location.href='./notification.html'"
@@ -167,7 +177,7 @@
                                         <span class="font-medium text-gray-700 text-sm sm:text-base">View Profile</span>
                                     </a>
                                     <div class="h-px bg-gray-200 my-1 sm:my-2"></div>
-                                    <div onclick="handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
+                                    <div onclick="window.handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
                                         <i class="bi bi-box-arrow-right text-lg sm:text-xl"></i>
                                         <span class="font-medium text-sm sm:text-base">Logout</span>
                                     </div>
@@ -192,7 +202,7 @@
                                     <button id="closeNotificationBtnMobile" class="text-gray-400 hover:text-gray-600 p-1 transition-colors"><i class="bi bi-x-lg"></i></button>
                                 </div>
                                 <div id="notificationDropdownBodyMobile" class="max-h-96 overflow-y-auto">
-                                    <div class="p-6 sm:p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-4xl sm:text-5xl mb-3 block"></i><p class="text-gray-600 text-sm sm:text-base">No notifications yet</p></div>
+                                    <!-- dynamic content -->
                                 </div>
                                 <div class="sticky bottom-0 p-2 sm:p-3 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl">
                                     <button onclick="window.location.href='./notification.html'"
@@ -219,7 +229,7 @@
                                         <span class="font-medium text-gray-700 text-sm sm:text-base">View Profile</span>
                                     </a>
                                     <div class="h-px bg-gray-200 my-1 sm:my-2"></div>
-                                    <div onclick="handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
+                                    <div onclick="window.handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
                                         <i class="bi bi-box-arrow-right text-lg sm:text-xl"></i>
                                         <span class="font-medium text-sm sm:text-base">Logout</span>
                                     </div>
@@ -312,7 +322,7 @@
                         </div>
 
                         <!-- Edit Button -->
-                        <button onclick="editProfile()"
+                        <button onclick="window.editProfile()"
                                 class="mt-4 w-full py-2 rounded-[7px] text-white text-sm font-normal cursor-pointer transition-all hover:opacity-90 hover:-translate-y-0.5"
                                 style="background:linear-gradient(90deg,#121b67 0%,#3b82f6 100%);">
                             Edit Profile
@@ -332,7 +342,7 @@
                                                 <div class="col-md-6">
                                                     <label class="form-label fw-bold">Birthday</label>
                                                     <input type="date" class="form-control" id="editBirthday" required
-                                                        onchange="autoFillAge(); this.setCustomValidity('')"
+                                                        onchange="window.autoFillAge(); this.setCustomValidity('')"
                                                         oninput="this.setCustomValidity('')">
                                                     <small class="text-muted">Must be at least 15 years old</small>
                                                 </div>
@@ -368,7 +378,7 @@
                                                     <div class="input-group">
                                                         <input type="number" class="form-control" id="editHeight" min="100" max="250" required placeholder="100–250" maxlength="3" inputmode="numeric"
                                                             onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault();"
-                                                            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);this.setCustomValidity('');var hVal=parseFloat(this.value);var sBtn=document.querySelector('#editProfileModal .btn-primary');var wVal=parseFloat(document.getElementById('editWeight').value);var wHas=document.getElementById('editWeight').value!=='';var wBad=wHas&&(isNaN(wVal)||wVal<30||wVal>130);if(this.value!==''&&(isNaN(hVal)||hVal<100||hVal>250)){this.style.borderColor='#dc2626';document.getElementById('heightError').style.display='block';if(sBtn)sBtn.disabled=true;}else{this.style.borderColor='';document.getElementById('heightError').style.display='none';if(sBtn)sBtn.disabled=wBad;}">
+                                                            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);this.setCustomValidity('');window.validateHeightWeight();">
                                                         <span class="input-group-text">cm</span>
                                                     </div>
                                                     <small class="text-muted">Range: 100 cm – 250 cm</small>
@@ -379,7 +389,7 @@
                                                     <div class="input-group">
                                                         <input type="number" class="form-control" id="editWeight" min="30" max="130" required placeholder="30–130" maxlength="3" inputmode="numeric"
                                                             onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault();"
-                                                            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);this.setCustomValidity('');var wVal=parseFloat(this.value);var sBtn=document.querySelector('#editProfileModal .btn-primary');var hVal=parseFloat(document.getElementById('editHeight').value);var hHas=document.getElementById('editHeight').value!=='';var hBad=hHas&&(isNaN(hVal)||hVal<100||hVal>250);if(this.value!==''&&(isNaN(wVal)||wVal<30||wVal>130)){this.style.borderColor='#dc2626';document.getElementById('weightError').style.display='block';if(sBtn)sBtn.disabled=true;}else{this.style.borderColor='';document.getElementById('weightError').style.display='none';if(sBtn)sBtn.disabled=hBad;}">
+                                                            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);this.setCustomValidity('');window.validateHeightWeight();">
                                                         <span class="input-group-text">kg</span>
                                                     </div>
                                                     <small class="text-muted">Range: 30 kg – 130 kg</small>
@@ -399,7 +409,7 @@
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="button" class="btn btn-primary" onclick="saveProfile()"
+                                        <button type="button" class="btn btn-primary" onclick="window.saveProfile()"
                                                 style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);border:none;">
                                             <i class="bi bi-save me-2"></i>Save Changes
                                         </button>
@@ -559,7 +569,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, onSnapshot, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgaLunqEf2gs6dSpF_sz1hV5XQ5Wm52jo",
@@ -577,913 +587,387 @@
         window.auth = auth;
         window.signOut = signOut;
 
-        let studentData = null, studentDocId = null;
+        let studentData = null;
+        let studentDocId = null;
         let unsubscribeNotificationListener = null;
 
-        // ========== NOTIFICATIONS ==========
+        // ========== HELPERS ==========
+        function capitalize(str) { if (!str) return ''; return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase(); }
+        function extractUmakIdFromEmail(email) {
+            if (!email) return 'Not Assigned';
+            const emailLower = email.toLowerCase();
+            let emailWithoutDomain = emailLower.replace('@umak.edu.ph', '');
+            const parts = emailWithoutDomain.split('.');
+            if (parts.length >= 1) {
+                const lastPart = parts[parts.length - 1];
+                const idPattern = /^[a-z][0-9]+$/i;
+                if (idPattern.test(lastPart)) return lastPart.toUpperCase();
+                const alnumPattern = /^[a-z0-9]+$/i;
+                if (alnumPattern.test(lastPart) && lastPart.length >= 7) return lastPart.toUpperCase();
+                if (parts.length === 1 && alnumPattern.test(lastPart)) return lastPart.toUpperCase();
+            }
+            return 'Not Assigned';
+        }
+        function extractNameFromEmail(email) {
+            if (!email) return { firstName: 'Student', lastName: '' };
+            const emailLower = email.toLowerCase();
+            const emailWithoutDomain = emailLower.replace('@umak.edu.ph', '');
+            const parts = emailWithoutDomain.split('.');
+            if (parts.length === 1) return { firstName: 'Student', lastName: '' };
+            if (parts.length === 2) return { firstName: capitalize(parts[0]), lastName: '' };
+            if (parts.length >= 3) return { firstName: capitalize(parts[0]), lastName: capitalize(parts[parts.length-2]) };
+            return { firstName: 'Student', lastName: '' };
+        }
+        function calculateBMI(weight, height) { const h = height/100; return (weight / (h*h)).toFixed(2); }
+        function getBMICategory(bmi) { const v=parseFloat(bmi); if(v<18.5) return 'Underweight'; if(v<25) return 'Normal'; if(v<30) return 'Overweight'; return 'Obese'; }
+        function calculateAge(birthday) { if(!birthday) return 0; const today=new Date(); const birth=new Date(birthday); let age=today.getFullYear()-birth.getFullYear(); const m=today.getMonth()-birth.getMonth(); if(m<0||(m===0&&today.getDate()<birth.getDate())) age--; return age; }
+        window.calculateAge = calculateAge; // expose for modal onchange
 
+        // ========== NOTIFICATIONS ==========
         async function checkUnreadNotifications() {
             try {
                 if (!studentData?.section) return;
-                const snap = await getDocs(query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)));
+                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
                 const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-                let unread=0; snap.forEach(d=>{if(!read.includes(d.id))unread++;});
+                let unread=0; snap.forEach(d=>{ if(!read.includes(d.id)) unread++; });
                 ['navNotificationCount','navNotificationCountMobile'].forEach(id=>{
                     const el=document.getElementById(id); if(!el) return;
-                    if(unread>0){el.textContent=unread;el.classList.remove('hidden');}else el.classList.add('hidden');
+                    if(unread>0){ el.textContent=unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
                 });
-            } catch(e){console.error(e);}
+            } catch(e){ console.error(e); }
         }
 
         async function loadNotificationDropdown(isMobile=false) {
             try {
-                const bodyId=isMobile?'notificationDropdownBodyMobile':'notificationDropdownBody';
-                const body=document.getElementById(bodyId); if(!body) return;
-                if(!studentData?.section){body.innerHTML=`<div class="p-6 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl block mb-3"></i><p class="text-gray-600 text-sm">No section assigned</p></div>`;return;}
-                const snap=await getDocs(query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)));
-                const read=JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-                if(!snap.empty){
-                    const seen=new Set(); const unique=[];
-                    snap.forEach(d=>{const n=d.data();const k=`${n.title}|${n.message}|${n.createdAt?.toDate?.().getTime()||''}`;if(!seen.has(k)){seen.add(k);unique.push({id:d.id,...n});}});
-                    unique.sort((a,b)=>(b.createdAt?.toDate?.()||new Date(0))-(a.createdAt?.toDate?.()||new Date(0)));
-                    const unreadIds=unique.filter(n=>!read.includes(n.id)).map(n=>n.id);
-                    let html='';
+                const bodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
+                const body = document.getElementById(bodyId);
+                if (!body) return;
+                if (!studentData || !studentData.section) {
+                    body.innerHTML = `<div class="notification-dropdown-empty"><i class="bi bi-bell-slash"></i><p>No section assigned</p></div>`;
+                    return;
+                }
+                const q = query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email));
+                const snap = await getDocs(q);
+                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
+                if (!snap.empty) {
+                    const seen = new Set(); const unique = [];
+                    snap.forEach(d=>{ const n=d.data(); const k=`${n.title}|${n.message}|${n.createdAt?.toDate?.().getTime()||''}`; if(!seen.has(k)){ seen.add(k); unique.push({id:d.id, ...n}); } });
+                    unique.sort((a,b)=> (b.createdAt?.toDate?.()||new Date(0)) - (a.createdAt?.toDate?.()||new Date(0)) );
+                    const unreadIds = unique.filter(n=>!read.includes(n.id)).map(n=>n.id);
+                    let html = '';
                     unique.slice(0,5).forEach(n=>{
-                        const d=n.createdAt?.toDate?.();
-                        const ds=d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'Recently';
-                        const isRead=read.includes(n.id);
-                        html+=`<div class="px-5 py-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer transition-colors ${isRead?'bg-gray-50':'bg-white'}" data-notification-id="${n.id}">
-                            <strong class="text-gray-900 text-sm font-semibold block mb-1">${n.title||'Notification'}</strong>
-                            <p class="text-gray-600 text-xs leading-relaxed mb-1">${n.message||''}</p>
-                            <small class="text-gray-400 text-[11px] block">${ds}</small>
+                        const d = n.createdAt?.toDate?.();
+                        const ds = d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Recently';
+                        const isRead = read.includes(n.id);
+                        html += `<div class="notification-dropdown-item ${isRead?'bg-gray-50':'bg-white'}" data-notification-id="${n.id}">
+                            <strong>${n.title||'Notification'}</strong>
+                            <p>${n.message||''}</p>
+                            <small>${ds}</small>
                         </div>`;
                     });
-                    body.innerHTML=html;
-                    if(unreadIds.length>0) markNotificationsAsRead(unreadIds);
+                    body.innerHTML = html;
+                    if (unreadIds.length>0) markNotificationsAsRead(unreadIds);
                 } else {
-                    body.innerHTML=`<div class="p-6 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl block mb-3"></i><p class="text-gray-600 text-sm">No notifications yet</p></div>`;
+                    body.innerHTML = `<div class="notification-dropdown-empty"><i class="bi bi-bell-slash"></i><p>No notifications yet</p></div>`;
                 }
-            } catch(e){console.error(e);}
+            } catch(e){ console.error(e); }
         }
 
-        function markNotificationsAsRead(ids){
-            if(!studentData?.email||!ids.length) return;
-            const read=JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-            localStorage.setItem(`readNotifications_${studentData.email}`,JSON.stringify([...new Set([...read,...ids])]));
+        function markNotificationsAsRead(ids) {
+            if (!studentData?.email || !ids.length) return;
+            const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
+            localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify([...new Set([...read, ...ids])]));
             updateNotificationBadgeAfterRead();
         }
-        async function updateNotificationBadgeAfterRead(){
-            try{
-                if(!studentData?.section) return;
-                const snap=await getDocs(query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)));
-                const ids=new Set(); snap.forEach(d=>ids.add(d.id));
-                const read=JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-                let unread=0; ids.forEach(id=>{if(!read.includes(id))unread++;});
+        async function updateNotificationBadgeAfterRead() {
+            try {
+                if (!studentData?.section) return;
+                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
+                const ids = new Set(); snap.forEach(d=> ids.add(d.id));
+                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
+                let unread=0; ids.forEach(id=>{ if(!read.includes(id)) unread++; });
                 ['navNotificationCount','navNotificationCountMobile'].forEach(id=>{
                     const el=document.getElementById(id); if(!el) return;
-                    if(unread>0){el.textContent=unread;el.classList.remove('hidden');}else el.classList.add('hidden');
+                    if(unread>0){ el.textContent=unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
                 });
-            } catch(e){console.error(e);}
+            } catch(e){ console.error(e); }
         }
 
-        function toggleNotificationDropdown(event){
+        function toggleNotificationDropdown(event) {
             event?.stopPropagation();
-            const isMobile=window.innerWidth<1024;
-            const dropdown=document.getElementById(isMobile?'notificationDropdownMobile':'notificationDropdown');
-            if(!dropdown) return;
-            const isHidden=dropdown.classList.contains('hidden')||window.getComputedStyle(dropdown).display==='none';
-            const other=document.getElementById(isMobile?'notificationDropdown':'notificationDropdownMobile');
-            if(isHidden){
-                if(other){other.classList.add('hidden');other.style.display='';}
-                dropdown.classList.remove('hidden'); dropdown.style.display='block';
+            const isMobile = window.innerWidth < 1024;
+            const dropdown = document.getElementById(isMobile ? 'notificationDropdownMobile' : 'notificationDropdown');
+            if (!dropdown) return;
+            const isHidden = dropdown.classList.contains('hidden') || window.getComputedStyle(dropdown).display === 'none';
+            if (isHidden) {
+                const other = document.getElementById(isMobile ? 'notificationDropdown' : 'notificationDropdownMobile');
+                if (other) { other.classList.add('hidden'); other.style.display = ''; }
+                dropdown.classList.remove('hidden'); dropdown.style.display = 'block';
                 loadNotificationDropdown(isMobile);
-                document.getElementById('profileDropdown')?.classList.add('hidden');
-                document.getElementById('profileDropdownMobile')?.classList.add('hidden');
-            } else { dropdown.classList.add('hidden'); dropdown.style.display=''; }
+                const pd = document.getElementById('profileDropdown'); if(pd) pd.classList.add('hidden');
+                const pdm = document.getElementById('profileDropdownMobile'); if(pdm) pdm.classList.add('hidden');
+            } else {
+                dropdown.classList.add('hidden'); dropdown.style.display = '';
+            }
         }
-        function closeNotificationDropdown(){
+
+        function closeNotificationDropdown() {
             ['notificationDropdown','notificationDropdownMobile'].forEach(id=>{
-                const el=document.getElementById(id); if(el){el.classList.add('hidden');el.style.display='';}
+                const el=document.getElementById(id); if(el){ el.classList.add('hidden'); el.style.display=''; }
             });
         }
-<<<<<<< HEAD
-        function setupNotificationListener(){
-            if(!studentData?.section) return;
-            if(unsubscribeNotificationListener){unsubscribeNotificationListener();unsubscribeNotificationListener=null;}
-            unsubscribeNotificationListener=onSnapshot(
-                query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)),
-                ()=>checkUnreadNotifications(),(e)=>console.error(e)
-            );
-=======
-    }
 
-    async function loadNotificationDropdown(isMobile = false) {
-        try {
-            const activeBodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
-            const dropdownBody = document.getElementById(activeBodyId);
-            
-            if (!dropdownBody) return;
-
-            if (!studentData || !studentData.section) {
-                dropdownBody.innerHTML = `
-                    <div class="notification-dropdown-empty">
-                        <i class="bi bi-bell-slash"></i>
-                        <p>No section assigned</p>
-                    </div>
-                `;
-                return;
-            }
-
-const notificationsQuery = query(
-    collection(db, 'notifications'),
-    where('section', '==', studentData.section),
-    where('studentEmail', '==', studentData.email)
-);            
-            const notificationsSnapshot = await getDocs(notificationsQuery);
-            const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-            
-            if (!notificationsSnapshot.empty) {
-                const seenNotifications = new Set();
-                const uniqueNotifications = [];
-                
-                notificationsSnapshot.forEach(doc => {
-                    const notification = doc.data();
-                    const contentKey = `${notification.title}|${notification.message}|${notification.createdAt?.toDate?.().getTime() || ''}`;
-                    
-                    if (!seenNotifications.has(contentKey)) {
-                        seenNotifications.add(contentKey);
-                        uniqueNotifications.push({ id: doc.id, ...notification });
-                    }
-                });
-                
-                uniqueNotifications.sort((a, b) => {
-                    const dateA = a.createdAt?.toDate?.() || new Date(0);
-                    const dateB = b.createdAt?.toDate?.() || new Date(0);
-                    return dateB - dateA;
-                });
-                
-                const unreadNotificationIds = [];
-                uniqueNotifications.forEach(notification => {
-                    if (!readNotifications.includes(notification.id)) {
-                        unreadNotificationIds.push(notification.id);
-                    }
-                });
-                
-                let html = '';
-                uniqueNotifications.slice(0, 5).forEach(notification => {
-                    const createdDate = notification.createdAt?.toDate?.();
-                    const dateStr = createdDate ? createdDate.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : 'Recently';
-                    
-                    const isRead = readNotifications.includes(notification.id);
-                    
-                    html += `
-                        <div class="notification-dropdown-item ${isRead ? 'bg-gray-50' : 'bg-white'}" data-notification-id="${notification.id}">
-                            <strong>${notification.title || 'Notification'}</strong>
-                            <p>${notification.message || ''}</p>
-                            <small>${dateStr}</small>
-                        </div>
-                    `;
-                });
-                
-                dropdownBody.innerHTML = html;
-                
-                if (unreadNotificationIds.length > 0) {
-                    markNotificationsAsRead(unreadNotificationIds);
-                }
-                
-            } else {
-                dropdownBody.innerHTML = `
-                    <div class="notification-dropdown-empty">
-                        <i class="bi bi-bell-slash"></i>
-                        <p>No notifications yet</p>
-                    </div>
-                `;
-            }
-        } catch (error) {
-            console.error('Error loading notifications:', error);
-        }
-    }
-
-    function markNotificationsAsRead(notificationIds) {
-        if (!studentData || !studentData.email || !notificationIds.length) return;
-        
-        const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-        const updatedReadNotifications = [...new Set([...readNotifications, ...notificationIds])];
-        
-        localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify(updatedReadNotifications));
-        updateNotificationBadgeAfterRead(notificationIds);
-    }
-
-    async function updateNotificationBadgeAfterRead(markedAsReadIds) {
-        try {
-            if (!studentData || !studentData.section) return;
-            
-const notificationsQuery = query(
-    collection(db, 'notifications'),
-    where('section', '==', studentData.section),
-    where('studentEmail', '==', studentData.email)
-);            
-            const notificationsSnapshot = await getDocs(notificationsQuery);
-            const uniqueNotificationIds = new Set();
-            
-            notificationsSnapshot.forEach(doc => {
-                uniqueNotificationIds.add(doc.id);
-            });
-            
-            const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-            
-            let unreadCount = 0;
-            uniqueNotificationIds.forEach(notificationId => {
-                if (!readNotifications.includes(notificationId)) {
-                    unreadCount++;
-                }
-            });
-            
-            const countBadge = document.getElementById('navNotificationCount');
-            const countBadgeMobile = document.getElementById('navNotificationCountMobile');
-            
-            if (unreadCount > 0) {
-                if (countBadge) {
-                    countBadge.textContent = unreadCount;
-                    countBadge.classList.remove('hidden');
-                }
-                if (countBadgeMobile) {
-                    countBadgeMobile.textContent = unreadCount;
-                    countBadgeMobile.classList.remove('hidden');
-                }
-            } else {
-                if (countBadge) countBadge.classList.add('hidden');
-                if (countBadgeMobile) countBadgeMobile.classList.add('hidden');
-            }
-        } catch (error) {
-            console.error('Error updating notification badge:', error);
-        }
-    }
-
- function toggleNotificationDropdown(event) {
-    event?.stopPropagation();
-    const isMobile = window.innerWidth < 1024;
-    const dropdown = isMobile ? 
-        document.getElementById('notificationDropdownMobile') : 
-        document.getElementById('notificationDropdown');
-    
-    if (!dropdown) return;
-
-    // Support both Tailwind `hidden` class AND CSS `display:none` style
-    const isHidden = dropdown.classList.contains('hidden') || 
-                     window.getComputedStyle(dropdown).display === 'none';
-    
-    if (isHidden) {
-        // Close the other dropdown first
-        const other = isMobile ? 
-            document.getElementById('notificationDropdown') : 
-            document.getElementById('notificationDropdownMobile');
-        if (other) { other.classList.add('hidden'); other.style.display = ''; }
-
-        dropdown.classList.remove('hidden');
-        dropdown.style.display = 'block';
-        loadNotificationDropdown(isMobile);
-        
-        const profileDropdown = document.getElementById('profileDropdown');
-        const profileDropdownMobile = document.getElementById('profileDropdownMobile');
-        if (profileDropdown) profileDropdown.classList.add('hidden');
-        if (profileDropdownMobile) profileDropdownMobile.classList.add('hidden');
-    } else {
-        dropdown.classList.add('hidden');
-        dropdown.style.display = '';
-    }
-}
-
-function closeNotificationDropdown() {
-    const notificationDropdown = document.getElementById('notificationDropdown');
-    const notificationDropdownMobile = document.getElementById('notificationDropdownMobile');
-    if (notificationDropdown) { notificationDropdown.classList.add('hidden'); notificationDropdown.style.display = ''; }
-    if (notificationDropdownMobile) { notificationDropdownMobile.classList.add('hidden'); notificationDropdownMobile.style.display = ''; }
-}
-let unsubscribeNotificationListener = null;
-
-function setupNotificationListener() {
-    try {
-        if (!studentData || !studentData.section) return;
-
-        // Cleanup previous listener if any
-        if (unsubscribeNotificationListener) {
-            unsubscribeNotificationListener();
-            unsubscribeNotificationListener = null;
+        function setupNotificationListener() {
+            if (!studentData?.section) return;
+            if (unsubscribeNotificationListener) { unsubscribeNotificationListener(); unsubscribeNotificationListener=null; }
+            const q = query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email));
+            unsubscribeNotificationListener = onSnapshot(q, ()=> checkUnreadNotifications(), (e)=> console.error(e));
         }
 
-        const notificationsQuery = query(
-            collection(db, 'notifications'),
-            where('section', '==', studentData.section),
-            where('studentEmail', '==', studentData.email)
-        );
+        window.toggleNotificationDropdown = toggleNotificationDropdown;
+        window.closeNotificationDropdown = closeNotificationDropdown;
 
-        unsubscribeNotificationListener = onSnapshot(notificationsQuery, (snapshot) => {
-            // debug log removed
-            checkUnreadNotifications();
-        }, (error) => {
-            console.error('❌ Error in notification listener:', error);
-        });
-
-    } catch (error) {
-        console.error('Error setting up notification listener:', error);
-    }
-}
-
-// Kill listener when user navigates away
-window.addEventListener('pagehide', () => {
-    if (unsubscribeNotificationListener) {
-        unsubscribeNotificationListener();
-        unsubscribeNotificationListener = null;
-    }
-});
-window.addEventListener('beforeunload', () => {
-    if (unsubscribeNotificationListener) {
-        unsubscribeNotificationListener();
-        unsubscribeNotificationListener = null;
-    }
-});
-    // ========== END NOTIFICATION SYSTEM ==========
-
-    // Helper function to capitalize names
-    function capitalize(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-    }
-
-    // Function to extract UMak ID from email
-    function extractUmakIdFromEmail(email) {
-        if (!email) return 'Not Assigned';
-        
-        const emailLower = email.toLowerCase();
-        let emailWithoutDomain = emailLower.replace('@umak.edu.ph', '');
-        const parts = emailWithoutDomain.split('.');
-        
-        if (parts.length >= 1) {
-            const lastPart = parts[parts.length - 1];
-            const idPattern = /^[a-z][0-9]+$/i;
-            
-            if (idPattern.test(lastPart)) {
-                return lastPart.toUpperCase();
-            }
-            
-            const alnumPattern = /^[a-z0-9]+$/i;
-            if (alnumPattern.test(lastPart) && lastPart.length >= 7) {
-                return lastPart.toUpperCase();
-            }
-            
-            if (parts.length === 1 && alnumPattern.test(lastPart)) {
-                return lastPart.toUpperCase();
-            }
-        }
-        
-        return 'Not Assigned';
-    }
-
-    // Function to extract name from email
-    function extractNameFromEmail(email) {
-        if (!email) return { firstName: 'Student', lastName: '' };
-        
-        const emailLower = email.toLowerCase();
-        const emailWithoutDomain = emailLower.replace('@umak.edu.ph', '');
-        const parts = emailWithoutDomain.split('.');
-        
-        if (parts.length === 1) {
-            return { firstName: 'Student', lastName: '' };
-        } else if (parts.length === 2) {
-            return { 
-                firstName: capitalize(parts[0]), 
-                lastName: '' 
-            };
-        } else if (parts.length >= 3) {
-            const firstName = parts[0];
-            const lastName = parts[parts.length - 2]; 
-            return {
-                firstName: capitalize(firstName),
-                lastName: capitalize(lastName)
-            };
-        }
-        
-        return { firstName: 'Student', lastName: '' };
-    }
-
-    function calculateBMI(weight, height) {
-        const heightInMeters = height / 100;
-        return (weight / (heightInMeters * heightInMeters)).toFixed(2);
-    }
-
-    function getBMICategory(bmi) {
-        const bmiValue = parseFloat(bmi);
-        if (bmiValue < 18.5) return 'Underweight';
-        if (bmiValue >= 18.5 && bmiValue < 25) return 'Normal';
-        if (bmiValue >= 25 && bmiValue < 30) return 'Overweight';
-        return 'Obese';
-    }
-
-    async function loadStudentProfile(user) {
-        try {
-            // debug log removed
-            
-            const studentsQuery = query(
-                collection(db, 'students'),
-                where('email', '==', user.email)
-            );
-            const studentsSnapshot = await getDocs(studentsQuery);
-            
-            if (!studentsSnapshot.empty) {
-                // debug log removed
-                studentsSnapshot.forEach((doc) => {
-                    studentData = doc.data();
-                    studentDocId = doc.id;
-                });
-            } else {
-                // debug log removed
-                const studentRef = doc(db, 'students', user.uid);
-                const studentDoc = await getDoc(studentRef);
-                if (studentDoc.exists()) {
-                    studentData = studentDoc.data();
-                    studentDocId = user.uid;
-                    // debug log removed
+        // ========== PROFILE LOAD ==========
+        async function loadStudentProfile(user) {
+            try {
+                const q = query(collection(db,'students'), where('email','==',user.email));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    snap.forEach(d=>{ studentData = d.data(); studentDocId = d.id; });
                 } else {
-                    // debug log removed
-                    const extractedId = extractUmakIdFromEmail(user.email);
-                    const nameInfo = extractNameFromEmail(user.email);
-                    
-                    studentData = {
-                        firstName: nameInfo.firstName,
-                        lastName: nameInfo.lastName,
-                        umakId: extractedId,
-                        section: 'Not Assigned',
-                        department: 'Not Assigned',
-                        yearLevel: 'Not Assigned',
-                        age: 0,
-                        gender: 'Not Specified',
-                        email: user.email,
-                        contactNumber: 'Not Provided',
-                        height: 0,
-                        weight: 0,
-                        medicalCondition: 'None',
-                        emergencyContactName: 'Not provided',
-                        emergencyContactNumber: 'Not provided',
-                        emergencyContactRelation: 'Not provided',
-                        createdAt: new Date().toISOString(),
-                        lastLogin: new Date().toISOString()
-                    };
-                    studentDocId = user.uid;
-                    // debug log removed
-                }
-            }
-            
-            if (studentData) {
-                window.currentStudentId = studentDocId;
-                window.currentStudentData = studentData;
-                
-                let displayName = '';
-                if (user.displayName) {
-                    displayName = user.displayName;
-                    const nameParts = user.displayName.split(' ');
-                    if (nameParts.length >= 2) {
-                        studentData.firstName = nameParts[0];
-                        studentData.lastName = nameParts.slice(1).join(' ');
-                    } else {
-                        studentData.firstName = user.displayName;
-                        studentData.lastName = '';
+                    const sdoc = await getDoc(doc(db,'students',user.uid));
+                    if (sdoc.exists()) { studentData = sdoc.data(); studentDocId = user.uid; }
+                    else {
+                        const ni = extractNameFromEmail(user.email);
+                        studentData = {
+                            firstName: ni.firstName, lastName: ni.lastName,
+                            umakId: extractUmakIdFromEmail(user.email),
+                            section:'Not Assigned', department:'Not Assigned', yearLevel:'Not Assigned',
+                            age:0, gender:'Not Specified', email:user.email, contactNumber:'Not Provided',
+                            height:0, weight:0, medicalCondition:'None',
+                            createdAt: new Date().toISOString(), lastLogin: new Date().toISOString()
+                        };
+                        studentDocId = user.uid;
                     }
-                } else if (studentData.firstName || studentData.lastName) {
-                    displayName = `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim();
-                } else {
-                    displayName = user.email.split('@')[0];
                 }
 
-                document.getElementById('profileName').textContent = displayName;
-                
-                let displayId = studentData.umakId;
-                if (!displayId || displayId === 'Not Assigned') {
-                    displayId = extractUmakIdFromEmail(user.email);
-                }
-                document.getElementById('profileId').textContent = `ID: ${displayId}`;
-                
-                let sectionInfo = '';
-                if (studentData.section && studentData.section !== 'Not Assigned') {
-                    sectionInfo = studentData.section;
-                    if (studentData.department && studentData.department !== 'Not Assigned') {
-                        sectionInfo += ` • ${studentData.department}`;
+                if (studentData) {
+                    window.currentStudentId = studentDocId;
+                    window.currentStudentData = studentData;
+
+                    let displayName = '';
+                    if (user.displayName) {
+                        displayName = user.displayName;
+                        const p = user.displayName.split(' ');
+                        if (p.length>=2) { studentData.firstName = p[0]; studentData.lastName = p.slice(1).join(' '); }
+                        else studentData.firstName = user.displayName;
+                    } else if (studentData.firstName || studentData.lastName) displayName = `${studentData.firstName||''} ${studentData.lastName||''}`.trim();
+                    else displayName = user.email.split('@')[0];
+                    document.getElementById('profileName').textContent = displayName;
+
+                    let displayId = studentData.umakId;
+                    if (!displayId || displayId==='Not Assigned') displayId = extractUmakIdFromEmail(user.email);
+                    document.getElementById('profileId').textContent = `ID: ${displayId}`;
+
+                    let sec = (studentData.section && studentData.section!=='Not Assigned') ? studentData.section : 'Not Assigned';
+                    if (sec!=='Not Assigned') {
+                        if (studentData.department && studentData.department!=='Not Assigned') sec += ` • ${studentData.department}`;
+                        if (studentData.yearLevel && studentData.yearLevel!=='Not Assigned') sec += ` • Year ${studentData.yearLevel}`;
                     }
-                    if (studentData.yearLevel && studentData.yearLevel !== 'Not Assigned') {
-                        sectionInfo += ` • Year ${studentData.yearLevel}`;
-                    }
-                } else {
-                    sectionInfo = 'Not Assigned';
-                }
-                document.getElementById('profileSection').textContent = sectionInfo;
-                
-const displayAge = studentData.birthday 
-    ? calculateAge(studentData.birthday) 
-    : (studentData.age || 0);
-document.getElementById('profileAgeGender').textContent = 
-    `${displayAge} years - ${studentData.gender || 'Not Specified'}`;
-    window.autoFillAge = function() {
-    const birthday = document.getElementById('editBirthday').value;
-    const ageField = document.getElementById('editAge');
-    if (birthday) {
-        const age = calculateAge(birthday);
-        ageField.value = age + ' years old';
-    } else {
-        ageField.value = '';
-    }
-};
-                    document.getElementById('profileEmail').textContent = 
-                    studentData.email || user.email;
-                document.getElementById('profileContact').textContent = 
-                    studentData.contactNumber || 'Not Provided';
-                document.getElementById('profileMedical').textContent = 
-                    studentData.medicalCondition || 'None';
-                document.getElementById('profileHeight').textContent = 
-                    studentData.height || 0;
-                document.getElementById('profileWeight').textContent = 
-                    studentData.weight || 0;
-                
-                if (studentData.height && studentData.weight && studentData.height > 0 && studentData.weight > 0) {
-                    const bmi = calculateBMI(studentData.weight, studentData.height);
-                    document.getElementById('profileBMI').textContent = bmi;
-                } else {
-                    document.getElementById('profileBMI').textContent = '0.00';
-                }
-                
-                if (studentData.lastLogin) {
+                    document.getElementById('profileSection').textContent = sec;
+
+                    const displayAge = studentData.birthday ? calculateAge(studentData.birthday) : (studentData.age || 0);
+                    document.getElementById('profileAgeGender').textContent = `${displayAge} years - ${studentData.gender||'Not Specified'}`;
+
+                    document.getElementById('profileEmail').textContent = studentData.email || user.email;
+                    document.getElementById('profileContact').textContent = studentData.contactNumber || 'Not Provided';
+                    document.getElementById('profileMedical').textContent = studentData.medicalCondition || 'None';
+                    document.getElementById('profileHeight').textContent = studentData.height || 0;
+                    document.getElementById('profileWeight').textContent = studentData.weight || 0;
+                    if (studentData.height && studentData.weight && studentData.height>0 && studentData.weight>0)
+                        document.getElementById('profileBMI').textContent = calculateBMI(studentData.weight, studentData.height);
+                    else document.getElementById('profileBMI').textContent = '0.00';
+
                     try {
-                        let lastLoginDate;
-                        if (studentData.lastLogin.toDate) {
-                            lastLoginDate = studentData.lastLogin.toDate();
-                        } else {
-                            lastLoginDate = new Date(studentData.lastLogin);
-                        }
-                        
-                        document.getElementById('lastLogin').textContent = lastLoginDate.toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    } catch (error) {
-                        console.error('Error parsing lastLogin:', error);
-                        document.getElementById('lastLogin').textContent = 'Recently';
-                    }
-                } else {
-                    document.getElementById('lastLogin').textContent = 'Never';
-                }
+                        let d = studentData.lastLogin?.toDate ? studentData.lastLogin.toDate() : new Date(studentData.lastLogin);
+                        document.getElementById('lastLogin').textContent = isNaN(d) ? 'Recently' : d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+                    } catch { document.getElementById('lastLogin').textContent = 'Recently'; }
 
-                if (studentData.createdAt) {
                     try {
-                        let createdDate;
-                        if (studentData.createdAt.toDate) {
-                            createdDate = studentData.createdAt.toDate();
-                        } else if (typeof studentData.createdAt === 'string') {
-                            createdDate = new Date(studentData.createdAt);
-                        } else if (studentData.createdAt.seconds) {
-                            createdDate = new Date(studentData.createdAt.seconds * 1000);
-                        } else {
-                            createdDate = new Date(studentData.createdAt);
-                        }
-                        
-                        if (!isNaN(createdDate.getTime())) {
-                            document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                            });
-                        } else {
-                            document.getElementById('accountCreated').textContent = 'Not Available';
-                        }
-                    } catch (error) {
-                        console.error('Error parsing createdAt:', error, studentData.createdAt);
-                        document.getElementById('accountCreated').textContent = 'Not Available';
-                    }
-                } else {
-                    document.getElementById('accountCreated').textContent = 'Not Available';
-                }
-                
-                // Setup notification listener after student data is loaded
-                setupNotificationListener();
-                await checkUnreadNotifications();
-                
-                updateProfileUI();
-                updateProfileAvatar();
-                
-                // Update last login time
-                await updateLastLogin(studentDocId);
-            }
-        } catch (error) {
-            console.error('Error loading profile:', error);
-            let displayName = '';
-            if (user.displayName) {
-                displayName = user.displayName;
-            } else {
-                const nameInfo = extractNameFromEmail(user.email);
-                displayName = `${nameInfo.firstName} ${nameInfo.lastName}`.trim();
-            }
-            document.getElementById('profileName').textContent = displayName;
-            
-            const extractedId = extractUmakIdFromEmail(user.email);
-            document.getElementById('profileId').textContent = `ID: ${extractedId}`;
-            
-            document.getElementById('profileEmail').textContent = user.email;
-            document.getElementById('lastLogin').textContent = 'Now';
-            document.getElementById('accountCreated').textContent = new Date().toLocaleDateString();
+                        let d = studentData.createdAt?.toDate ? studentData.createdAt.toDate() : (studentData.createdAt?.seconds ? new Date(studentData.createdAt.seconds*1000) : new Date(studentData.createdAt));
+                        document.getElementById('accountCreated').textContent = !isNaN(d) ? d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'Not Available';
+                    } catch { document.getElementById('accountCreated').textContent = 'Not Available'; }
 
-            updateProfileUI();
-            updateProfileAvatar();
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
-        }
-        window.addEventListener('pagehide',()=>{if(unsubscribeNotificationListener){unsubscribeNotificationListener();unsubscribeNotificationListener=null;}});
-        window.addEventListener('beforeunload',()=>{if(unsubscribeNotificationListener){unsubscribeNotificationListener();unsubscribeNotificationListener=null;}});
-
-        // ========== HELPERS ==========
-
-        function capitalize(str){ return str?str.charAt(0).toUpperCase()+str.slice(1).toLowerCase():''; }
-        function extractUmakIdFromEmail(email){
-            if(!email) return'Not Assigned';
-            const parts=email.toLowerCase().replace('@umak.edu.ph','').split('.');
-            const last=parts[parts.length-1];
-            if(/^[a-z][0-9]+$/i.test(last)||(/^[a-z0-9]+$/i.test(last)&&last.length>=7)) return last.toUpperCase();
-            return'Not Assigned';
-        }
-        function extractNameFromEmail(email){
-            if(!email) return{firstName:'Student',lastName:''};
-            const parts=email.toLowerCase().replace('@umak.edu.ph','').split('.');
-            if(parts.length===1) return{firstName:'Student',lastName:''};
-            if(parts.length===2) return{firstName:capitalize(parts[0]),lastName:''};
-            return{firstName:capitalize(parts[0]),lastName:capitalize(parts[parts.length-2])};
-        }
-        function calculateBMI(w,h){ return(w/((h/100)**2)).toFixed(2); }
-        function getBMICategory(bmi){ const v=parseFloat(bmi); if(v<18.5)return'Underweight'; if(v<25)return'Normal'; if(v<30)return'Overweight'; return'Obese'; }
-        function calculateAge(birthday){ if(!birthday) return 0; const today=new Date(); const birth=new Date(birthday); let age=today.getFullYear()-birth.getFullYear(); const m=today.getMonth()-birth.getMonth(); if(m<0||(m===0&&today.getDate()<birth.getDate()))age--; return age; }
-
-        // ========== LOAD PROFILE ==========
-
-        async function loadStudentProfile(user){
-            try{
-                const snap=await getDocs(query(collection(db,'students'),where('email','==',user.email)));
-                if(!snap.empty){snap.forEach(d=>{studentData=d.data();studentDocId=d.id;});}
-                else{
-                    const sdoc=await getDoc(doc(db,'students',user.uid));
-                    if(sdoc.exists()){studentData=sdoc.data();studentDocId=user.uid;}
-                    else{
-                        const ni=extractNameFromEmail(user.email);
-                        studentData={firstName:ni.firstName,lastName:ni.lastName,umakId:extractUmakIdFromEmail(user.email),section:'Not Assigned',department:'Not Assigned',yearLevel:'Not Assigned',age:0,gender:'Not Specified',email:user.email,contactNumber:'Not Provided',height:0,weight:0,medicalCondition:'None',createdAt:new Date().toISOString(),lastLogin:new Date().toISOString()};
-                        studentDocId=user.uid;
-                    }
-                }
-                if(studentData){
-                    window.currentStudentId=studentDocId; window.currentStudentData=studentData;
-                    let displayName='';
-                    if(user.displayName){displayName=user.displayName;const p=user.displayName.split(' ');if(p.length>=2){studentData.firstName=p[0];studentData.lastName=p.slice(1).join(' ');}else studentData.firstName=user.displayName;}
-                    else if(studentData.firstName||studentData.lastName) displayName=`${studentData.firstName||''} ${studentData.lastName||''}`.trim();
-                    else displayName=user.email.split('@')[0];
-                    document.getElementById('profileName').textContent=displayName;
-                    let displayId=studentData.umakId; if(!displayId||displayId==='Not Assigned') displayId=extractUmakIdFromEmail(user.email);
-                    document.getElementById('profileId').textContent=`ID: ${displayId}`;
-                    let sec=studentData.section&&studentData.section!=='Not Assigned'?studentData.section:'Not Assigned';
-                    if(sec!=='Not Assigned'){if(studentData.department&&studentData.department!=='Not Assigned')sec+=` • ${studentData.department}`;if(studentData.yearLevel&&studentData.yearLevel!=='Not Assigned')sec+=` • Year ${studentData.yearLevel}`;}
-                    document.getElementById('profileSection').textContent=sec;
-                    const displayAge=studentData.birthday?calculateAge(studentData.birthday):(studentData.age||0);
-                    document.getElementById('profileAgeGender').textContent=`${displayAge} years - ${studentData.gender||'Not Specified'}`;
-                    window.autoFillAge=function(){const bd=document.getElementById('editBirthday').value;document.getElementById('editAge').value=bd?calculateAge(bd)+' years old':'';}
-                    document.getElementById('profileEmail').textContent=studentData.email||user.email;
-                    document.getElementById('profileContact').textContent=studentData.contactNumber||'Not Provided';
-                    document.getElementById('profileMedical').textContent=studentData.medicalCondition||'None';
-                    document.getElementById('profileHeight').textContent=studentData.height||0;
-                    document.getElementById('profileWeight').textContent=studentData.weight||0;
-                    if(studentData.height&&studentData.weight&&studentData.height>0&&studentData.weight>0) document.getElementById('profileBMI').textContent=calculateBMI(studentData.weight,studentData.height);
-                    else document.getElementById('profileBMI').textContent='0.00';
-                    // Last login
-                    try{let d=studentData.lastLogin?.toDate?studentData.lastLogin.toDate():new Date(studentData.lastLogin);document.getElementById('lastLogin').textContent=isNaN(d)?'Recently':d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){document.getElementById('lastLogin').textContent='Recently';}
-                    // Account created
-                    try{let d=studentData.createdAt?.toDate?studentData.createdAt.toDate():studentData.createdAt?.seconds?new Date(studentData.createdAt.seconds*1000):new Date(studentData.createdAt);document.getElementById('accountCreated').textContent=!isNaN(d)?d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'Not Available';}catch(_){document.getElementById('accountCreated').textContent='Not Available';}
-                    setupNotificationListener(); await checkUnreadNotifications();
-                    updateProfileUI(); updateProfileAvatar();
+                    setupNotificationListener();
+                    await checkUnreadNotifications();
+                    updateProfileUI();
+                    updateProfileAvatar();
                     await updateLastLogin(studentDocId);
                 }
-            } catch(e){
-                console.error('Error loading profile:',e);
-                const ni=extractNameFromEmail(user.email);
-                document.getElementById('profileName').textContent=user.displayName||`${ni.firstName} ${ni.lastName}`.trim();
-                document.getElementById('profileId').textContent=`ID: ${extractUmakIdFromEmail(user.email)}`;
-                document.getElementById('profileEmail').textContent=user.email;
-                document.getElementById('lastLogin').textContent='Now';
-                document.getElementById('accountCreated').textContent=new Date().toLocaleDateString();
+            } catch (e) {
+                console.error('Error loading profile:', e);
+                const ni = extractNameFromEmail(user.email);
+                document.getElementById('profileName').textContent = user.displayName || `${ni.firstName} ${ni.lastName}`.trim();
+                document.getElementById('profileId').textContent = `ID: ${extractUmakIdFromEmail(user.email)}`;
+                document.getElementById('profileEmail').textContent = user.email;
+                document.getElementById('lastLogin').textContent = 'Now';
+                document.getElementById('accountCreated').textContent = new Date().toLocaleDateString();
                 updateProfileUI(); updateProfileAvatar();
             }
         }
 
-        // ========== HAMBURGER ==========
-
-        const hamburger=document.getElementById('hamburger');
-        const mobileDrawer=document.getElementById('mobileDrawer');
-        const drawerOverlay=document.getElementById('drawerOverlay');
-        const mobileNavLinks=document.querySelectorAll('.mobile-nav-link');
-
-        hamburger?.addEventListener('click',e=>{
-            e.stopPropagation();
-            hamburger.classList.toggle('active'); mobileDrawer.classList.toggle('active'); drawerOverlay.classList.toggle('active');
-            document.body.style.overflow=mobileDrawer.classList.contains('active')?'hidden':'';
-            ['profileDropdown','profileDropdownMobile','notificationDropdown','notificationDropdownMobile'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
-        });
-        drawerOverlay?.addEventListener('click',()=>{hamburger.classList.remove('active');mobileDrawer.classList.remove('active');drawerOverlay.classList.remove('active');document.body.style.overflow='';});
-        mobileNavLinks.forEach(l=>l.addEventListener('click',()=>{hamburger.classList.remove('active');mobileDrawer.classList.remove('active');drawerOverlay.classList.remove('active');document.body.style.overflow='';}));
-        window.addEventListener('resize',()=>{
-            if(window.innerWidth>=1024){
-                hamburger?.classList.remove('active');mobileDrawer?.classList.remove('active');drawerOverlay?.classList.remove('active');document.body.style.overflow='';
-                ['profileDropdown','profileDropdownMobile','notificationDropdown','notificationDropdownMobile'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
-            }
-        });
-
-        // ========== LAST LOGIN ==========
-
-<<<<<<< HEAD
-        async function updateLastLogin(id){
-            try{await updateDoc(doc(db,'students',id),{lastLogin:new Date().toISOString()});}catch(e){console.error(e);}
-=======
-    async function updateLastLogin(studentId) {
-        try {
-            const studentRef = doc(db, 'students', studentId);
-            await updateDoc(studentRef, {
-                lastLogin: new Date().toISOString()
-            });
-            // debug log removed
-        } catch (error) {
-            console.error('Error updating last login:', error);
-        }
-    }
-
-    onAuthStateChanged(auth, async (user) => {
-        const loadingScreen = document.getElementById('loadingScreen');
-        const mainContent = document.getElementById('mainContent');
-
-        if (user) {
-            try {
-                await loadStudentProfile(user);
-                loadingScreen.style.display = 'none';
-                mainContent.style.display = 'block';
-                setupEventListeners();
-            } catch (error) {
-                console.error('Error loading profile:', error);
-                loadingScreen.style.display = 'none';
-                mainContent.style.display = 'block';
-            }
-        } else {
-            window.location.href = '../login/index.html';
-        }
-    });
-
-    window.handleLogout = async function() {
-        if (confirm('Are you sure you want to logout?')) {
-            try {
-                await signOut(auth);
-                window.location.href = '../login/index.html';
-            } catch (error) {
-                console.error('Error logging out:', error);
-            }
-        }
-    };
-
-   window.editProfile = function() {
-    const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
-    
-    const data = window.currentStudentData || {};
-    document.getElementById('editBirthday').value = data.birthday || '';
-    if (data.birthday) {
-        document.getElementById('editAge').value = calculateAge(data.birthday) + ' years old';
-    } else {
-        document.getElementById('editAge').value = '';
-    }
-
-    // Set max date to 15 years ago
-    const today = new Date();
-    document.getElementById('editBirthday').max = today.toISOString().split('T')[0];
-
-    document.getElementById('editGender').value = data.gender || '';
-    document.getElementById('editEmail').value = data.email || '';
-    document.getElementById('editContact').value = data.contactNumber || '';
-    document.getElementById('editHeight').value = data.height || '';
-    document.getElementById('editWeight').value = data.weight || '';
-document.getElementById('editMedical').value = data.medicalCondition || '';
-document.getElementById('medicalCharCount').textContent = (data.medicalCondition || '').length;
-    // Reset Save button and error states
-    const saveBtn = document.querySelector('#editProfileModal .btn-primary');
-    if (saveBtn) saveBtn.disabled = false;
-    document.getElementById('heightError').style.display = 'none';
-    document.getElementById('weightError').style.display = 'none';
-    document.getElementById('editHeight').style.borderColor = '';
-    document.getElementById('editWeight').style.borderColor = '';
-    
-    modal.show();
-};
-
-    window.saveProfile = async function() {
-    const form = document.getElementById('editProfileForm');
-    
-        const birthday = document.getElementById('editBirthday').value;
-        if (!birthday) {
-            document.getElementById('editBirthday').focus();
-            document.getElementById('editBirthday').setCustomValidity('Please enter your birthday.');
-            document.getElementById('editBirthday').reportValidity();
-            return;
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
+        async function updateLastLogin(id) {
+            try { await updateDoc(doc(db,'students',id), { lastLogin: new Date().toISOString() }); } catch(e){ console.error(e); }
         }
 
-        // ========== AUTH ==========
+        // ========== PROFILE DROPDOWN AVATAR ==========
+        function updateProfileUI() {
+            if (!auth.currentUser || !window.currentStudentData) return;
+            const photo = auth.currentUser.photoURL || 'https://ui-avatars.com/api/?name='+encodeURIComponent(window.currentStudentData?.firstName||'User')+'&background=3b82f6&color=fff&size=128';
+            ['profilePictureBtn','profilePictureBtnMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.src=photo; });
+            ['profileDropdownPicture','profileDropdownPictureMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.src=photo; });
+            const name = auth.currentUser.displayName || `${window.currentStudentData?.firstName||''} ${window.currentStudentData?.lastName||''}`.trim() || 'Student';
+            const email = window.currentStudentData?.email || auth.currentUser.email || '';
+            ['profileDropdownName','profileDropdownNameMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=name; });
+            ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=email; });
+        }
 
-        onAuthStateChanged(auth,async user=>{
-            if(user){
-                try{await loadStudentProfile(user);document.getElementById('loadingScreen').style.display='none';document.getElementById('mainContent').style.display='block';setupEventListeners();}
-                catch(e){console.error(e);document.getElementById('loadingScreen').style.display='none';document.getElementById('mainContent').style.display='block';}
-            } else window.location.href='../login/index.html';
-        });
+        function updateProfileAvatar() {
+            if (!auth.currentUser) return;
+            const photo = auth.currentUser.photoURL;
+            const img = document.getElementById('profileAvatarImage');
+            const icon = document.getElementById('profileAvatarIcon');
+            if (photo) { img.src=photo; img.style.display='block'; icon.style.display='none'; }
+            else { img.style.display='none'; icon.style.display='block'; }
+        }
 
-        // ========== EDIT / SAVE PROFILE ==========
+        // ========== EDIT MODAL HELPERS ==========
+        window.autoFillAge = function() {
+            const birthday = document.getElementById('editBirthday').value;
+            const ageField = document.getElementById('editAge');
+            if (birthday) ageField.value = calculateAge(birthday) + ' years old';
+            else ageField.value = '';
+        };
 
-        window.editProfile=function(){
-            const modal=new bootstrap.Modal(document.getElementById('editProfileModal'));
-            const data=window.currentStudentData||{};
-            document.getElementById('editBirthday').value=data.birthday||'';
-            document.getElementById('editAge').value=data.birthday?calculateAge(data.birthday)+' years old':'';
-            document.getElementById('editBirthday').max=new Date().toISOString().split('T')[0];
-            document.getElementById('editGender').value=data.gender||'';
-            document.getElementById('editEmail').value=data.email||'';
-            document.getElementById('editContact').value=data.contactNumber||'';
-            document.getElementById('editHeight').value=data.height||'';
-            document.getElementById('editWeight').value=data.weight||'';
-            document.getElementById('editMedical').value=data.medicalCondition||'';
-            document.getElementById('medicalCharCount').textContent=(data.medicalCondition||'').length;
-            const saveBtn=document.querySelector('#editProfileModal .btn-primary');
-            if(saveBtn) saveBtn.disabled=false;
-            document.getElementById('heightError').style.display='none';
-            document.getElementById('weightError').style.display='none';
-            document.getElementById('editHeight').style.borderColor='';
-            document.getElementById('editWeight').style.borderColor='';
+        window.validateHeightWeight = function() {
+            const h = parseFloat(document.getElementById('editHeight').value);
+            const w = parseFloat(document.getElementById('editWeight').value);
+            const hOk = !isNaN(h) && h>=100 && h<=250;
+            const wOk = !isNaN(w) && w>=30 && w<=130;
+            const saveBtn = document.querySelector('#editProfileModal .btn-primary');
+            document.getElementById('heightError').style.display = hOk ? 'none' : 'block';
+            document.getElementById('weightError').style.display = wOk ? 'none' : 'block';
+            if (saveBtn) saveBtn.disabled = !(hOk && wOk);
+        };
+
+        window.editProfile = function() {
+            const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+            const data = window.currentStudentData || {};
+            document.getElementById('editBirthday').value = data.birthday || '';
+            if (data.birthday) document.getElementById('editAge').value = calculateAge(data.birthday) + ' years old';
+            else document.getElementById('editAge').value = '';
+            document.getElementById('editBirthday').max = new Date().toISOString().split('T')[0];
+            document.getElementById('editGender').value = data.gender || '';
+            document.getElementById('editEmail').value = data.email || '';
+            document.getElementById('editContact').value = data.contactNumber || '';
+            document.getElementById('editHeight').value = data.height || '';
+            document.getElementById('editWeight').value = data.weight || '';
+            document.getElementById('editMedical').value = data.medicalCondition || '';
+            document.getElementById('medicalCharCount').textContent = (data.medicalCondition || '').length;
+            const saveBtn = document.querySelector('#editProfileModal .btn-primary');
+            if (saveBtn) saveBtn.disabled = false;
+            document.getElementById('heightError').style.display = 'none';
+            document.getElementById('weightError').style.display = 'none';
+            document.getElementById('editHeight').style.borderColor = '';
+            document.getElementById('editWeight').style.borderColor = '';
             modal.show();
         };
 
-        window.saveProfile=async function(){
-            const form=document.getElementById('editProfileForm');
-            const birthday=document.getElementById('editBirthday').value;
-            if(!birthday){document.getElementById('editBirthday').setCustomValidity('Please enter your birthday.');document.getElementById('editBirthday').reportValidity();return;}
-            const age=calculateAge(birthday);
-            if(age<15){document.getElementById('editBirthday').setCustomValidity('Age must be at least 15 years old.');document.getElementById('editBirthday').reportValidity();return;}
+        window.saveProfile = async function() {
+            const form = document.getElementById('editProfileForm');
+            const birthday = document.getElementById('editBirthday').value;
+            if (!birthday) { document.getElementById('editBirthday').setCustomValidity('Please enter your birthday.'); document.getElementById('editBirthday').reportValidity(); return; }
+            const age = calculateAge(birthday);
+            if (age < 15) { document.getElementById('editBirthday').setCustomValidity('Age must be at least 15 years old.'); document.getElementById('editBirthday').reportValidity(); return; }
             document.getElementById('editBirthday').setCustomValidity('');
-            const height=parseFloat(document.getElementById('editHeight').value);
-            const weight=parseFloat(document.getElementById('editWeight').value);
-            if(isNaN(height)||height<100||height>250){document.getElementById('editHeight').setCustomValidity('Height must be between 100 and 250 cm.');document.getElementById('editHeight').reportValidity();return;}
+
+            const height = parseFloat(document.getElementById('editHeight').value);
+            const weight = parseFloat(document.getElementById('editWeight').value);
+            if (isNaN(height) || height<100 || height>250) { document.getElementById('editHeight').setCustomValidity('Height must be between 100 and 250 cm.'); document.getElementById('editHeight').reportValidity(); return; }
             document.getElementById('editHeight').setCustomValidity('');
-            if(isNaN(weight)||weight<30||weight>130){document.getElementById('editWeight').setCustomValidity('Weight must be between 30 and 130 kg.');document.getElementById('editWeight').reportValidity();return;}
+            if (isNaN(weight) || weight<30 || weight>130) { document.getElementById('editWeight').setCustomValidity('Weight must be between 30 and 130 kg.'); document.getElementById('editWeight').reportValidity(); return; }
             document.getElementById('editWeight').setCustomValidity('');
-            const medicalVal=document.getElementById('editMedical').value;
-            if(medicalVal.length>1000){document.getElementById('editMedical').setCustomValidity('Medical condition must not exceed 1000 characters.');document.getElementById('editMedical').reportValidity();return;}
+
+            const medicalVal = document.getElementById('editMedical').value;
+            if (medicalVal.length > 1000) { document.getElementById('editMedical').setCustomValidity('Medical condition must not exceed 1000 characters.'); document.getElementById('editMedical').reportValidity(); return; }
             document.getElementById('editMedical').setCustomValidity('');
-            if(!form.checkValidity()){form.reportValidity();return;}
-            try{
-                const email=window.currentStudentData?.email||auth.currentUser?.email||'';
-                const extractedId=extractUmakIdFromEmail(email);
-                const ni=extractNameFromEmail(email);
-                let firstName=ni.firstName,lastName=ni.lastName;
-                if(auth.currentUser?.displayName){const p=auth.currentUser.displayName.split(' ');if(p.length>=2){firstName=p[0];lastName=p.slice(1).join(' ');}else firstName=auth.currentUser.displayName;}
-                const oldHeight=window.currentStudentData?.height||0;
-                const oldWeight=window.currentStudentData?.weight||0;
-                const updatedData={firstName,lastName,birthday,age:calculateAge(birthday),gender:document.getElementById('editGender').value,email,contactNumber:document.getElementById('editContact').value,height,weight,medicalCondition:medicalVal,umakId:extractedId,updatedAt:new Date().toISOString()};
-                await updateDoc(doc(db,'students',window.currentStudentId),updatedData);
-                const bmiChanged=(height!==oldHeight||weight!==oldWeight)&&height>0&&weight>0;
-                if(bmiChanged){
-                    const bmi=calculateBMI(weight,height);
-                    const category=getBMICategory(bmi);
-                    const {collection:col,addDoc}=await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                    await addDoc(col(db,'BMI'),{studentId:window.currentStudentId,studentName:`${ni.firstName} ${ni.lastName}`.trim(),umakId:extractedId,section:window.currentStudentData?.section||'Not Assigned',email,height,weight,bmi:parseFloat(bmi),category,testType:'pre',recordedAt:new Date().toISOString(),recordedBy:'student',updatedAt:new Date().toISOString()});
+
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            try {
+                const email = window.currentStudentData?.email || auth.currentUser?.email || '';
+                const extractedId = extractUmakIdFromEmail(email);
+                const ni = extractNameFromEmail(email);
+                let firstName=ni.firstName, lastName=ni.lastName;
+                if (auth.currentUser?.displayName) {
+                    const p = auth.currentUser.displayName.split(' ');
+                    if (p.length>=2) { firstName=p[0]; lastName=p.slice(1).join(' '); } else firstName=auth.currentUser.displayName;
+                }
+                const oldHeight = window.currentStudentData?.height || 0;
+                const oldWeight = window.currentStudentData?.weight || 0;
+                const updatedData = {
+                    firstName, lastName, birthday, age: calculateAge(birthday),
+                    gender: document.getElementById('editGender').value, email,
+                    contactNumber: document.getElementById('editContact').value,
+                    height, weight, medicalCondition: medicalVal,
+                    umakId: extractedId, updatedAt: new Date().toISOString()
+                };
+
+                const studentRef = doc(db, 'students', window.currentStudentId);
+                await updateDoc(studentRef, updatedData);
+
+                const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height>0 && weight>0;
+                if (bmiChanged) {
+                    const bmi = calculateBMI(weight, height);
+                    const category = getBMICategory(bmi);
+                    await addDoc(collection(db,'BMI'), {
+                        studentId: window.currentStudentId,
+                        studentName: `${ni.firstName} ${ni.lastName}`.trim(),
+                        umakId: extractedId,
+                        section: window.currentStudentData?.section || 'Not Assigned',
+                        email, height, weight,
+                        bmi: parseFloat(bmi), category, testType: 'pre',
+                        recordedAt: new Date().toISOString(), recordedBy: 'student',
+                        updatedAt: new Date().toISOString()
+                    });
                     showProfileSavePopup('success','Profile and BMI record updated successfully!');
-                } else showProfileSavePopup('success','Profile updated successfully!');
+                } else {
+                    showProfileSavePopup('success','Profile updated successfully!');
+                }
+
                 bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
                 await loadStudentProfile(auth.currentUser);
                 updateProfileUI(); updateProfileAvatar();
-            } catch(e){console.error(e);showProfileSavePopup('error','Failed to update profile. Please try again.');}
+            } catch(e) {
+                console.error(e);
+                showProfileSavePopup('error','Failed to update profile. Please try again.');
+            }
         };
 
-        function showProfileSavePopup(type,message){
-            document.getElementById('profileSavePopupOverlay')?.remove();
-            const isSuccess=type==='success';
-            const overlay=document.createElement('div');
-            overlay.id='profileSavePopupOverlay';
-            overlay.className='fixed inset-0 bg-black/45 flex items-center justify-center z-[99999] p-4';
-            overlay.innerHTML=`
+        function showProfileSavePopup(type, message) {
+            const existing = document.getElementById('profileSavePopupOverlay');
+            if (existing) existing.remove();
+            const isSuccess = type==='success';
+            const overlay = document.createElement('div');
+            overlay.id = 'profileSavePopupOverlay';
+            overlay.className = 'fixed inset-0 bg-black/45 flex items-center justify-center z-[99999] p-4';
+            overlay.innerHTML = `
                 <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center font-inter">
                     <div class="w-16 h-16 ${isSuccess?'bg-green-50':'bg-red-50'} rounded-full flex items-center justify-center mx-auto mb-5">
-                        ${isSuccess
-                            ?`<svg width="34" height="34" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="#34a853" stroke-width="3.5"/><path d="M15 24l7 7 11-12" stroke="#34a853" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-                            :`<svg width="34" height="34" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="#ea4335" stroke-width="3.5"/><path d="M24 16v10" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/><circle cx="24" cy="32" r="2" fill="#ea4335"/></svg>`}
+                        ${isSuccess ?
+                            '<svg width="34" height="34" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="#34a853" stroke-width="3.5"/><path d="M15 24l7 7 11-12" stroke="#34a853" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                            :
+                            '<svg width="34" height="34" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="#ea4335" stroke-width="3.5"/><path d="M24 16v10" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/><circle cx="24" cy="32" r="2" fill="#ea4335"/></svg>'}
                     </div>
                     <div class="text-xl font-semibold text-gray-900 mb-1">${isSuccess?'Changes Saved!':'Save Failed'}</div>
                     <div class="text-sm text-gray-500 mb-6 leading-relaxed">${message}</div>
@@ -1491,298 +975,21 @@ document.getElementById('medicalCharCount').textContent = (data.medicalCondition
                     <button id="profileSavePopupOkBtn" class="w-full py-3 rounded-full border-0 ${isSuccess?'bg-green-500 hover:bg-green-600':'bg-red-500 hover:bg-red-600'} text-white text-sm font-medium cursor-pointer transition-colors">OK</button>
                 </div>`;
             document.body.appendChild(overlay);
-            document.getElementById('profileSavePopupOkBtn').addEventListener('click',()=>overlay.remove());
-            overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-        }
-
-        // ========== PROFILE DROPDOWN ==========
-
-        window.toggleProfileDropdown=function(){
-            const isMobile=window.innerWidth<1024;
-            const dropdown=document.getElementById(isMobile?'profileDropdownMobile':'profileDropdown');
-            closeNotificationDropdown();
-            dropdown.classList.toggle('hidden');
-            if(!dropdown.classList.contains('hidden')) setTimeout(()=>document.addEventListener('click',closeProfileOnClickOutside),100);
-            else document.removeEventListener('click',closeProfileOnClickOutside);
-        };
-        function closeProfileOnClickOutside(event){
-            const isMobile=window.innerWidth<1024;
-            const dropdown=document.getElementById(isMobile?'profileDropdownMobile':'profileDropdown');
-            const pb=document.getElementById('profilePictureBtn'); const pbm=document.getElementById('profilePictureBtnMobile');
-            if(!dropdown.contains(event.target)&&!pb?.contains(event.target)&&!pbm?.contains(event.target)){dropdown.classList.add('hidden');document.removeEventListener('click',closeProfileOnClickOutside);}
-        }
-
-        function setupEventListeners(){
-            document.getElementById('notificationBellBtn')?.addEventListener('click',toggleNotificationDropdown);
-            document.getElementById('notificationBellBtnMobile')?.addEventListener('click',toggleNotificationDropdown);
-            document.getElementById('closeNotificationBtn')?.addEventListener('click',e=>{e.stopPropagation();closeNotificationDropdown();});
-            document.getElementById('closeNotificationBtnMobile')?.addEventListener('click',e=>{e.stopPropagation();closeNotificationDropdown();});
-            document.getElementById('profilePictureBtn')?.addEventListener('click',window.toggleProfileDropdown);
-            document.getElementById('profilePictureBtnMobile')?.addEventListener('click',window.toggleProfileDropdown);
-            document.addEventListener('click',event=>{
-                if(!event.target.closest('#notificationBellBtn')&&!event.target.closest('#notificationBellBtnMobile')&&!event.target.closest('#notificationDropdown')&&!event.target.closest('#notificationDropdownMobile')) closeNotificationDropdown();
-                if(!event.target.closest('#profilePictureBtn')&&!event.target.closest('#profilePictureBtnMobile')&&!event.target.closest('#profileDropdown')&&!event.target.closest('#profileDropdownMobile')){
-                    document.getElementById('profileDropdown')?.classList.add('hidden');
-                    document.getElementById('profileDropdownMobile')?.classList.add('hidden');
-                }
-<<<<<<< HEAD
-=======
-            }
-const medicalVal = document.getElementById('editMedical').value;
-if (medicalVal.length > 1000) {
-    document.getElementById('editMedical').focus();
-    document.getElementById('editMedical').setCustomValidity('Medical condition must not exceed 1000 characters.');
-    document.getElementById('editMedical').reportValidity();
-    return;
-} else {
-    document.getElementById('editMedical').setCustomValidity('');
-}
-
-            const updatedData = {
-                firstName: firstName,
-                lastName: lastName,
-birthday: document.getElementById('editBirthday').value,
-age: calculateAge(document.getElementById('editBirthday').value),
-                gender: document.getElementById('editGender').value,
-                email: email,
-                contactNumber: document.getElementById('editContact').value,
-                height: height,
-                weight: weight,
-                medicalCondition: document.getElementById('editMedical').value,
-                umakId: extractedId,
-                updatedAt: new Date().toISOString()
-            };
-            
-            // debug log removed
-            
-            const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            
-            const studentRef = doc(db, 'students', window.currentStudentId);
-            await updateDoc(studentRef, updatedData);
-            
-            const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height > 0 && weight > 0;
-            
-            if (bmiChanged) {
-                const bmi = calculateBMI(weight, height);
-                const category = getBMICategory(bmi);
-                
-                const bmiData = {
-                    studentId: window.currentStudentId,
-                    studentName: `${nameInfo.firstName} ${nameInfo.lastName}`.trim(),
-                    umakId: extractedId,
-                    section: window.currentStudentData?.section || 'Not Assigned',
-                    email: email,
-                    height: height,
-                    weight: weight,
-                    bmi: parseFloat(bmi),
-                    category: category,
-                    testType: 'pre',
-                    recordedAt: new Date().toISOString(),
-                    recordedBy: 'student',
-                    updatedAt: new Date().toISOString()
-                };
-                
-                // debug log removed
-                await addDoc(collection(db, 'BMI'), bmiData);
-                // debug log removed
-                showProfileSavePopup('success', 'Profile and BMI record updated successfully!');
-            } else {
-                showProfileSavePopup('success', 'Profile updated successfully!');
-            }
-            
-            bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
-            
-            const user = auth.currentUser;
-            await loadStudentProfile(user);
-            updateProfileUI();
-            updateProfileAvatar();
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            showProfileSavePopup('error', 'Failed to update profile. Please try again.');
-        }
-    };
-            function showProfileSavePopup(type, message) {
-    const existing = document.getElementById('profileSavePopupOverlay');
-    if (existing) existing.remove();
-
-    const isSuccess = type === 'success';
-
-    const overlay = document.createElement('div');
-    overlay.id = 'profileSavePopupOverlay';
-    overlay.style.cssText = `
-        position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 99999; padding: 1rem;
-        animation: fadeInPopup 0.2s ease;
-    `;
-
-    overlay.innerHTML = `
-        <style>
-            @keyframes fadeInPopup { from { opacity:0; } to { opacity:1; } }
-            @keyframes slideUpPopup { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
-        </style>
-        <div style="
-            background:#fff;
-            border-radius:24px;
-            padding:2rem 1.5rem 1.5rem;
-            max-width:360px;
-            width:100%;
-            box-shadow:0 8px 40px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.10);
-            animation:slideUpPopup 0.35s cubic-bezier(.4,0,.2,1);
-            text-align:center;
-            font-family:'Inter',sans-serif;
-        ">
-            <!-- Icon -->
-            <div style="
-                width:68px; height:68px;
-                background:${isSuccess ? '#e6f4ea' : '#fce8e6'};
-                border-radius:50%;
-                display:flex; align-items:center; justify-content:center;
-                margin:0 auto 1.25rem;
-            ">
-                ${isSuccess ? `
-                <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="#34a853" stroke-width="3.5"/>
-                    <path d="M15 24l7 7 11-12" stroke="#34a853" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>` : `
-                <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="#ea4335" stroke-width="3.5"/>
-                    <path d="M24 16v10" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/>
-                    <circle cx="24" cy="32" r="2" fill="#ea4335"/>
-                </svg>`}
-            </div>
-
-            <!-- Title -->
-            <div style="font-size:1.2rem; font-weight:600; color:#202124; margin-bottom:0.35rem; letter-spacing:-0.01em;">
-                ${isSuccess ? 'Changes Saved!' : 'Save Failed'}
-            </div>
-
-            <!-- Message -->
-            <div style="font-size:0.875rem; color:#5f6368; margin-bottom:1.5rem; line-height:1.5;">
-                ${message}
-            </div>
-
-            <!-- Divider -->
-            <div style="height:1px; background:#e8eaed; margin:0 -1.5rem 1.25rem;"></div>
-
-            <!-- Button -->
-            <button id="profileSavePopupOkBtn" style="
-                width:100%;
-                padding:0.75rem;
-                border-radius:100px;
-                border:none;
-                background:${isSuccess ? '#34a853' : '#ea4335'};
-                color:#fff;
-                font-size:0.9375rem;
-                font-weight:500;
-                cursor:pointer;
-                font-family:'Inter',sans-serif;
-                min-height:48px;
-                transition:opacity 0.15s;
-            ">OK</button>
-        </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    document.getElementById('profileSavePopupOkBtn').addEventListener('click', () => {
-        overlay.remove();
-    });
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.remove();
-    });
-}
-    // Profile dropdown toggle
-    window.toggleProfileDropdown = function() {
-        const isMobile = window.innerWidth < 1024;
-        const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
-        const notificationDropdown = document.getElementById('notificationDropdown');
-        
-        if (notificationDropdown) {
-            notificationDropdown.classList.add('hidden');
-        }
-        
-        dropdown.classList.toggle('hidden');
-        if (!dropdown.classList.contains('hidden')) {
-            setTimeout(() => {
-                document.addEventListener('click', closeProfileOnClickOutside);
-            }, 100);
-        } else {
-            document.removeEventListener('click', closeProfileOnClickOutside);
-        }
-    };
-
-    // Close dropdowns when clicking outside
-    function closeProfileOnClickOutside(event) {
-        const isMobile = window.innerWidth < 1024;
-        const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
-        const notificationDropdown = document.getElementById('notificationDropdown');
-        const profileBtn = document.getElementById('profilePictureBtn');
-        const profileBtnMobile = document.getElementById('profilePictureBtnMobile');
-        const notificationBtn = document.getElementById('notificationBellBtn');
-        
-        if (!dropdown.contains(event.target) && !profileBtn?.contains(event.target) && !profileBtnMobile?.contains(event.target)) {
-            dropdown.classList.add('hidden');
-        }
-        
-        if (notificationDropdown && !notificationDropdown.contains(event.target) && !notificationBtn?.contains(event.target)) {
-            notificationDropdown.classList.add('hidden');
-        }
-        
-        if (dropdown.classList.contains('hidden') && (!notificationDropdown || notificationDropdown.classList.contains('hidden'))) {
-            document.removeEventListener('click', closeProfileOnClickOutside);
-        }
-    }
-
-    // Setup event listeners
-    function setupEventListeners() {
-        const notificationBtn = document.getElementById('notificationBellBtn');
-        const notificationBtnMobile = document.getElementById('notificationBellBtnMobile');
-        
-        if (notificationBtn) notificationBtn.addEventListener('click', toggleNotificationDropdown);
-        if (notificationBtnMobile) notificationBtnMobile.addEventListener('click', toggleNotificationDropdown);
-        
-        const closeNotificationBtn = document.getElementById('closeNotificationBtn');
-        const closeNotificationBtnMobile = document.getElementById('closeNotificationBtnMobile');
-        
-        if (closeNotificationBtn) {
-            closeNotificationBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeNotificationDropdown();
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
-            });
-        }
-
-        function updateProfileUI(){
-            if(!auth.currentUser||!window.currentStudentData) return;
-            const photo=auth.currentUser.photoURL||'https://ui-avatars.com/api/?name='+encodeURIComponent(window.currentStudentData?.firstName||'User')+'&background=3b82f6&color=fff&size=128';
-            ['profilePictureBtn','profilePictureBtnMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=photo;});
-            ['profileDropdownPicture','profileDropdownPictureMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=photo;});
-            const name=auth.currentUser.displayName||`${window.currentStudentData?.firstName||''} ${window.currentStudentData?.lastName||''}`.trim()||'Student';
-            const email=window.currentStudentData?.email||auth.currentUser.email||'';
-            ['profileDropdownName','profileDropdownNameMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=name;});
-            ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=email;});
-        }
-
-        function updateProfileAvatar(){
-            if(!auth.currentUser) return;
-            const photo=auth.currentUser.photoURL;
-            const img=document.getElementById('profileAvatarImage');
-            const icon=document.getElementById('profileAvatarIcon');
-            if(photo){img.src=photo;img.style.display='block';icon.style.display='none';}
-            else{img.style.display='none';icon.style.display='block';}
+            document.getElementById('profileSavePopupOkBtn').addEventListener('click', ()=> overlay.remove());
+            overlay.addEventListener('click', (e)=> { if(e.target===overlay) overlay.remove(); });
         }
 
         // ========== LOGOUT ==========
+        window.handleLogout = function() {
+            showLogoutConfirmPopup();
+        };
 
-        window.handleLogout=function(){showLogoutConfirmPopup();};
-        function showLogoutConfirmPopup(){
+        function showLogoutConfirmPopup() {
             document.getElementById('logoutOverlay')?.remove();
-            const overlay=document.createElement('div');
-            overlay.id='logoutOverlay';
-            overlay.className='fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4';
-            overlay.innerHTML=`
+            const overlay = document.createElement('div');
+            overlay.id = 'logoutOverlay';
+            overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4';
+            overlay.innerHTML = `
                 <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center font-inter">
                     <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
                         <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><path d="M20 8H10C8.9 8 8 8.9 8 10V38C8 39.1 8.9 40 10 40H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/><path d="M32 16L40 24L32 32" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 24H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/></svg>
@@ -1796,36 +1003,114 @@ age: calculateAge(document.getElementById('editBirthday').value),
                     </div>
                 </div>`;
             document.body.appendChild(overlay);
-            ['profileDropdown','profileDropdownMobile'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
-            document.getElementById('logoutCancelBtn').addEventListener('click',()=>overlay.remove());
-            overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-            document.getElementById('logoutConfirmBtn').addEventListener('click',async()=>{
-                const btn=document.getElementById('logoutConfirmBtn');btn.textContent='Logging out...';btn.disabled=true;btn.style.opacity='.7';
-                try{await signOut(auth);window.location.href='../login/index.html';}
-                catch(e){overlay.remove();alert('Error logging out. Please try again.');}
+            ['profileDropdown','profileDropdownMobile'].forEach(id=> document.getElementById(id)?.classList.add('hidden'));
+            document.getElementById('logoutCancelBtn').addEventListener('click', ()=> overlay.remove());
+            overlay.addEventListener('click', e=> { if(e.target===overlay) overlay.remove(); });
+            document.getElementById('logoutConfirmBtn').addEventListener('click', async ()=>{
+                const btn = document.getElementById('logoutConfirmBtn');
+                btn.textContent='Logging out...'; btn.disabled=true; btn.style.opacity='.7';
+                try { await signOut(auth); window.location.href='../login/index.html'; } catch(e){ overlay.remove(); alert('Error logging out.'); }
             });
         }
 
-        // ========== EDIT PROFILE REDIRECT ==========
+        // ========== PROFILE DROPDOWN TOGGLE ==========
+        window.toggleProfileDropdown = function() {
+            const isMobile = window.innerWidth < 1024;
+            const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
+            closeNotificationDropdown();
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) setTimeout(()=> document.addEventListener('click', closeProfileOnClickOutside), 100);
+            else document.removeEventListener('click', closeProfileOnClickOutside);
+        };
 
-        window.addEventListener('DOMContentLoaded',()=>{
-            const urlParams=new URLSearchParams(window.location.search);
-            if(urlParams.get('editProfile')==='true'){
-                setTimeout(()=>{
-                    if(window.currentStudentData){
-                        editProfile();
-                        const n=document.createElement('div');
-                        n.className='fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-[10000] animate-slide-in';
-                        n.innerHTML='<i class="bi bi-info-circle me-2"></i>Please complete your profile to take tests';
-                        document.body.appendChild(n);
-                        setTimeout(()=>n.remove(),5000);
-                    }
-                },1000);
+        function closeProfileOnClickOutside(event) {
+            const isMobile = window.innerWidth < 1024;
+            const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
+            const pb = document.getElementById('profilePictureBtn');
+            const pbm = document.getElementById('profilePictureBtnMobile');
+            if (!dropdown.contains(event.target) && !pb?.contains(event.target) && !pbm?.contains(event.target)) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeProfileOnClickOutside);
+            }
+        }
+
+        // ========== HAMBURGER ==========
+        function initHamburger() {
+            const hamburger = document.getElementById('hamburger');
+            const mobileDrawer = document.getElementById('mobileDrawer');
+            const drawerOverlay = document.getElementById('drawerOverlay');
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+            if (!hamburger) return;
+            hamburger.addEventListener('click', e=> {
+                e.stopPropagation();
+                hamburger.classList.toggle('active');
+                mobileDrawer.classList.toggle('active');
+                drawerOverlay.classList.toggle('active');
+                document.body.style.overflow = mobileDrawer.classList.contains('active') ? 'hidden' : '';
+                ['profileDropdown','profileDropdownMobile','notificationDropdown','notificationDropdownMobile'].forEach(id=> document.getElementById(id)?.classList.add('hidden'));
+            });
+            drawerOverlay.addEventListener('click', ()=>{
+                hamburger.classList.remove('active');
+                mobileDrawer.classList.remove('active');
+                drawerOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+            mobileNavLinks.forEach(l=> l.addEventListener('click', ()=>{
+                hamburger.classList.remove('active');
+                mobileDrawer.classList.remove('active');
+                drawerOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }));
+            window.addEventListener('resize', ()=>{
+                if (window.innerWidth>=1024) {
+                    hamburger.classList.remove('active');
+                    mobileDrawer.classList.remove('active');
+                    drawerOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // ========== EVENT LISTENERS ==========
+        function setupEventListeners() {
+            document.getElementById('notificationBellBtn')?.addEventListener('click', toggleNotificationDropdown);
+            document.getElementById('notificationBellBtnMobile')?.addEventListener('click', toggleNotificationDropdown);
+            document.getElementById('closeNotificationBtn')?.addEventListener('click', e=> { e.stopPropagation(); closeNotificationDropdown(); });
+            document.getElementById('closeNotificationBtnMobile')?.addEventListener('click', e=> { e.stopPropagation(); closeNotificationDropdown(); });
+            document.getElementById('profilePictureBtn')?.addEventListener('click', window.toggleProfileDropdown);
+            document.getElementById('profilePictureBtnMobile')?.addEventListener('click', window.toggleProfileDropdown);
+            document.addEventListener('click', event=> {
+                if (!event.target.closest('#notificationBellBtn') && !event.target.closest('#notificationBellBtnMobile') && !event.target.closest('#notificationDropdown') && !event.target.closest('#notificationDropdownMobile'))
+                    closeNotificationDropdown();
+                if (!event.target.closest('#profilePictureBtn') && !event.target.closest('#profilePictureBtnMobile') && !event.target.closest('#profileDropdown') && !event.target.closest('#profileDropdownMobile')) {
+                    document.getElementById('profileDropdown')?.classList.add('hidden');
+                    document.getElementById('profileDropdownMobile')?.classList.add('hidden');
+                }
+            });
+        }
+
+        // ========== AUTH INIT ==========
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    await loadStudentProfile(user);
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    setupEventListeners();
+                    initHamburger();
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                }
+            } else {
+                window.location.href = '../login/index.html';
             }
         });
 
-        window.toggleNotificationDropdown=toggleNotificationDropdown;
-        window.closeNotificationDropdown=closeNotificationDropdown;
+        // Cleanup listeners on page unload
+        window.addEventListener('pagehide', ()=> { if(unsubscribeNotificationListener) { unsubscribeNotificationListener(); unsubscribeNotificationListener=null; } });
+        window.addEventListener('beforeunload', ()=> { if(unsubscribeNotificationListener) { unsubscribeNotificationListener(); unsubscribeNotificationListener=null; } });
     </script>
 </body>
 </html>

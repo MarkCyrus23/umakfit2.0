@@ -899,56 +899,27 @@ if (testId) {
 
         async function checkUnreadNotifications() {
             try {
-                if (!studentData?.section) return;
-                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
-                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-                let unread = 0;
-                snap.forEach(d => { if (!read.includes(d.id)) unread++; });
-                ['navNotificationCount','navNotificationCountMobile'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (!el) return;
-                    if (unread > 0) { el.textContent = unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
-                });
-<<<<<<< HEAD
-            } catch (e) { console.error('checkUnreadNotifications:', e); }
-        }
-
-        async function loadNotificationDropdown() {
-            try {
-                const isMobile = window.innerWidth < 1024;
-                const bodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
-                const dropdownBody = document.getElementById(bodyId);
-                if (!dropdownBody) return;
-                if (!studentData?.section) {
-                    dropdownBody.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl mb-3 block"></i><p class="text-gray-600">No section assigned</p></div>`;
-                    return;
-                }
-                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
-                if (!snap.empty) {
-                    const seen = new Set(); const unique = [];
-                    snap.forEach(d => { const n=d.data(); const k=`${n.title}|${n.message}|${n.createdAt?.toDate?.().getTime()||''}`; if(!seen.has(k)){seen.add(k);unique.push({id:d.id,...n});} });
-                    unique.sort((a,b)=>(b.createdAt?.toDate?.()||new Date(0))-(a.createdAt?.toDate?.()||new Date(0)));
-                    const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-                    const unreadIds = unique.filter(n => !read.includes(n.id)).map(n => n.id);
-                    let html = '';
-                    unique.slice(0,5).forEach(n => {
-                        const d = n.createdAt?.toDate?.();
-                        const dateStr = d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Recently';
-                        const isRead = read.includes(n.id);
-                        html += `<div class="notification-item p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${isRead?'bg-gray-50':'bg-white'}" data-notification-id="${n.id}">
-                            <strong class="text-gray-900 text-sm block mb-1 font-semibold">${n.title||'Notification'}</strong>
-                            <p class="text-gray-600 text-sm mb-1 leading-relaxed">${n.message||''}</p>
-                            <small class="text-gray-400 text-xs">${dateStr}</small>
-                        </div>`;
-                    });
-                    dropdownBody.innerHTML = html;
-                    if (unreadIds.length > 0) markNotificationsAsRead(unreadIds);
-                    document.querySelectorAll('.notification-item').forEach(item => {
-                        item.addEventListener('click', function() { markSingleNotificationAsRead(this.getAttribute('data-notification-id')); });
-                    });
-=======
+                if (!studentData || !studentData.section) return;
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email)
+);
                 
-                // debug log removed
+                const notificationsSnapshot = await getDocs(notificationsQuery);
+                
+                // Get read notifications from localStorage
+                const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+                
+                // Count unread notifications (not in readNotifications array)
+                let unreadCount = 0;
+                notificationsSnapshot.forEach(doc => {
+                    if (!readNotifications.includes(doc.id)) {
+                        unreadCount++;
+                    }
+                });
+                
+                console.log('📬 Unread notifications:', unreadCount);
                 
                 // Update BOTH badges with same count
                 const countBadge = document.getElementById('navNotificationCount');
@@ -963,36 +934,32 @@ if (testId) {
                         countBadgeMobile.textContent = unreadCount;
                         countBadgeMobile.classList.remove('hidden');
                     }
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 } else {
-                    dropdownBody.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl mb-3 block"></i><p class="text-gray-600">No notifications yet</p></div>`;
+                    if (countBadge) countBadge.classList.add('hidden');
+                    if (countBadgeMobile) countBadgeMobile.classList.add('hidden');
                 }
-            } catch(e) { console.error('loadNotificationDropdown:', e); }
+            } catch (error) {
+                console.error('Error checking unread notifications:', error);
+            }
         }
 
-        function markNotificationsAsRead(ids) {
-            if (!studentData?.email || !ids.length) return;
-            const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-            localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify([...new Set([...read,...ids])]));
-            updateNotificationBadgeAfterRead(ids);
+ async function loadNotificationDropdown() {
+    try {
+        const isMobile = window.innerWidth < 1024;
+        const activeBodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
+        const dropdownBody = document.getElementById(activeBodyId);
+        
+        if (!dropdownBody) return;
+
+        if (!studentData || !studentData.section) {
+            dropdownBody.innerHTML = `
+                <div class="p-8 text-center text-gray-400">
+                    <i class="bi bi-bell-slash text-5xl mb-3 block"></i>
+                    <p class="text-gray-600">No section assigned</p>
+                </div>
+            `;
+            return;
         }
-<<<<<<< HEAD
-        function markSingleNotificationAsRead(id) {
-            if (!studentData?.email) return;
-            const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-            if (!read.includes(id)) { read.push(id); localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify(read)); updateNotificationBadgeAfterRead([id]); }
-        }
-        async function updateNotificationBadgeAfterRead() {
-            try {
-                if (!studentData?.section) return;
-                const snap = await getDocs(query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)));
-                const ids = new Set(); snap.forEach(d=>ids.add(d.id));
-                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
-                let unread = 0; ids.forEach(id => { if (!read.includes(id)) unread++; });
-                ['navNotificationCount','navNotificationCountMobile'].forEach(id => {
-                    const el = document.getElementById(id); if (!el) return;
-                    if (unread > 0) { el.textContent = unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
-=======
 
 const notificationsQuery = query(
     collection(db, 'notifications'),
@@ -1020,7 +987,8 @@ const notificationsQuery = query(
                 }
             });
             
-            // debug logs removed
+            console.log(`📬 Total notifications fetched: ${notificationsSnapshot.size}`);
+            console.log(`📬 Unique notifications after dedup: ${uniqueNotifications.length}`);
             
             // Get read notifications from localStorage
             const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
@@ -1074,13 +1042,29 @@ const notificationsQuery = query(
                 item.addEventListener('click', function() {
                     const notificationId = this.getAttribute('data-notification-id');
                     markSingleNotificationAsRead(notificationId);
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 });
-            } catch(e) { console.error(e); }
+            });
+            
+        } else {
+            dropdownBody.innerHTML = `
+                <div class="p-8 text-center text-gray-400">
+                    <i class="bi bi-bell-slash text-5xl mb-3 block"></i>
+                    <p class="text-gray-600">No notifications yet</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+    }
+}
+
+        function markNotificationsAsRead(ids) {
+            if (!studentData?.email || !ids.length) return;
+            const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+            localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify([...new Set([...read,...ids])]));
+            updateNotificationBadgeAfterRead(ids);
         }
 
-<<<<<<< HEAD
-=======
         function markSingleNotificationAsRead(notificationId) {
             if (!studentData || !studentData.email) return;
             
@@ -1127,7 +1111,7 @@ const notificationsQuery = query(
             }
         });
         
-        // debug log removed
+        console.log('📬 Updated unread count:', unreadCount);
         
         // Update badges
         const countBadge = document.getElementById('navNotificationCount');
@@ -1152,7 +1136,6 @@ const notificationsQuery = query(
 }
 
         // Modified toggle functions
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         function toggleNotificationDropdown(event) {
             event?.stopPropagation();
             const isMobile = window.innerWidth < 1024;
@@ -1282,18 +1265,6 @@ const notificationsQuery = query(
 
         async function updateChartsWithRealData() {
             try {
-<<<<<<< HEAD
-                if (!studentData?.email) return;
-                const snap = await getDocs(query(collection(db,'testResults'), where('studentEmail','==',studentData.email), where('status','==','completed'), orderBy('submittedAt','asc')));
-                const categoryData = { 'Cardiorespiratory Endurance':[], 'Muscular Strength':[], 'Muscular Endurance':[], 'Flexibility':[], 'Body Composition':[] };
-                snap.forEach(d => {
-                    const r = d.data();
-                    const cat = getCategoryForTest(r.testName);
-                    const score = calculateTestScore(r.testName, r.resultData||r.result, r.testTarget);
-                    const ts = r.submittedAt?.toDate?.() || new Date(r.date);
-                    if (categoryData[cat]) categoryData[cat].push({ score, timestamp: ts, testName: r.testName });
-                });
-=======
                 if (!studentData || !studentData.email) return;
 
                 const resultsQuery = query(
@@ -1313,7 +1284,7 @@ const notificationsQuery = query(
                     'Body Composition': []
                 };
                 
-                // debug log removed
+                console.log('📊 Processing test results for charts...');
                 
                 // Group results by category with timestamps
                 resultsSnapshot.forEach((doc) => {
@@ -1328,7 +1299,7 @@ const notificationsQuery = query(
                     
                     const timestamp = result.submittedAt?.toDate?.() || new Date(result.date);
                     
-                    // debug log removed
+                    console.log(`📝 Test: ${result.testName} → Category: ${category} → Score: ${score}`);
                     
                     if (categoryData[category]) {
                         categoryData[category].push({
@@ -1339,10 +1310,9 @@ const notificationsQuery = query(
                     }
                 });
                 
-                // debug log removed
+                console.log('📊 Final category data:', categoryData);
                 
                 // Update Fitness Overview Chart
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 if (window.fitnessOverviewChart) {
                     const all = []; Object.entries(categoryData).forEach(([c,ts]) => ts.forEach(t=>all.push({...t,category:c})));
                     all.sort((a,b)=>a.timestamp-b.timestamp);
@@ -1355,10 +1325,7 @@ const notificationsQuery = query(
                     window.fitnessOverviewChart.data.labels=labels;
                     ['Cardiorespiratory Endurance','Muscular Strength','Muscular Endurance','Flexibility','Body Composition'].forEach((c,i)=>{window.fitnessOverviewChart.data.datasets[i].data=dbc[c];});
                     window.fitnessOverviewChart.update('active');
-<<<<<<< HEAD
-=======
-                    // debug log removed
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
+                    console.log('✅ Fitness Overview Chart updated');
                 }
                 if (window.performanceRadarChart) {
                     window.performanceRadarChart.data.datasets[0].data=[
@@ -1368,18 +1335,14 @@ const notificationsQuery = query(
                         getLatestScore(categoryData['Flexibility']),
                         getLatestScore(categoryData['Body Composition'])
                     ];
-<<<<<<< HEAD
-                    window.performanceRadarChart.update();
-=======
                     
-                    // debug log removed
+                    console.log('📊 Current Performance:', currentPerformance);
                     
                     window.performanceRadarChart.data.datasets[0].data = currentPerformance;
                     window.performanceRadarChart.data.datasets[1].data = [85, 85, 85, 85, 85];
                     
                     window.performanceRadarChart.update();
-                    // debug log removed
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
+                    console.log('✅ Performance Radar Chart updated');
                 }
             } catch(e) { console.error('updateChartsWithRealData:', e); }
         }
@@ -1438,26 +1401,7 @@ const notificationsQuery = query(
                         }
                     }
                 });
-<<<<<<< HEAD
-            } catch(e) {
-                console.error('createOverallProgressChart:', e);
-                const container=document.getElementById('overallProgressChart');
-                if(container) container.innerHTML=`<div class="text-center py-12"><i class="bi bi-exclamation-circle text-red-500 text-6xl mb-3"></i><p class="text-red-500 font-semibold mb-1">Error loading chart</p><small class="text-gray-400">${e.message}</small></div>`;
-            }
-        }
-
-        function getCategoryForTest(testName) {
-            const n = testName.toLowerCase().trim();
-            for (const [cat,data] of Object.entries(testCategories)) {
-                if (data.tests.some(t => n.includes(t.toLowerCase()) || t.toLowerCase().includes(n))) return cat;
-            }
-            if(n.includes('sit-and-reach')||n.includes('sit and reach')||n.includes('flexibility')||n.includes('shoulder'))return'Flexibility';
-            if(n.includes('push-up')||n.includes('pushup')||n.includes('push up')||n.includes('grip'))return'Muscular Strength';
-            if(n.includes('curl-up')||n.includes('curl up')||n.includes('plank'))return'Muscular Endurance';
-            if(n.includes('step')||n.includes('run')||n.includes('cardio')||n.includes('mile')||n.includes('bmi'))return'Cardiorespiratory Endurance';
-            return 'Cardiorespiratory Endurance';
-=======
-                // debug log removed
+                console.log('✅ Overall progress chart (per-week) created');
             } catch (error) {
                 console.error('❌ Error creating overall progress chart:', error);
                 const container = document.getElementById('overallProgressChart');
@@ -1471,14 +1415,14 @@ const notificationsQuery = query(
         function getCategoryForTest(testName) {
             const normalized = testName.toLowerCase().trim();
             
-            // debug log removed
+            console.log('🔍 Categorizing test:', testName, '→', normalized);
             
             for (const [category, data] of Object.entries(testCategories)) {
                 if (data.tests.some(t => 
                     normalized.includes(t.toLowerCase()) || 
                     t.toLowerCase().includes(normalized)
                 )) {
-                    // debug log removed
+                    console.log('✅ Category:', category);
                     return category;
                 }
             }
@@ -1487,29 +1431,29 @@ const notificationsQuery = query(
                 normalized.includes('sit and reach') ||
                 normalized.includes('flexibility') ||
                 normalized.includes('shoulder')) {
-                // debug log removed
+                console.log('✅ Category: Flexibility (fallback)');
                 return 'Flexibility';
             } else if (normalized.includes('push-up') || 
                        normalized.includes('pushup') || 
                        normalized.includes('push up') ||
                        normalized.includes('grip')) {
-                // debug log removed
+                console.log('✅ Category: Muscular Strength (fallback)');
                 return 'Muscular Strength';
             } else if (normalized.includes('curl-up') ||
                        normalized.includes('curl up') ||
                        normalized.includes('plank')) {
-                // debug log removed
+                console.log('✅ Category: Muscular Endurance (fallback)');
                 return 'Muscular Endurance';
             } else if (normalized.includes('step') || 
                        normalized.includes('run') || 
                        normalized.includes('cardio') || 
                        normalized.includes('mile') ||
                        normalized.includes('bmi')) {
-                // debug log removed
+                console.log('✅ Category: Cardiorespiratory Endurance (fallback)');
                 return 'Cardiorespiratory Endurance';
             }
             
-            // debug log removed
+            console.log('❌ No category found, defaulting to Cardiorespiratory Endurance');
             return 'Cardiorespiratory Endurance';
         }
         
@@ -1522,24 +1466,13 @@ const notificationsQuery = query(
             if (!categoryData || categoryData.length === 0) return 0;
             const sum = categoryData.reduce((total, item) => total + item.score, 0);
             const average = sum / categoryData.length;
-            // debug log removed
+            console.log(`📊 Average for category: ${categoryData.length} tests, sum: ${sum}, avg: ${average}`);
             return Math.round(average);
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         }
-        function getLatestScore(d){return d.length===0?0:d[d.length-1].score;}
-        function getAverageScore(d){if(!d||d.length===0)return 0;return Math.round(d.reduce((t,i)=>t+i.score,0)/d.length);}
-
-        // ========== STUDENT DATA ==========
 
         async function loadStudentData(user) {
             try {
-<<<<<<< HEAD
-                const snap = await getDocs(query(collection(db,'students'), where('email','==',user.email)));
-                if (!snap.empty) {
-                    const data = snap.docs[0].data();
-                    let displayName = user.displayName || (data.firstName||data.lastName?`${data.firstName||''} ${data.lastName||''}`.trim() : user.email.split('@')[0]);
-=======
-                // debug log removed
+                console.log('Loading data for student:', user.email);
                 
                 // Try to get student data from students collection using email
                 const studentsQuery = query(
@@ -1564,7 +1497,6 @@ const notificationsQuery = query(
                     }
 
                     // Store complete student data including section
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     studentData = {
                         uid: user.uid, displayName, email: data.email||user.email,
                         studentId: data.umakId||data.studentId||data.student_id||'000000',
@@ -1592,12 +1524,9 @@ const notificationsQuery = query(
                     setupDashboardDeadlineWatcher();
                     return studentData;
                 } else {
-<<<<<<< HEAD
-=======
-                    // debug log removed
+                    console.log('⚠️ No student profile found in students collection');
                     
                     // Create a minimal student data object from Firebase auth
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     studentData = {
                         uid: user.uid, displayName: user.displayName||user.email.split('@')[0],
                         email: user.email, studentId:'Not Assigned', course:'Not Assigned',
@@ -1637,12 +1566,8 @@ const notificationsQuery = query(
 
         async function loadUpcomingTests() {
             try {
-<<<<<<< HEAD
-                if (!studentData?.section || studentData.section === 'Not Assigned') {
-                    document.getElementById('upcomingTestsCard').innerHTML = `<div class="text-center py-8 sm:py-12"><i class="bi bi-calendar-x text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i><p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No section assigned</p><small class="text-gray-400 text-xs sm:text-sm">Contact your instructor to be assigned to a section</small></div>`;
-=======
                 if (!studentData || !studentData.section || studentData.section === 'Not Assigned') {
-                    // debug log removed
+                    console.log('No student data or section available');
                     const container = document.getElementById('upcomingTestsCard');
                     if (container) {
                         container.innerHTML = `
@@ -1653,7 +1578,6 @@ const notificationsQuery = query(
                             </div>
                         `;
                     }
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     return;
                 }
                 const testsSnap = await getDocs(query(collection(db,'scheduledTests'), where('section','==',studentData.section), where('isVisible','==',true)));
@@ -1828,35 +1752,8 @@ const notificationsQuery = query(
 
         async function updatePerformanceSummary() {
             try {
-<<<<<<< HEAD
-                if (!studentData?.section || studentData.section==='Not Assigned') {
-                    document.getElementById('completionRate').textContent='0%'; document.getElementById('testsCompletedCount').textContent='0 / 0';
-                    document.getElementById('currentStreak').textContent='0 weeks'; document.getElementById('classRanking').textContent='--';
-                    document.getElementById('classRankingDetails').textContent='No section assigned'; document.getElementById('strongestCategory').textContent='No Data';
-                    document.getElementById('strongestCategoryScore').textContent='Complete your profile'; return;
-                }
-                const assignedSnap = await getDocs(query(collection(db,'scheduledTests'), where('section','==',studentData.section), where('isVisible','==',true), where('isActive','==',true)));
-                const seenIds=new Set(); let totalAssigned=0;
-                assignedSnap.forEach(d=>{const test=d.data();const id=d.id;if(seenIds.has(id))return;seenIds.add(id);const sel=test.selectedStudents?.length?test.selectedStudents.includes(studentData.email):true;if(sel)totalAssigned++;});
-                const completedSnap = await getDocs(query(collection(db,'testResults'), where('studentEmail','==',studentData.email)));
-                const completedIds=new Set(); const tests=[];
-                completedSnap.forEach(d=>{const r=d.data();completedIds.add(r.testId);tests.push(r);});
-                const totalCompleted=completedIds.size;
-                const completionRate=totalAssigned>0?Math.round((totalCompleted/totalAssigned)*100):0;
-                document.getElementById('completionRate').textContent=completionRate+'%';
-                document.getElementById('testsCompletedCount').textContent=`${totalCompleted} / ${totalAssigned}`;
-                const testDates=tests.map(t=>t.submittedAt?.toDate?.()||(t.submittedAt?new Date(t.submittedAt):null)).filter(Boolean);
-                const weekStreak=calculateWeekStreak(testDates);
-                document.getElementById('currentStreak').textContent=weekStreak+' week'+(weekStreak!==1?'s':'');
-                // Sync streak to firestore
-                try {
-                    const {doc:fsDoc,updateDoc}=await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                    const snap2=await getDocs(query(collection(db,'students'),where('email','==',studentData.email)));
-                    if(!snap2.empty)await updateDoc(snap2.docs[0].ref,{weekStreak});
-                } catch(e){}
-=======
                 if (!studentData || !studentData.email || !studentData.section || studentData.section === 'Not Assigned') {
-                    // debug log removed
+                    console.log('No student data or section available for performance summary');
                     document.getElementById('completionRate').textContent = '0%';
                     document.getElementById('testsCompletedCount').textContent = '0 / 0';
                     document.getElementById('currentStreak').textContent = '0 weeks';
@@ -1876,7 +1773,7 @@ const notificationsQuery = query(
                 );
                 const assignedTestsSnapshot = await getDocs(assignedTestsQuery);
 
-                // debug log removed
+                console.log('📊 Total scheduled tests found:', assignedTestsSnapshot.size);
 
                 const seenTestIds = new Set();
                 let totalAssignedTests = 0;
@@ -1901,13 +1798,13 @@ const notificationsQuery = query(
                     // Count all tests that the student is selected for
                     if (isStudentSelected) {
                         totalAssignedTests++;
-                        // debug log removed
+                        console.log(`✓ Counted test: ${test.testName}`);
                     } else {
-                        // debug log removed
+                        console.log(`✗ Skipped test (not selected): ${test.testName}`);
                     }
                 });
 
-                // debug log removed
+                console.log('📊 Total assigned tests for student:', totalAssignedTests);
 
                 // Get completed tests (unique tests only)
                 const completedTestsQuery = query(
@@ -1954,15 +1851,14 @@ const notificationsQuery = query(
                         } catch(e) { console.warn('Could not sync weekStreak:', e); }
                     }
 
-                // debug log removed
+                console.log('📊 Completion Summary:', {
                     totalAssignedTests,
                     totalCompleted,
                     completionRate: completionRate + '%',
                     weekStreak: weekStreak + ' weeks'
-                // });
+                });
 
                 // Calculate Class Ranking and Strongest Category
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 await calculateClassRanking();
                 await calculateStrongestCategory();
             } catch(e) { console.error('updatePerformanceSummary:', e); document.getElementById('completionRate').textContent='0%'; document.getElementById('testsCompletedCount').textContent='0 / 0'; document.getElementById('currentStreak').textContent='0 weeks'; document.getElementById('classRanking').textContent='--'; document.getElementById('strongestCategory').textContent='Error'; }
@@ -2100,56 +1996,6 @@ const notificationsQuery = query(
         function getWeekNumber(date){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));const dayNum=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dayNum);const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-yearStart)/86400000)+1)/7);}
         function updateNavNotificationCount(count){['navNotificationCount','navNotificationCountMobile'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(count>0){el.textContent=count>99?'99+':count;el.classList.remove('hidden');}else el.classList.add('hidden');});}
 
-        function updateProfileUI(){
-            if(!currentUser)return;
-            const photoURL=currentUser.photoURL||'https://ui-avatars.com/api/?name='+encodeURIComponent(studentData?.displayName||'User')+'&background=3b82f6&color=fff&size=128';
-            ['profilePictureBtn','profilePictureBtnMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=photoURL;});
-            ['profileDropdownPicture','profileDropdownPictureMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=photoURL;});
-            ['profileDropdownName','profileDropdownNameMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=studentData?.displayName||'Student';});
-            ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=studentData?.email||currentUser?.email||'';});
-        }
-
-<<<<<<< HEAD
-        async function loadTestHistory(){
-            try{
-                if(!currentUser||!studentData)return;
-                let snap;
-                try{snap=await getDocs(query(collection(db,'testResults'),where('studentEmail','==',studentData.email),where('status','==','completed'),orderBy('submittedAt','desc'),limit(1)));}
-                catch(e){
-                    const simpleSnap=await getDocs(query(collection(db,'testResults'),where('studentEmail','==',studentData.email),where('status','==','completed')));
-                    const results=[];simpleSnap.forEach(d=>results.push({id:d.id,...d.data()}));
-                    results.sort((a,b)=>{const dA=a.submittedAt?.toDate?.()||new Date(a.date||0);const dB=b.submittedAt?.toDate?.()||new Date(b.date||0);return dB-dA;});
-                    const container=document.getElementById('recentTestResultCard');
-                    if(results.length>0){allTestResults=[results[0]];renderSingleTestResult(results[0],container);}
-                    else{allTestResults=[];container.innerHTML=`<div class="text-center py-8 sm:py-12"><i class="bi bi-clipboard-data text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i><p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No test results yet</p><small class="text-gray-400 text-xs sm:text-sm">Complete a test to see your results here</small></div>`;}
-=======
-        // Get week number
-        function getWeekNumber(date) {
-            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-            return weekNum;
-        }
-
-        // Update nav notification count
-        function updateNavNotificationCount(count) {
-            const badge = document.getElementById('navNotificationCount');
-            const badgeMobile = document.getElementById('navNotificationCountMobile');
-            
-            [badge, badgeMobile].forEach(el => {
-                if (el) {
-                    if (count > 0) {
-                        el.textContent = count > 99 ? '99+' : count;
-                        el.classList.remove('hidden');
-                    } else {
-                        el.classList.add('hidden');
-                    }
-                }
-            });
-        }
-
         // Update profile UI
         function updateProfileUI() {
             if (!currentUser) return;
@@ -2185,42 +2031,12 @@ const notificationsQuery = query(
         async function loadTestHistory() {
             try {
                 if (!currentUser || !studentData) {
-                    // debug log removed
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
+                    console.log('No current user or student data');
                     return;
                 }
-                const container=document.getElementById('recentTestResultCard');
-                if(!snap.empty){const results=[];snap.forEach(d=>results.push({id:d.id,...d.data()}));allTestResults=results;renderSingleTestResult(results[0],container);}
-                else{allTestResults=[];container.innerHTML=`<div class="text-center py-8 sm:py-12"><i class="bi bi-clipboard-data text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i><p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No test results yet</p><small class="text-gray-400 text-xs sm:text-sm">Complete a test to see your results here</small></div>`;}
-            }catch(e){console.error('loadTestHistory:',e);document.getElementById('recentTestResultCard').innerHTML=`<div class="text-center py-8 sm:py-12"><i class="bi bi-exclamation-circle text-red-500 text-5xl sm:text-6xl mb-2 sm:mb-3"></i><p class="text-red-500 font-semibold mb-1 text-sm sm:text-base">Error loading test results</p><small class="text-gray-400 text-xs sm:text-sm">${e.message}</small></div>`;}
-        }
 
-<<<<<<< HEAD
-        async function renderSingleTestResult(result,container){
-            if(!result){container.innerHTML=`<div class="text-center py-16 bg-gray-50 rounded-xl"><i class="bi bi-clipboard-data text-6xl text-gray-300 mb-3"></i><p class="text-gray-600 font-semibold">No test results yet</p><small class="text-gray-400">Complete a test to see results</small></div>`;return;}
-            let submittedDate;
-            if(result.submittedAt?.toDate)submittedDate=result.submittedAt.toDate();
-            else if(result.date)submittedDate=new Date(result.date);
-            else if(result.submittedAt?.seconds)submittedDate=new Date(result.submittedAt.seconds*1000);
-            else submittedDate=new Date();
-            const dateStr=!isNaN(submittedDate.getTime())?submittedDate.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'Date unavailable';
-            
-            const normCat = await getNormCategoryWithPriority(result.testName, result.result??result.resultData, result.testId);
-            
-            const normColors={Excellent:{bg:'bg-green-100',text:'text-green-700',border:'border-green-300'},Good:{bg:'bg-blue-100',text:'text-blue-700',border:'border-blue-300'},Average:{bg:'bg-yellow-100',text:'text-yellow-700',border:'border-yellow-300'},'Below Average':{bg:'bg-orange-100',text:'text-orange-700',border:'border-orange-300'},Poor:{bg:'bg-red-100',text:'text-red-700',border:'border-red-300'},Completed:{bg:'bg-gray-100',text:'text-gray-700',border:'border-gray-300'}};
-            const color=normColors[normCat]||normColors['Completed'];
-            const label=normCat||'Completed';
-            
-            container.innerHTML=`
-                <div class="bg-gray-50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-gray-100 transition-colors border border-gray-200">
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-gray-900 text-sm sm:text-base mb-2">${result.testName}</h4>
-                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${color.bg} ${color.text} ${color.border}">
-                                <i class="bi bi-award-fill"></i> ${label}
-                            </span>
-=======
-                // debug logs removed
+                console.log('=== LOADING MOST RECENT TEST RESULT ===');
+                console.log('Student Email:', studentData.email);
 
                 // Query by studentEmail
                 const historyQuery = query(
@@ -2234,7 +2050,7 @@ const notificationsQuery = query(
                 let historySnapshot;
                 try {
                     historySnapshot = await getDocs(historyQuery);
-                    // debug log removed
+                    console.log('Query with orderBy found:', historySnapshot.size, 'results');
                 } catch (indexError) {
                     console.warn('Index not ready, trying without orderBy:', indexError);
                     const simpleQuery = query(
@@ -2283,17 +2099,17 @@ const notificationsQuery = query(
                     const results = [];
                     historySnapshot.forEach(doc => {
                         const data = doc.data();
-                        // debug log removed
+                        console.log('Most recent test result:', data.testName, 'Score:', data.score, 'Date:', data.submittedAt?.toDate?.());
                         results.push({ id: doc.id, ...data });
                     });
                     
-                    // debug log removed
+                    console.log('✓ Found most recent test result');
                     
                     allTestResults = results;
                     renderSingleTestResult(results[0], container);
                     
                 } else {
-                    // debug log removed
+                    console.log('✗ No completed tests found');
                     allTestResults = [];
                     container.innerHTML = `
                         <div class="text-center py-8 sm:py-12">
@@ -2405,7 +2221,7 @@ function calculateTestScore(testName, result, testTarget = null) {
         if (result.score !== undefined && result.score !== null) {
             const score = parseFloat(result.score);
             if (!isNaN(score) && score >= 0 && score <= 100) {
-                // debug log removed
+                console.log(`✅ Using stored professor score: ${score} for ${testName}`);
                 return score;
             }
         }
@@ -2429,7 +2245,7 @@ function calculateTestScore(testName, result, testTarget = null) {
         numericValue = parseFloat(result) || 0;
     }
     
-    // debug log removed
+    console.log(`🎯 Calculating: ${testName} | Value: ${numericValue} | Target: ${testTarget}`);
     
     // Use test target if available (matches grades page)
     if (testTarget && testTarget > 0) {
@@ -2603,67 +2419,6 @@ function calculateTestScore(testName, result, testTarget = null) {
                 studentData.contactNumber !== 'Not Provided';
         }
 
-        // Show profile completion modal
-        function showProfileRequiredModal() {
-            // Create modal if it doesn't exist
-            let modal = document.getElementById('profileRequiredModal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'profileRequiredModal';
-                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] px-4';
-                modal.innerHTML = `
-                    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-fade-in">
-                        <div class="text-center mb-6">
-                            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="bi bi-exclamation-triangle text-3xl text-yellow-600"></i>
-                            </div>
-                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Profile Incomplete</h3>
-                            <p class="text-sm sm:text-base text-gray-600">
-                                You need to complete your profile before taking any tests. Please provide your age, gender, height, weight, and contact number.
-                            </p>
-                        </div>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button onclick="closeProfileRequiredModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-all">
-                                Cancel
-                            </button>
-                            <button onclick="goToEditProfile()" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all">
-                                Edit Profile
-                            </button>
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
-                        </div>
-                        <small class="text-gray-500 text-xs">Completed: ${dateStr}</small>
-                    </div>
-                    <button data-result-id="${result.id}" class="view-result-btn w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-xs sm:text-sm hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 hover:shadow-lg transition-all whitespace-nowrap">
-                        View Result
-                    </button>
-                </div>`;
-            container.querySelector('.view-result-btn')?.addEventListener('click', function(){window.location.href=`./studentresult.html?resultId=${this.getAttribute('data-result-id')}`;});
-        }
-
-        function calculateTestScore(testName,result,testTarget=null){
-            const n=testName.toLowerCase().trim();
-            if(n.includes('skinfold')||n.includes('step test')||n.includes('3-minute'))return 100;
-            if(result&&typeof result==='object'&&result!==null&&result.score!==undefined){const s=parseFloat(result.score);if(!isNaN(s)&&s>=0&&s<=100)return s;}
-            let v=0;
-            if(typeof result==='object'&&result!==null){v=result.repetitions||result.time||result.distance||result.value||result.result||result.count||result.score||0;}
-            else if(typeof result==='string'){const m=result.match(/(\d+\.?\d*)/);if(m)v=parseFloat(m[1]);else v=parseFloat(result)||0;}
-            else v=parseFloat(result)||0;
-            if(testTarget&&testTarget>0){
-                const pct=(n.includes('step test')||n.includes('3-minute')||n.includes('mile')||n.includes('run'))?(testTarget/v)*100:(v/testTarget)*100;
-                if(pct>=100)return 100;if(pct>=90)return 95;if(pct>=80)return 90;if(pct>=70)return 85;if(pct>=60)return 80;if(pct>=50)return 75;return Math.round(Math.max(50,pct));
-            }
-            if(n.includes('push-up')||n.includes('pushup')){if(v>=40)return 100;if(v>=30)return 90;if(v>=20)return 80;if(v>=15)return 70;return 60;}
-            if(n.includes('curl-up')||n.includes('curl up')){if(v>=75)return 100;if(v>=50)return 90;if(v>=30)return 80;if(v>=20)return 70;return 60;}
-            if(n.includes('plank')){if(v>=120)return 100;if(v>=90)return 90;if(v>=60)return 80;if(v>=45)return 70;return 60;}
-            if(n.includes('grip')){if(v>=60)return 100;if(v>=50)return 90;if(v>=40)return 80;if(v>=30)return 70;return 60;}
-            if(n.includes('sit-and-reach')){if(v>=20)return 100;if(v>=15)return 90;if(v>=10)return 80;if(v>=5)return 70;return 60;}
-            return 75;
-        }
-
-        function getRating(score){if(score>=90)return{text:'Excellent',class:'text-green-600'};if(score>=80)return{text:'Good',class:'text-blue-600'};if(score>=70)return{text:'Fair',class:'text-yellow-600'};return{text:'Needs Improvement',class:'text-red-600'};}
-        function startTest(testId){window.location.href=`./testdetails.html?testId=${testId}`;}
-        function isProfileComplete(sd){return sd&&sd.age>0&&sd.gender&&sd.gender!=='Not Specified'&&sd.height>0&&sd.weight>0&&sd.contactNumber&&sd.contactNumber!=='Not Provided';}
-
         function showProfileRequiredModal(){
             let modal=document.getElementById('profileRequiredModal');
             if(!modal){
@@ -2681,28 +2436,6 @@ function calculateTestScore(testName, result, testTarget = null) {
 
         let unsubscribeAuth=null;
         const loadingTimeout=setTimeout(()=>{loadingScreen.classList.add('hidden');mainContent.classList.remove('hidden');},1500);
-
-<<<<<<< HEAD
-        unsubscribeAuth=onAuthStateChanged(auth,async user=>{
-            if(user){
-                try{
-                    currentUser=user; const userEmail=user.email.toLowerCase();
-                    let isStudent=false; let userRole=null;
-                    try{const snap=await getDocs(query(collection(db,'students'),where('email','==',userEmail)));if(!snap.empty){const sd=snap.docs[0].data();userRole=sd.role||'student';isStudent=userRole==='student';}}catch(e){}
-                    if(!isStudent&&userRole===null){try{const userEmailKey=userEmail.replace(/\./g,'_');const ud=await getDoc(doc(db,'users',userEmailKey));if(ud.exists()){userRole=ud.data().role;isStudent=userRole==='student';}}catch(e){}}
-                    if(!isStudent&&userRole===null){try{const ud=await getDoc(doc(db,'users',user.uid));if(ud.exists()){userRole=ud.data().role;isStudent=userRole==='student';}}catch(e){}}
-                    if(!isStudent){clearTimeout(loadingTimeout);alert(userRole?`Access Denied: Students only.\nYour role: ${userRole}`:'Access Denied: Your account is not configured as a student.');await signOut(auth);window.location.href='../login/index.html';return;}
-                    clearTimeout(loadingTimeout); loadingScreen.classList.add('hidden'); mainContent.classList.remove('hidden');
-                    initializeCharts(); generateMiniCalendar();
-                    loadStudentData(user).then(()=>generateMiniCalendar()).catch(e=>console.error('Background load error:',e));
-                }catch(e){console.error('Auth check error:',e);clearTimeout(loadingTimeout);loadingScreen.classList.add('hidden');mainContent.classList.remove('hidden');}
-            }else{clearTimeout(loadingTimeout);window.location.href='../login/index.html';}
-=======
-// Max 1.5s loading screen regardless
-const loadingTimeout = setTimeout(() => {
-    loadingScreen.classList.add('hidden');
-    mainContent.classList.remove('hidden');
-}, 1500);
 
 unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -2760,7 +2493,7 @@ unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             // ✅ Load student data, then re-render calendar with deadlines
             loadStudentData(user).then(() => {
                 generateMiniCalendar(); // re-render now that studentData is available
-                // debug log removed
+                console.log('✓ Student data fully loaded');
             }).catch(err => {
                 console.error('Background load error:', err);
             });
@@ -2786,65 +2519,147 @@ window.addEventListener('beforeunload', () => {
         // ✅ Unsubscribe auth listener when leaving page (prevents memory leaks)
         window.addEventListener('pagehide', () => {
             unsubscribeAuth();
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         });
-        window.addEventListener('pagehide',()=>{if(unsubscribeAuth)unsubscribeAuth();});
-        window.addEventListener('beforeunload',()=>{if(unsubscribeAuth)unsubscribeAuth();});
+        
+        // Generate Calendar
+        function generateMiniCalendar() {
+    const calendar = document.getElementById('miniCalendar');
+    if (!calendar) return;
 
-        // ========== CALENDAR ==========
+    const now = new Date();
+    let viewYear = now.getFullYear();
+    let viewMonth = now.getMonth();
+    const today = now.getDate();
 
-        function generateMiniCalendar(){
-            const calendar=document.getElementById('miniCalendar');
-            if(!calendar)return;
-            const now=new Date(); let viewYear=now.getFullYear(); let viewMonth=now.getMonth(); const today=now.getDate();
-            async function getDeadlinesForMonth(year,month){
-                const dm=new Map();
-                try{if(!studentData?.section)return dm;const snap=await getDocs(query(collection(db,'scheduledTests'),where('section','==',studentData.section),where('isVisible','==',true)));
-                snap.forEach(d=>{const test=d.data();let dd;if(test.deadlineDateTime)dd=new Date(test.deadlineDateTime);else if(test.deadline){dd=new Date(test.deadline);dd.setHours(23,59,59,999);}if(!dd||isNaN(dd))return;if(dd.getFullYear()===year&&dd.getMonth()===month){const day=dd.getDate();if(!dm.has(day))dm.set(day,[]);dm.get(day).push({name:test.testName||'Test',time:test.deadlineTime||dd.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});}});}catch(e){}return dm;
-            }
-            async function renderCalendar(year,month){
-                const firstDay=new Date(year,month,1).getDay(); const daysInMonth=new Date(year,month+1,0).getDate();
-                const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-                const dm=await getDeadlinesForMonth(year,month);
-                let html=`<div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border border-blue-100">
-                    <div class="flex items-center justify-between mb-4">
-                        <button id="calPrevBtn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-blue-200 hover:bg-blue-100 transition-all text-blue-600 font-bold shadow-sm"><i class="bi bi-chevron-left"></i></button>
-                        <h3 class="text-base sm:text-lg font-bold text-blue-800">${monthNames[month]} ${year}</h3>
-                        <button id="calNextBtn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-blue-200 hover:bg-blue-100 transition-all text-blue-600 font-bold shadow-sm"><i class="bi bi-chevron-right"></i></button>
-                    </div>
-                    <div class="grid grid-cols-7 gap-1 text-center mb-1">
-                        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="font-bold text-blue-700 py-1 text-xs uppercase tracking-wide">${d}</div>`).join('')}
-                    </div>
-                    <div class="grid grid-cols-7 gap-1 text-center items-start">`;
-                for(let i=0;i<firstDay;i++)html+=`<div class="py-2"></div>`;
-                for(let day=1;day<=daysInMonth;day++){
-                    const isToday=day===today&&month===now.getMonth()&&year===now.getFullYear();
-                    const hasDeadline=dm.has(day); const deadlines=dm.get(day)||[];
-                    if(hasDeadline){
-                        html+=`<div class="relative rounded-xl overflow-hidden border border-red-300 bg-red-50 min-h-[56px]">
-                            <div class="absolute top-1 left-0 right-0 text-center text-sm font-bold ${isToday?'text-white':'text-red-700'} z-10">
-                                ${day}${isToday?`<span class="absolute inset-0 -z-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-t-xl"></span>`:''}
-                            </div>
-                            <div class="pt-6 px-1 pb-1 space-y-0.5">
-                                ${deadlines.map(d=>`<div class="bg-red-400 text-white rounded px-1 py-0.5 text-center"><div class="text-xs font-semibold leading-tight truncate">${d.name}</div><div class="text-xs opacity-80 leading-tight">${d.time}</div></div>`).join('')}
-                            </div>
-                        </div>`;
-                    } else {
-                        let cellClass='relative text-sm font-medium py-2 rounded-xl transition-all cursor-default ';
-                        if(isToday)cellClass+='bg-gradient-to-br from-blue-600 to-blue-700 text-white font-bold shadow-lg scale-110';
-                        else cellClass+='text-gray-700 hover:bg-blue-100';
-                        html+=`<div class="${cellClass}">${day}</div>`;
-                    }
+    async function getDeadlinesForMonth(year, month) {
+        const deadlineMap = new Map();
+        try {
+            if (!studentData || !studentData.section) return deadlineMap;
+            const testsQuery = query(
+                collection(db, 'scheduledTests'),
+                where('section', '==', studentData.section),
+                where('isVisible', '==', true)
+            );
+            const snap = await getDocs(testsQuery);
+            snap.forEach(docSnap => {
+                const test = docSnap.data();
+                let deadlineDate;
+                if (test.deadlineDateTime) {
+                    deadlineDate = new Date(test.deadlineDateTime);
+                } else if (test.deadline) {
+                    deadlineDate = new Date(test.deadline);
+                    deadlineDate.setHours(23, 59, 59, 999);
                 }
-                html+=`</div></div>`;
-                calendar.innerHTML=html;
-                document.getElementById('calPrevBtn').addEventListener('click',()=>{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar(viewYear,viewMonth);});
-                document.getElementById('calNextBtn').addEventListener('click',()=>{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderCalendar(viewYear,viewMonth);});
-            }
-            renderCalendar(viewYear,viewMonth);
+                if (!deadlineDate || isNaN(deadlineDate)) return;
+                if (deadlineDate.getFullYear() === year && deadlineDate.getMonth() === month) {
+                    const day = deadlineDate.getDate();
+                    if (!deadlineMap.has(day)) deadlineMap.set(day, []);
+                    deadlineMap.get(day).push({
+                        name: test.testName || 'Test',
+                        time: test.deadlineTime || deadlineDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    });
+                }
+            });
+        } catch (e) { console.warn('Calendar deadline fetch error:', e); }
+        return deadlineMap;
+    }
+
+    async function renderCalendar(year, month) {
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+
+        const deadlineMap = await getDeadlinesForMonth(year, month);
+
+        let html = `
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border border-blue-100">
+                <!-- Month Navigation -->
+                <div class="flex items-center justify-between mb-4">
+                    <button id="calPrevBtn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-blue-200 hover:bg-blue-100 transition-all text-blue-600 font-bold shadow-sm">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <h3 class="text-base sm:text-lg font-bold text-blue-800">${monthNames[month]} ${year}</h3>
+                    <button id="calNextBtn" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-blue-200 hover:bg-blue-100 transition-all text-blue-600 font-bold shadow-sm">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Day Headers -->
+                <div class="grid grid-cols-7 gap-1 text-center mb-1">
+                    ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d =>
+                        `<div class="font-bold text-blue-700 py-1 text-xs uppercase tracking-wide">${d}</div>`
+                    ).join('')}
+                </div>
+
+                <!-- Days Grid -->
+                <div class="grid grid-cols-7 gap-1 text-center items-start">`;
+
+        // Empty cells
+        for (let i = 0; i < firstDay; i++) {
+            html += `<div class="py-2"></div>`;
         }
 
-        window.handleLogout = handleLogout;
+        // Day cells
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = day === today && month === now.getMonth() && year === now.getFullYear();
+            const hasDeadline = deadlineMap.has(day);
+            const deadlines = deadlineMap.get(day) || [];
+
+            let cellClass = 'relative text-sm font-medium py-2 rounded-xl transition-all cursor-default ';
+            if (isToday) {
+                cellClass += 'bg-gradient-to-br from-blue-600 to-blue-700 text-white font-bold shadow-lg scale-110';
+            } else if (hasDeadline) {
+                cellClass += 'bg-red-100 text-red-700 font-bold border border-red-300 hover:bg-red-200 cursor-pointer';
+            } else {
+                cellClass += 'text-gray-700 hover:bg-blue-100';
+            }
+
+            if (hasDeadline) {
+                html += `
+                    <div class="relative rounded-xl overflow-hidden border border-red-300 bg-red-50 min-h-[56px]">
+                        <div class="absolute top-1 left-0 right-0 text-center text-sm font-bold ${isToday ? 'text-white' : 'text-red-700'} z-10">
+                            ${day}
+                            ${isToday ? `<span class="absolute inset-0 -z-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-t-xl"></span>` : ''}
+                        </div>
+                        <div class="pt-6 px-1 pb-1 space-y-0.5">
+                            ${deadlines.map(d => `
+                                <div class="bg-red-400 text-white rounded px-1 py-0.5 text-center">
+                                    <div class="text-xs font-semibold leading-tight truncate">${d.name}</div>
+                                    <div class="text-xs opacity-80 leading-tight">${d.time}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+            } else {
+                html += `<div class="${cellClass}">${day}</div>`;
+            }
+        }
+
+        html += `</div>`;
+
+    
+       
+
+        html += `</div>`;
+        calendar.innerHTML = html;
+
+        // Navigation buttons
+        document.getElementById('calPrevBtn').addEventListener('click', () => {
+            viewMonth--;
+            if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+            renderCalendar(viewYear, viewMonth);
+        });
+        document.getElementById('calNextBtn').addEventListener('click', () => {
+            viewMonth++;
+            if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+            renderCalendar(viewYear, viewMonth);
+        });
+    }
+
+    renderCalendar(viewYear, viewMonth);
+}
+        
     </script>
 </body>
 </html>

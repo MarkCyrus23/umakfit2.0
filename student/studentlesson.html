@@ -77,6 +77,51 @@
         /* Status badges */
         .status-published { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border:1px solid #10b981; }
         .status-draft      { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border:1px solid #f59e0b; }
+
+        /* Lesson card styles (injected by JS but kept here for clarity) */
+        .lesson-card { background:white; border-radius:16px; border:1px solid #e5e7eb; margin-bottom:16px; overflow:hidden; }
+        .lesson-header { display:flex; align-items:center; gap:12px; padding:16px; cursor:pointer; transition:background-color .2s ease; flex-wrap:wrap; user-select:none; }
+        .lesson-header:hover { background-color:#f9fafb; }
+        .lesson-header:active { background-color:#f3f4f6; }
+        .lesson-title { font-size:18px; font-weight:700; color:#1f2937; margin-bottom:6px; line-height:1.3; }
+        .lesson-meta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; color:#6b7280; }
+        .lesson-meta-item { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+        .lesson-meta-item i { color:#3b82f6; }
+        .lesson-content-inner { padding:0 16px 16px; border-top:2px solid #f3f4f6; }
+        .lesson-description { color:#4b5563; line-height:1.6; margin-bottom:16px; margin-top:16px; font-size:14px; }
+        .lesson-content-box { background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border-left:3px solid #3b82f6; padding:16px; border-radius:10px; margin-bottom:16px; }
+        .lesson-content-text { color:#374151; line-height:1.7; font-size:14px; }
+        .materials-section { margin-top:20px; }
+        .materials-title { font-size:14px; font-weight:700; color:#1f2937; text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+        .materials-title i { color:#3b82f6; font-size:16px; }
+        .material-item { display:flex; align-items:center; gap:12px; padding:12px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; text-decoration:none; margin-bottom:10px; }
+        .material-icon-box { width:40px; height:40px; background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 6px rgba(59,130,246,.25); }
+        .material-info { flex:1; min-width:0; }
+        .material-name { font-weight:600; color:#1f2937; font-size:14px; display:block; margin-bottom:3px; word-break:break-word; }
+        .material-size { font-size:12px; color:#6b7280; }
+        .download-icon { color:#3b82f6; font-size:20px; flex-shrink:0; }
+        .status-badge { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+        .lesson-title-section { flex:1; min-width:0; }
+        .collapse-icon { width:36px; height:36px; background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 6px rgba(59,130,246,.25); }
+        .lesson-icon { width:48px; height:48px; background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 3px 10px rgba(59,130,246,.25); }
+        @media (max-width:768px) {
+            .lesson-header { padding:14px; gap:10px; }
+            .collapse-icon { width:32px; height:32px; border-radius:7px; }
+            .lesson-icon { width:42px; height:42px; border-radius:10px; }
+            .lesson-title { font-size:16px; }
+            .lesson-meta { gap:10px; font-size:11px; }
+            .lesson-content-inner { padding:0 14px 14px; }
+            .lesson-description { font-size:13px; }
+            .lesson-content-box { padding:14px; border-radius:8px; margin-bottom:14px; }
+            .lesson-content-text { font-size:13px; }
+            .material-item { padding:10px; gap:10px; border-radius:8px; margin-bottom:8px; }
+            .material-icon-box { width:36px; height:36px; border-radius:7px; }
+            .material-name { font-size:13px; }
+            .material-size { font-size:11px; }
+            .download-icon { font-size:16px; }
+            .status-badge { padding:5px 10px; font-size:10px; }
+        }
+        @media (max-width:480px) { .lesson-title { font-size:15px; } .lesson-meta { font-size:10px; } }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -144,10 +189,7 @@
                                     </button>
                                 </div>
                                 <div id="notificationDropdownBody" class="max-h-[360px] overflow-y-auto notif-scroll">
-                                    <div class="py-6 px-8 text-center text-gray-400">
-                                        <i class="bi bi-bell-slash text-5xl block mb-3"></i>
-                                        <p class="text-gray-600 text-sm">No notifications yet</p>
-                                    </div>
+                                    <!-- dynamic content -->
                                 </div>
                                 <div class="sticky bottom-0 px-3 py-2 sm:px-4 sm:py-3 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl">
                                     <button onclick="window.location.href='./notification.html'"
@@ -174,7 +216,7 @@
                                         <span class="font-medium text-gray-700 text-sm sm:text-base">View Profile</span>
                                     </a>
                                     <div class="h-px bg-gray-200 my-1 sm:my-2"></div>
-                                    <div onclick="handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
+                                    <div onclick="window.handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
                                         <i class="bi bi-box-arrow-right text-lg sm:text-xl"></i>
                                         <span class="font-medium text-sm sm:text-base">Logout</span>
                                     </div>
@@ -204,10 +246,7 @@
                                     </button>
                                 </div>
                                 <div id="notificationDropdownBodyMobile" class="max-h-96 overflow-y-auto notif-scroll">
-                                    <div class="py-6 px-8 text-center text-gray-400">
-                                        <i class="bi bi-bell-slash text-5xl block mb-3"></i>
-                                        <p class="text-gray-600 text-sm">No notifications yet</p>
-                                    </div>
+                                    <!-- dynamic content -->
                                 </div>
                                 <div class="sticky bottom-0 px-3 py-2 border-t-2 border-gray-200 bg-gray-50 rounded-b-xl">
                                     <button onclick="window.location.href='./notifications.html'"
@@ -234,7 +273,7 @@
                                         <span class="font-medium text-gray-700 text-sm sm:text-base">View Profile</span>
                                     </a>
                                     <div class="h-px bg-gray-200 my-1 sm:my-2"></div>
-                                    <div onclick="handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
+                                    <div onclick="window.handleLogout()" class="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-red-500">
                                         <i class="bi bi-box-arrow-right text-lg sm:text-xl"></i>
                                         <span class="font-medium text-sm sm:text-base">Logout</span>
                                     </div>
@@ -397,54 +436,8 @@
         </footer>
     </div>
 
-    <!-- Lesson card styles injected dynamically by JS (must target class names used in renderLessonCard) -->
-    <style>
-        .lesson-card { background:white; border-radius:16px; border:1px solid #e5e7eb; margin-bottom:16px; overflow:hidden; }
-        .lesson-header { display:flex; align-items:center; gap:12px; padding:16px; cursor:pointer; transition:background-color .2s ease; flex-wrap:wrap; user-select:none; }
-        .lesson-header:hover { background-color:#f9fafb; }
-        .lesson-header:active { background-color:#f3f4f6; }
-        .lesson-title { font-size:18px; font-weight:700; color:#1f2937; margin-bottom:6px; line-height:1.3; }
-        .lesson-meta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; color:#6b7280; }
-        .lesson-meta-item { display:flex; align-items:center; gap:6px; white-space:nowrap; }
-        .lesson-meta-item i { color:#3b82f6; }
-        .lesson-content-inner { padding:0 16px 16px; border-top:2px solid #f3f4f6; }
-        .lesson-description { color:#4b5563; line-height:1.6; margin-bottom:16px; margin-top:16px; font-size:14px; }
-        .lesson-content-box { background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border-left:3px solid #3b82f6; padding:16px; border-radius:10px; margin-bottom:16px; }
-        .lesson-content-text { color:#374151; line-height:1.7; font-size:14px; }
-        .materials-section { margin-top:20px; }
-        .materials-title { font-size:14px; font-weight:700; color:#1f2937; text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
-        .materials-title i { color:#3b82f6; font-size:16px; }
-        .material-item { display:flex; align-items:center; gap:12px; padding:12px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; text-decoration:none; margin-bottom:10px; }
-        .material-icon-box { width:40px; height:40px; background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 6px rgba(59,130,246,.25); }
-        .material-info { flex:1; min-width:0; }
-        .material-name { font-weight:600; color:#1f2937; font-size:14px; display:block; margin-bottom:3px; word-break:break-word; }
-        .material-size { font-size:12px; color:#6b7280; }
-        .download-icon { color:#3b82f6; font-size:20px; flex-shrink:0; }
-        .status-badge { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
-        .lesson-title-section { flex:1; min-width:0; }
-        .collapse-icon { width:36px; height:36px; background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 6px rgba(59,130,246,.25); }
-        .lesson-icon { width:48px; height:48px; background:linear-gradient(135deg,#3b82f6,#2563eb); border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 3px 10px rgba(59,130,246,.25); }
-        @media (max-width:768px) {
-            .lesson-header { padding:14px; gap:10px; }
-            .collapse-icon { width:32px; height:32px; border-radius:7px; }
-            .lesson-icon { width:42px; height:42px; border-radius:10px; }
-            .lesson-title { font-size:16px; }
-            .lesson-meta { gap:10px; font-size:11px; }
-            .lesson-content-inner { padding:0 14px 14px; }
-            .lesson-description { font-size:13px; }
-            .lesson-content-box { padding:14px; border-radius:8px; margin-bottom:14px; }
-            .lesson-content-text { font-size:13px; }
-            .material-item { padding:10px; gap:10px; border-radius:8px; margin-bottom:8px; }
-            .material-icon-box { width:36px; height:36px; border-radius:7px; }
-            .material-name { font-size:13px; }
-            .material-size { font-size:11px; }
-            .download-icon { font-size:16px; }
-            .status-badge { padding:5px 10px; font-size:10px; }
-        }
-        @media (max-width:480px) { .lesson-title { font-size:15px; } .lesson-meta { font-size:10px; } }
-    </style>
-
     <script>
+        // Simple resize handler for mobile drawer (kept outside module for immediate effect)
         window.addEventListener('resize', function() {
             const hamburger = document.getElementById('hamburger');
             const mobileDrawer = document.getElementById('mobileDrawer');
@@ -479,12 +472,33 @@
         let studentData = null, currentUser = null;
         let unsubscribeAuth = null, unsubscribeNotifListener = null;
 
+        // ========== HELPER FUNCTIONS ==========
+        function formatFileSize(bytes) {
+            if (!bytes) return '';
+            const k = 1024, sizes = ['Bytes','KB','MB','GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf':'bi bi-file-pdf-fill', 'doc':'bi bi-file-word-fill', 'docx':'bi bi-file-word-fill',
+                'ppt':'bi bi-file-ppt-fill', 'pptx':'bi bi-file-ppt-fill', 'xls':'bi bi-file-excel-fill',
+                'xlsx':'bi bi-file-excel-fill', 'jpg':'bi bi-file-image-fill', 'jpeg':'bi bi-file-image-fill',
+                'png':'bi bi-file-image-fill', 'gif':'bi bi-file-image-fill', 'mp4':'bi bi-file-play-fill',
+                'avi':'bi bi-file-play-fill', 'mov':'bi bi-file-play-fill', 'zip':'bi bi-file-zip-fill',
+                'rar':'bi bi-file-zip-fill'
+            };
+            return icons[ext] || 'bi bi-file-earmark-fill';
+        }
+
         // ========== NOTIFICATIONS ==========
 
         async function checkUnreadNotifications() {
             try {
                 if (!studentData?.section) return;
-                const snap = await getDocs(query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)));
+                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
                 const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
                 let unread = 0; snap.forEach(d=>{if(!read.includes(d.id))unread++;});
                 ['navNotificationCount','navNotificationCountMobile'].forEach(id=>{
@@ -547,89 +561,122 @@
 
         function toggleNotificationDropdown(event) {
             event?.stopPropagation();
-            const isMobile=window.innerWidth<1024;
-            const dropdown=document.getElementById(isMobile?'notificationDropdownMobile':'notificationDropdown');
-            if(hamburger?.classList.contains('active')){hamburger.classList.remove('active');mobileDrawer.classList.remove('active');drawerOverlay.classList.remove('active');document.body.style.overflow='';}
-            if(dropdown.classList.contains('hidden')){
-                dropdown.classList.remove('hidden'); loadNotificationDropdown(isMobile);
+            const isMobile = window.innerWidth < 1024;
+            const dropdown = document.getElementById(isMobile ? 'notificationDropdownMobile' : 'notificationDropdown');
+            const hamburger = document.getElementById('hamburger');
+            const mobileDrawer = document.getElementById('mobileDrawer');
+            const drawerOverlay = document.getElementById('drawerOverlay');
+            if (hamburger?.classList.contains('active')) {
+                hamburger.classList.remove('active'); mobileDrawer.classList.remove('active'); drawerOverlay.classList.remove('active'); document.body.style.overflow = '';
+            }
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                loadNotificationDropdown(isMobile);
                 document.getElementById('profileDropdown')?.classList.add('hidden');
                 document.getElementById('profileDropdownMobile')?.classList.add('hidden');
-            } else dropdown.classList.add('hidden');
+            } else {
+                dropdown.classList.add('hidden');
+            }
         }
-        function closeNotificationDropdown(){
+
+        function closeNotificationDropdown() {
             document.getElementById('notificationDropdown')?.classList.add('hidden');
             document.getElementById('notificationDropdownMobile')?.classList.add('hidden');
         }
-        function setupNotificationListener(){
-            if(!studentData?.section) return;
-            unsubscribeNotifListener=onSnapshot(query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)),
-                ()=>checkUnreadNotifications(),(e)=>console.error(e));
+
+        function setupNotificationListener() {
+            if (!studentData?.section) return;
+            if (unsubscribeNotifListener) unsubscribeNotifListener();
+            unsubscribeNotifListener = onSnapshot(
+                query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)),
+                () => checkUnreadNotifications(),
+                (e) => console.error(e)
+            );
         }
 
         // ========== PROFILE ==========
 
-        function updateProfileUI(){
-            if(!currentUser||!studentData) return;
-            const photo=currentUser.photoURL||'https://ui-avatars.com/api/?name='+encodeURIComponent(studentData.displayName||`${studentData.firstName||''} ${studentData.lastName||''}`.trim()||'User')+'&background=3b82f6&color=fff&size=128';
-            ['profilePictureBtn','profilePictureBtnMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=photo;});
-            ['profileDropdownPicture','profileDropdownPictureMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=photo;});
-            const name=studentData.displayName||`${studentData.firstName||''} ${studentData.lastName||''}`.trim()||'Student';
-            const email=studentData.email||currentUser.email||'';
-            ['profileDropdownName','profileDropdownNameMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=name;});
-            ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=email;});
+        function updateProfileUI() {
+            if (!currentUser || !studentData) return;
+            const photo = currentUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(studentData.displayName || `${studentData.firstName||''} ${studentData.lastName||''}`.trim() || 'User') + '&background=3b82f6&color=fff&size=128';
+            ['profilePictureBtn','profilePictureBtnMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.src=photo; });
+            ['profileDropdownPicture','profileDropdownPictureMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.src=photo; });
+            const name = studentData.displayName || `${studentData.firstName||''} ${studentData.lastName||''}`.trim() || 'Student';
+            const email = studentData.email || currentUser.email || '';
+            ['profileDropdownName','profileDropdownNameMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=name; });
+            ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=email; });
         }
 
-<<<<<<< HEAD
-        function toggleProfileDropdown(event){
+        function toggleProfileDropdown(event) {
             event?.stopPropagation();
-            const isMobile=window.innerWidth<1024;
-            const dropdown=document.getElementById(isMobile?'profileDropdownMobile':'profileDropdown');
-            if(hamburger?.classList.contains('active')){hamburger.classList.remove('active');mobileDrawer.classList.remove('active');drawerOverlay.classList.remove('active');document.body.style.overflow='';}
-            if(dropdown.classList.contains('hidden')){dropdown.classList.remove('hidden');closeNotificationDropdown();}
-            else dropdown.classList.add('hidden');
+            const isMobile = window.innerWidth < 1024;
+            const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
+            const hamburger = document.getElementById('hamburger');
+            const mobileDrawer = document.getElementById('mobileDrawer');
+            const drawerOverlay = document.getElementById('drawerOverlay');
+            if (hamburger?.classList.contains('active')) {
+                hamburger.classList.remove('active'); mobileDrawer.classList.remove('active'); drawerOverlay.classList.remove('active'); document.body.style.overflow = '';
+            }
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                closeNotificationDropdown();
+            } else {
+                dropdown.classList.add('hidden');
+            }
         }
-        function closeProfileDropdown(){
+
+        function closeProfileDropdown() {
             document.getElementById('profileDropdown')?.classList.add('hidden');
             document.getElementById('profileDropdownMobile')?.classList.add('hidden');
         }
 
         // ========== HAMBURGER ==========
 
-        const hamburger=document.getElementById('hamburger');
-        const mobileDrawer=document.getElementById('mobileDrawer');
-        const drawerOverlay=document.getElementById('drawerOverlay');
-        const mobileNavLinks=document.querySelectorAll('.mobile-nav-link');
+        const hamburger = document.getElementById('hamburger');
+        const mobileDrawer = document.getElementById('mobileDrawer');
+        const drawerOverlay = document.getElementById('drawerOverlay');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
 
-        hamburger?.addEventListener('click',e=>{
-            e.stopPropagation(); closeProfileDropdown(); closeNotificationDropdown();
-            hamburger.classList.toggle('active'); mobileDrawer.classList.toggle('active'); drawerOverlay.classList.toggle('active');
-            document.body.style.overflow=mobileDrawer.classList.contains('active')?'hidden':'';
-=======
-        unsubscribeNotifListener = onSnapshot(notificationsQuery, (snapshot) => {
-            // debug log removed
-            checkUnreadNotifications();
-        }, (error) => {
-            console.error('❌ Error in notification listener:', error);
->>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
-        });
-        drawerOverlay?.addEventListener('click',()=>{
-            hamburger.classList.remove('active'); mobileDrawer.classList.remove('active'); drawerOverlay.classList.remove('active');
-            document.body.style.overflow=''; closeProfileDropdown(); closeNotificationDropdown();
-        });
-        mobileNavLinks.forEach(l=>l.addEventListener('click',()=>{
-            hamburger.classList.remove('active'); mobileDrawer.classList.remove('active'); drawerOverlay.classList.remove('active'); document.body.style.overflow='';
+        if (hamburger) {
+            hamburger.addEventListener('click', e => {
+                e.stopPropagation();
+                closeProfileDropdown();
+                closeNotificationDropdown();
+                hamburger.classList.toggle('active');
+                mobileDrawer.classList.toggle('active');
+                drawerOverlay.classList.toggle('active');
+                document.body.style.overflow = mobileDrawer.classList.contains('active') ? 'hidden' : '';
+            });
+        }
+
+        if (drawerOverlay) {
+            drawerOverlay.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                mobileDrawer.classList.remove('active');
+                drawerOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                closeProfileDropdown();
+                closeNotificationDropdown();
+            });
+        }
+
+        mobileNavLinks.forEach(l => l.addEventListener('click', () => {
+            hamburger.classList.remove('active');
+            mobileDrawer.classList.remove('active');
+            drawerOverlay.classList.remove('active');
+            document.body.style.overflow = '';
         }));
 
         // ========== LOGOUT ==========
 
-        window.handleLogout = function(){ showLogoutConfirmPopup(); };
+        window.handleLogout = function() { showLogoutConfirmPopup(); };
 
-        function showLogoutConfirmPopup(){
+        function showLogoutConfirmPopup() {
             document.getElementById('logoutOverlay')?.remove();
-            const overlay=document.createElement('div');
-            overlay.id='logoutOverlay';
-            overlay.className='fixed inset-0 bg-black/50 flex items-center justify-content-center items-center justify-center z-[99999] p-4';
-            overlay.innerHTML=`
+            const overlay = document.createElement('div');
+            overlay.id = 'logoutOverlay';
+            overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4';
+            overlay.innerHTML = `
                 <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center font-inter">
                     <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
                         <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><path d="M20 8H10C8.9 8 8 8.9 8 10V38C8 39.1 8.9 40 10 40H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/><path d="M32 16L40 24L32 32" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 24H20" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/></svg>
@@ -644,57 +691,38 @@
                 </div>`;
             document.body.appendChild(overlay);
             closeProfileDropdown();
-            document.getElementById('logoutCancelBtn').addEventListener('click',()=>overlay.remove());
-            overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-            document.getElementById('logoutConfirmBtn').addEventListener('click',async()=>{
-                const btn=document.getElementById('logoutConfirmBtn');btn.textContent='Logging out...';btn.disabled=true;btn.style.opacity='.7';
-                try{await signOut(auth);window.location.href='../login/index.html';}
-                catch(e){overlay.remove();alert('Error logging out. Please try again.');}
+            document.getElementById('logoutCancelBtn').addEventListener('click', () => overlay.remove());
+            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+            document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
+                const btn = document.getElementById('logoutConfirmBtn');
+                btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '.7';
+                try { await signOut(auth); window.location.href = '../login/index.html'; } catch(e) { overlay.remove(); alert('Error logging out. Please try again.'); }
             });
         }
 
         // ========== STUDENT DATA ==========
 
-        async function loadStudentData(user){
-            try{
-                const snap=await getDocs(query(collection(db,'students'),where('email','==',user.email)));
-                if(!snap.empty) snap.forEach(d=>{studentData=d.data();});
+        async function loadStudentData(user) {
+            try {
+                const snap = await getDocs(query(collection(db,'students'), where('email','==',user.email)));
+                if (!snap.empty) snap.forEach(d => { studentData = d.data(); });
                 return studentData;
-            } catch(e){console.error(e);return null;}
+            } catch(e){ console.error(e); return null; }
         }
 
         // ========== LESSONS ==========
 
-        function loadLessons(){
-            if(!studentData?.section) return;
-            onSnapshot(
-                query(collection(db,'lessons'),where('section','==',studentData.section),where('status','==','published')),
-                snap=>{
-                    if(snap.empty){
-                        document.getElementById('noLessonsState').classList.remove('hidden');
-                        document.getElementById('lessonsContainer').classList.add('hidden');
-                    } else {
-                        document.getElementById('noLessonsState').classList.add('hidden');
-                        document.getElementById('lessonsContainer').classList.remove('hidden');
-                        let html=''; snap.forEach(d=>{ html+=renderLessonCard(d.data()); });
-                        document.getElementById('lessonsContainer').innerHTML=html;
-                    }
-                },
-                e=>console.error('Error loading lessons:',e)
-            );
-        }
-
-        function renderLessonCard(lesson){
-            const createdDate=lesson.createdAt?.toDate?.()||new Date();
-            const dateStr=createdDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-            const statusBadge=lesson.status==='published'
-                ?'<span class="status-badge status-published"><i class="bi bi-check-circle-fill"></i> Published</span>'
-                :'<span class="status-badge status-draft"><i class="bi bi-clock-fill"></i> Draft</span>';
-            const id='lesson-'+Math.random().toString(36).substr(2,9);
-            const hasYouTube=lesson.youtubeVideoId&&lesson.youtubeVideoId.trim()!=='';
+        function renderLessonCard(lesson) {
+            const createdDate = lesson.createdAt?.toDate?.() || new Date();
+            const dateStr = createdDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+            const statusBadge = lesson.status === 'published'
+                ? '<span class="status-badge status-published"><i class="bi bi-check-circle-fill"></i> Published</span>'
+                : '<span class="status-badge status-draft"><i class="bi bi-clock-fill"></i> Draft</span>';
+            const id = 'lesson-' + Math.random().toString(36).substr(2,9);
+            const hasYouTube = lesson.youtubeVideoId && lesson.youtubeVideoId.trim() !== '';
             return `
                 <div class="lesson-card" id="${id}">
-                    <div class="lesson-header" onclick="toggleLesson('${id}')">
+                    <div class="lesson-header" onclick="window.toggleLesson('${id}')">
                         <div class="collapse-icon"><i class="bi bi-chevron-right text-white text-xl"></i></div>
                         <div class="lesson-icon"><i class="bi bi-book-fill text-white text-2xl"></i></div>
                         <div class="lesson-title-section">
@@ -709,8 +737,8 @@
                     </div>
                     <div class="lesson-content-wrapper">
                         <div class="lesson-content-inner">
-                            ${lesson.description?`<p class="lesson-description">${lesson.description}</p>`:''}
-                            ${hasYouTube?`
+                            ${lesson.description ? `<p class="lesson-description">${lesson.description}</p>` : ''}
+                            ${hasYouTube ? `
                                 <div class="lesson-content-box" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border-left-color:#dc2626;border-radius:12px;padding:16px;">
                                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
                                         <i class="bi bi-youtube text-red-600" style="font-size:20px;"></i>
@@ -719,90 +747,109 @@
                                     <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;">
                                         <iframe src="https://www.youtube.com/embed/${lesson.youtubeVideoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe>
                                     </div>
-                                </div>`:''}
-                            ${lesson.content?`<div class="lesson-content-box"><p class="lesson-content-text">${lesson.content.replace(/\n/g,'<br>')}</p></div>`:''}
-                            ${lesson.materials&&lesson.materials.length>0?`
+                                </div>` : ''}
+                            ${lesson.content ? `<div class="lesson-content-box"><p class="lesson-content-text">${lesson.content.replace(/\n/g,'<br>')}</p></div>` : ''}
+                            ${lesson.materials && lesson.materials.length > 0 ? `
                                 <div class="materials-section">
                                     <h4 class="materials-title"><i class="bi bi-paperclip"></i>Downloadable Materials (${lesson.materials.length})</h4>
                                     <div>
-                                        ${lesson.materials.map(m=>{
-                                            const icon=getFileIcon(m.name);
-                                            const size=m.size?formatFileSize(m.size):'';
-                                            const link=m.data||m.url;
+                                        ${lesson.materials.map(m => {
+                                            const icon = getFileIcon(m.name);
+                                            const size = m.size ? formatFileSize(m.size) : '';
+                                            const link = m.data || m.url;
                                             return `<a href="${link}" download="${m.name}" class="material-item" onclick="event.stopPropagation()">
                                                 <div class="material-icon-box"><i class="${icon} text-white text-lg"></i></div>
                                                 <div class="material-info">
                                                     <span class="material-name">${m.name}</span>
-                                                    ${size?`<span class="material-size">${size}</span>`:''}
+                                                    ${size ? `<span class="material-size">${size}</span>` : ''}
                                                 </div>
                                                 <i class="bi bi-download download-icon"></i>
                                             </a>`;
                                         }).join('')}
                                     </div>
-                                </div>`:''}
+                                </div>` : ''}
                         </div>
                     </div>
                 </div>`;
         }
 
-        function getFileIcon(filename){
-            const ext=filename.split('.').pop().toLowerCase();
-            return({'pdf':'bi bi-file-pdf-fill','doc':'bi bi-file-word-fill','docx':'bi bi-file-word-fill','ppt':'bi bi-file-ppt-fill','pptx':'bi bi-file-ppt-fill','xls':'bi bi-file-excel-fill','xlsx':'bi bi-file-excel-fill','jpg':'bi bi-file-image-fill','jpeg':'bi bi-file-image-fill','png':'bi bi-file-image-fill','gif':'bi bi-file-image-fill','mp4':'bi bi-file-play-fill','avi':'bi bi-file-play-fill','mov':'bi bi-file-play-fill','zip':'bi bi-file-zip-fill','rar':'bi bi-file-zip-fill'})[ext]||'bi bi-file-earmark-fill';
-        }
-        function formatFileSize(bytes){
-            if(!bytes) return'';
-            const k=1024,sizes=['Bytes','KB','MB','GB'],i=Math.floor(Math.log(bytes)/Math.log(k));
-            return Math.round(bytes/Math.pow(k,i)*100)/100+' '+sizes[i];
+        function loadLessons() {
+            if (!studentData?.section) return;
+            onSnapshot(
+                query(collection(db,'lessons'), where('section','==',studentData.section), where('status','==','published')),
+                snap => {
+                    if (snap.empty) {
+                        document.getElementById('noLessonsState').classList.remove('hidden');
+                        document.getElementById('lessonsContainer').classList.add('hidden');
+                    } else {
+                        document.getElementById('noLessonsState').classList.add('hidden');
+                        document.getElementById('lessonsContainer').classList.remove('hidden');
+                        let html = '';
+                        snap.forEach(d => { html += renderLessonCard(d.data()); });
+                        document.getElementById('lessonsContainer').innerHTML = html;
+                    }
+                },
+                e => console.error('Error loading lessons:', e)
+            );
         }
 
-        window.toggleLesson=function(id){document.getElementById(id)?.classList.toggle('expanded');};
+        window.toggleLesson = function(id) {
+            document.getElementById(id)?.classList.toggle('expanded');
+        };
 
         // ========== EVENT LISTENERS ==========
 
-        function setupEventListeners(){
-            document.getElementById('notificationBellBtn')?.addEventListener('click',toggleNotificationDropdown);
-            document.getElementById('notificationBellBtnMobile')?.addEventListener('click',toggleNotificationDropdown);
-            document.getElementById('closeNotificationBtn')?.addEventListener('click',e=>{e.stopPropagation();closeNotificationDropdown();});
-            document.getElementById('closeNotificationBtnMobile')?.addEventListener('click',e=>{e.stopPropagation();closeNotificationDropdown();});
-            document.getElementById('profilePictureBtn')?.addEventListener('click',toggleProfileDropdown);
-            document.getElementById('profilePictureBtnMobile')?.addEventListener('click',toggleProfileDropdown);
-            document.addEventListener('click',event=>{
-                if(!event.target.closest('#notificationBellBtn')&&!event.target.closest('#notificationBellBtnMobile')&&!event.target.closest('#notificationDropdown')&&!event.target.closest('#notificationDropdownMobile')) closeNotificationDropdown();
-                if(!event.target.closest('#profilePictureBtn')&&!event.target.closest('#profilePictureBtnMobile')&&!event.target.closest('#profileDropdown')&&!event.target.closest('#profileDropdownMobile')) closeProfileDropdown();
+        function setupEventListeners() {
+            document.getElementById('notificationBellBtn')?.addEventListener('click', toggleNotificationDropdown);
+            document.getElementById('notificationBellBtnMobile')?.addEventListener('click', toggleNotificationDropdown);
+            document.getElementById('closeNotificationBtn')?.addEventListener('click', e => { e.stopPropagation(); closeNotificationDropdown(); });
+            document.getElementById('closeNotificationBtnMobile')?.addEventListener('click', e => { e.stopPropagation(); closeNotificationDropdown(); });
+            document.getElementById('profilePictureBtn')?.addEventListener('click', toggleProfileDropdown);
+            document.getElementById('profilePictureBtnMobile')?.addEventListener('click', toggleProfileDropdown);
+            document.addEventListener('click', event => {
+                if (!event.target.closest('#notificationBellBtn') && !event.target.closest('#notificationBellBtnMobile') && !event.target.closest('#notificationDropdown') && !event.target.closest('#notificationDropdownMobile'))
+                    closeNotificationDropdown();
+                if (!event.target.closest('#profilePictureBtn') && !event.target.closest('#profilePictureBtnMobile') && !event.target.closest('#profileDropdown') && !event.target.closest('#profileDropdownMobile'))
+                    closeProfileDropdown();
             });
         }
 
-        // ========== AUTH ==========
+        // ========== AUTH INIT ==========
 
-        const loadingTimeout=setTimeout(()=>{
+        const loadingTimeout = setTimeout(() => {
             document.getElementById('loadingScreen').classList.add('hidden');
             document.getElementById('mainContent').classList.remove('hidden');
-        },1500);
+        }, 1500);
 
-        unsubscribeAuth=onAuthStateChanged(auth,async user=>{
-            if(user){
-                try{
-                    currentUser=user;
+        unsubscribeAuth = onAuthStateChanged(auth, async user => {
+            if (user) {
+                try {
+                    currentUser = user;
                     await loadStudentData(user);
                     updateProfileUI();
                     setupNotificationListener();
                     await checkUnreadNotifications();
                     loadLessons();
                     setupEventListeners();
-                } catch(e){console.error(e);}
-                finally{clearTimeout(loadingTimeout);document.getElementById('loadingScreen').classList.add('hidden');document.getElementById('mainContent').classList.remove('hidden');}
+                } catch (e) { console.error(e); }
+                finally {
+                    clearTimeout(loadingTimeout);
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                }
             } else {
                 clearTimeout(loadingTimeout);
-                window.location.href='../login/index.html';
+                window.location.href = '../login/index.html';
             }
         });
 
-        window.addEventListener('pagehide',()=>{if(unsubscribeAuth)unsubscribeAuth();if(unsubscribeNotifListener)unsubscribeNotifListener();});
-        window.addEventListener('beforeunload',()=>{if(unsubscribeNotifListener)unsubscribeNotifListener();});
+        window.addEventListener('pagehide', () => { if (unsubscribeAuth) unsubscribeAuth(); if (unsubscribeNotifListener) unsubscribeNotifListener(); });
+        window.addEventListener('beforeunload', () => { if (unsubscribeNotifListener) unsubscribeNotifListener(); });
 
-        window.toggleNotificationDropdown=toggleNotificationDropdown;
-        window.closeNotificationDropdown=closeNotificationDropdown;
-        window.toggleProfileDropdown=toggleProfileDropdown;
+        // Expose functions globally for onclick handlers
+        window.toggleNotificationDropdown = toggleNotificationDropdown;
+        window.closeNotificationDropdown = closeNotificationDropdown;
+        window.toggleProfileDropdown = toggleProfileDropdown;
     </script>
 </body>
 </html>
