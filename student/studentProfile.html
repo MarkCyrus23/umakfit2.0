@@ -666,6 +666,7 @@
                 const el=document.getElementById(id); if(el){el.classList.add('hidden');el.style.display='';}
             });
         }
+<<<<<<< HEAD
         function setupNotificationListener(){
             if(!studentData?.section) return;
             if(unsubscribeNotificationListener){unsubscribeNotificationListener();unsubscribeNotificationListener=null;}
@@ -673,6 +674,532 @@
                 query(collection(db,'notifications'),where('section','==',studentData.section),where('studentEmail','==',studentData.email)),
                 ()=>checkUnreadNotifications(),(e)=>console.error(e)
             );
+=======
+    }
+
+    async function loadNotificationDropdown(isMobile = false) {
+        try {
+            const activeBodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
+            const dropdownBody = document.getElementById(activeBodyId);
+            
+            if (!dropdownBody) return;
+
+            if (!studentData || !studentData.section) {
+                dropdownBody.innerHTML = `
+                    <div class="notification-dropdown-empty">
+                        <i class="bi bi-bell-slash"></i>
+                        <p>No section assigned</p>
+                    </div>
+                `;
+                return;
+            }
+
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email)
+);            
+            const notificationsSnapshot = await getDocs(notificationsQuery);
+            const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+            
+            if (!notificationsSnapshot.empty) {
+                const seenNotifications = new Set();
+                const uniqueNotifications = [];
+                
+                notificationsSnapshot.forEach(doc => {
+                    const notification = doc.data();
+                    const contentKey = `${notification.title}|${notification.message}|${notification.createdAt?.toDate?.().getTime() || ''}`;
+                    
+                    if (!seenNotifications.has(contentKey)) {
+                        seenNotifications.add(contentKey);
+                        uniqueNotifications.push({ id: doc.id, ...notification });
+                    }
+                });
+                
+                uniqueNotifications.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate?.() || new Date(0);
+                    const dateB = b.createdAt?.toDate?.() || new Date(0);
+                    return dateB - dateA;
+                });
+                
+                const unreadNotificationIds = [];
+                uniqueNotifications.forEach(notification => {
+                    if (!readNotifications.includes(notification.id)) {
+                        unreadNotificationIds.push(notification.id);
+                    }
+                });
+                
+                let html = '';
+                uniqueNotifications.slice(0, 5).forEach(notification => {
+                    const createdDate = notification.createdAt?.toDate?.();
+                    const dateStr = createdDate ? createdDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : 'Recently';
+                    
+                    const isRead = readNotifications.includes(notification.id);
+                    
+                    html += `
+                        <div class="notification-dropdown-item ${isRead ? 'bg-gray-50' : 'bg-white'}" data-notification-id="${notification.id}">
+                            <strong>${notification.title || 'Notification'}</strong>
+                            <p>${notification.message || ''}</p>
+                            <small>${dateStr}</small>
+                        </div>
+                    `;
+                });
+                
+                dropdownBody.innerHTML = html;
+                
+                if (unreadNotificationIds.length > 0) {
+                    markNotificationsAsRead(unreadNotificationIds);
+                }
+                
+            } else {
+                dropdownBody.innerHTML = `
+                    <div class="notification-dropdown-empty">
+                        <i class="bi bi-bell-slash"></i>
+                        <p>No notifications yet</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+        }
+    }
+
+    function markNotificationsAsRead(notificationIds) {
+        if (!studentData || !studentData.email || !notificationIds.length) return;
+        
+        const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+        const updatedReadNotifications = [...new Set([...readNotifications, ...notificationIds])];
+        
+        localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify(updatedReadNotifications));
+        updateNotificationBadgeAfterRead(notificationIds);
+    }
+
+    async function updateNotificationBadgeAfterRead(markedAsReadIds) {
+        try {
+            if (!studentData || !studentData.section) return;
+            
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email)
+);            
+            const notificationsSnapshot = await getDocs(notificationsQuery);
+            const uniqueNotificationIds = new Set();
+            
+            notificationsSnapshot.forEach(doc => {
+                uniqueNotificationIds.add(doc.id);
+            });
+            
+            const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+            
+            let unreadCount = 0;
+            uniqueNotificationIds.forEach(notificationId => {
+                if (!readNotifications.includes(notificationId)) {
+                    unreadCount++;
+                }
+            });
+            
+            const countBadge = document.getElementById('navNotificationCount');
+            const countBadgeMobile = document.getElementById('navNotificationCountMobile');
+            
+            if (unreadCount > 0) {
+                if (countBadge) {
+                    countBadge.textContent = unreadCount;
+                    countBadge.classList.remove('hidden');
+                }
+                if (countBadgeMobile) {
+                    countBadgeMobile.textContent = unreadCount;
+                    countBadgeMobile.classList.remove('hidden');
+                }
+            } else {
+                if (countBadge) countBadge.classList.add('hidden');
+                if (countBadgeMobile) countBadgeMobile.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error updating notification badge:', error);
+        }
+    }
+
+ function toggleNotificationDropdown(event) {
+    event?.stopPropagation();
+    const isMobile = window.innerWidth < 1024;
+    const dropdown = isMobile ? 
+        document.getElementById('notificationDropdownMobile') : 
+        document.getElementById('notificationDropdown');
+    
+    if (!dropdown) return;
+
+    // Support both Tailwind `hidden` class AND CSS `display:none` style
+    const isHidden = dropdown.classList.contains('hidden') || 
+                     window.getComputedStyle(dropdown).display === 'none';
+    
+    if (isHidden) {
+        // Close the other dropdown first
+        const other = isMobile ? 
+            document.getElementById('notificationDropdown') : 
+            document.getElementById('notificationDropdownMobile');
+        if (other) { other.classList.add('hidden'); other.style.display = ''; }
+
+        dropdown.classList.remove('hidden');
+        dropdown.style.display = 'block';
+        loadNotificationDropdown(isMobile);
+        
+        const profileDropdown = document.getElementById('profileDropdown');
+        const profileDropdownMobile = document.getElementById('profileDropdownMobile');
+        if (profileDropdown) profileDropdown.classList.add('hidden');
+        if (profileDropdownMobile) profileDropdownMobile.classList.add('hidden');
+    } else {
+        dropdown.classList.add('hidden');
+        dropdown.style.display = '';
+    }
+}
+
+function closeNotificationDropdown() {
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const notificationDropdownMobile = document.getElementById('notificationDropdownMobile');
+    if (notificationDropdown) { notificationDropdown.classList.add('hidden'); notificationDropdown.style.display = ''; }
+    if (notificationDropdownMobile) { notificationDropdownMobile.classList.add('hidden'); notificationDropdownMobile.style.display = ''; }
+}
+let unsubscribeNotificationListener = null;
+
+function setupNotificationListener() {
+    try {
+        if (!studentData || !studentData.section) return;
+
+        // Cleanup previous listener if any
+        if (unsubscribeNotificationListener) {
+            unsubscribeNotificationListener();
+            unsubscribeNotificationListener = null;
+        }
+
+        const notificationsQuery = query(
+            collection(db, 'notifications'),
+            where('section', '==', studentData.section),
+            where('studentEmail', '==', studentData.email)
+        );
+
+        unsubscribeNotificationListener = onSnapshot(notificationsQuery, (snapshot) => {
+            // debug log removed
+            checkUnreadNotifications();
+        }, (error) => {
+            console.error('❌ Error in notification listener:', error);
+        });
+
+    } catch (error) {
+        console.error('Error setting up notification listener:', error);
+    }
+}
+
+// Kill listener when user navigates away
+window.addEventListener('pagehide', () => {
+    if (unsubscribeNotificationListener) {
+        unsubscribeNotificationListener();
+        unsubscribeNotificationListener = null;
+    }
+});
+window.addEventListener('beforeunload', () => {
+    if (unsubscribeNotificationListener) {
+        unsubscribeNotificationListener();
+        unsubscribeNotificationListener = null;
+    }
+});
+    // ========== END NOTIFICATION SYSTEM ==========
+
+    // Helper function to capitalize names
+    function capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    }
+
+    // Function to extract UMak ID from email
+    function extractUmakIdFromEmail(email) {
+        if (!email) return 'Not Assigned';
+        
+        const emailLower = email.toLowerCase();
+        let emailWithoutDomain = emailLower.replace('@umak.edu.ph', '');
+        const parts = emailWithoutDomain.split('.');
+        
+        if (parts.length >= 1) {
+            const lastPart = parts[parts.length - 1];
+            const idPattern = /^[a-z][0-9]+$/i;
+            
+            if (idPattern.test(lastPart)) {
+                return lastPart.toUpperCase();
+            }
+            
+            const alnumPattern = /^[a-z0-9]+$/i;
+            if (alnumPattern.test(lastPart) && lastPart.length >= 7) {
+                return lastPart.toUpperCase();
+            }
+            
+            if (parts.length === 1 && alnumPattern.test(lastPart)) {
+                return lastPart.toUpperCase();
+            }
+        }
+        
+        return 'Not Assigned';
+    }
+
+    // Function to extract name from email
+    function extractNameFromEmail(email) {
+        if (!email) return { firstName: 'Student', lastName: '' };
+        
+        const emailLower = email.toLowerCase();
+        const emailWithoutDomain = emailLower.replace('@umak.edu.ph', '');
+        const parts = emailWithoutDomain.split('.');
+        
+        if (parts.length === 1) {
+            return { firstName: 'Student', lastName: '' };
+        } else if (parts.length === 2) {
+            return { 
+                firstName: capitalize(parts[0]), 
+                lastName: '' 
+            };
+        } else if (parts.length >= 3) {
+            const firstName = parts[0];
+            const lastName = parts[parts.length - 2]; 
+            return {
+                firstName: capitalize(firstName),
+                lastName: capitalize(lastName)
+            };
+        }
+        
+        return { firstName: 'Student', lastName: '' };
+    }
+
+    function calculateBMI(weight, height) {
+        const heightInMeters = height / 100;
+        return (weight / (heightInMeters * heightInMeters)).toFixed(2);
+    }
+
+    function getBMICategory(bmi) {
+        const bmiValue = parseFloat(bmi);
+        if (bmiValue < 18.5) return 'Underweight';
+        if (bmiValue >= 18.5 && bmiValue < 25) return 'Normal';
+        if (bmiValue >= 25 && bmiValue < 30) return 'Overweight';
+        return 'Obese';
+    }
+
+    async function loadStudentProfile(user) {
+        try {
+            // debug log removed
+            
+            const studentsQuery = query(
+                collection(db, 'students'),
+                where('email', '==', user.email)
+            );
+            const studentsSnapshot = await getDocs(studentsQuery);
+            
+            if (!studentsSnapshot.empty) {
+                // debug log removed
+                studentsSnapshot.forEach((doc) => {
+                    studentData = doc.data();
+                    studentDocId = doc.id;
+                });
+            } else {
+                // debug log removed
+                const studentRef = doc(db, 'students', user.uid);
+                const studentDoc = await getDoc(studentRef);
+                if (studentDoc.exists()) {
+                    studentData = studentDoc.data();
+                    studentDocId = user.uid;
+                    // debug log removed
+                } else {
+                    // debug log removed
+                    const extractedId = extractUmakIdFromEmail(user.email);
+                    const nameInfo = extractNameFromEmail(user.email);
+                    
+                    studentData = {
+                        firstName: nameInfo.firstName,
+                        lastName: nameInfo.lastName,
+                        umakId: extractedId,
+                        section: 'Not Assigned',
+                        department: 'Not Assigned',
+                        yearLevel: 'Not Assigned',
+                        age: 0,
+                        gender: 'Not Specified',
+                        email: user.email,
+                        contactNumber: 'Not Provided',
+                        height: 0,
+                        weight: 0,
+                        medicalCondition: 'None',
+                        emergencyContactName: 'Not provided',
+                        emergencyContactNumber: 'Not provided',
+                        emergencyContactRelation: 'Not provided',
+                        createdAt: new Date().toISOString(),
+                        lastLogin: new Date().toISOString()
+                    };
+                    studentDocId = user.uid;
+                    // debug log removed
+                }
+            }
+            
+            if (studentData) {
+                window.currentStudentId = studentDocId;
+                window.currentStudentData = studentData;
+                
+                let displayName = '';
+                if (user.displayName) {
+                    displayName = user.displayName;
+                    const nameParts = user.displayName.split(' ');
+                    if (nameParts.length >= 2) {
+                        studentData.firstName = nameParts[0];
+                        studentData.lastName = nameParts.slice(1).join(' ');
+                    } else {
+                        studentData.firstName = user.displayName;
+                        studentData.lastName = '';
+                    }
+                } else if (studentData.firstName || studentData.lastName) {
+                    displayName = `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim();
+                } else {
+                    displayName = user.email.split('@')[0];
+                }
+
+                document.getElementById('profileName').textContent = displayName;
+                
+                let displayId = studentData.umakId;
+                if (!displayId || displayId === 'Not Assigned') {
+                    displayId = extractUmakIdFromEmail(user.email);
+                }
+                document.getElementById('profileId').textContent = `ID: ${displayId}`;
+                
+                let sectionInfo = '';
+                if (studentData.section && studentData.section !== 'Not Assigned') {
+                    sectionInfo = studentData.section;
+                    if (studentData.department && studentData.department !== 'Not Assigned') {
+                        sectionInfo += ` • ${studentData.department}`;
+                    }
+                    if (studentData.yearLevel && studentData.yearLevel !== 'Not Assigned') {
+                        sectionInfo += ` • Year ${studentData.yearLevel}`;
+                    }
+                } else {
+                    sectionInfo = 'Not Assigned';
+                }
+                document.getElementById('profileSection').textContent = sectionInfo;
+                
+const displayAge = studentData.birthday 
+    ? calculateAge(studentData.birthday) 
+    : (studentData.age || 0);
+document.getElementById('profileAgeGender').textContent = 
+    `${displayAge} years - ${studentData.gender || 'Not Specified'}`;
+    window.autoFillAge = function() {
+    const birthday = document.getElementById('editBirthday').value;
+    const ageField = document.getElementById('editAge');
+    if (birthday) {
+        const age = calculateAge(birthday);
+        ageField.value = age + ' years old';
+    } else {
+        ageField.value = '';
+    }
+};
+                    document.getElementById('profileEmail').textContent = 
+                    studentData.email || user.email;
+                document.getElementById('profileContact').textContent = 
+                    studentData.contactNumber || 'Not Provided';
+                document.getElementById('profileMedical').textContent = 
+                    studentData.medicalCondition || 'None';
+                document.getElementById('profileHeight').textContent = 
+                    studentData.height || 0;
+                document.getElementById('profileWeight').textContent = 
+                    studentData.weight || 0;
+                
+                if (studentData.height && studentData.weight && studentData.height > 0 && studentData.weight > 0) {
+                    const bmi = calculateBMI(studentData.weight, studentData.height);
+                    document.getElementById('profileBMI').textContent = bmi;
+                } else {
+                    document.getElementById('profileBMI').textContent = '0.00';
+                }
+                
+                if (studentData.lastLogin) {
+                    try {
+                        let lastLoginDate;
+                        if (studentData.lastLogin.toDate) {
+                            lastLoginDate = studentData.lastLogin.toDate();
+                        } else {
+                            lastLoginDate = new Date(studentData.lastLogin);
+                        }
+                        
+                        document.getElementById('lastLogin').textContent = lastLoginDate.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } catch (error) {
+                        console.error('Error parsing lastLogin:', error);
+                        document.getElementById('lastLogin').textContent = 'Recently';
+                    }
+                } else {
+                    document.getElementById('lastLogin').textContent = 'Never';
+                }
+
+                if (studentData.createdAt) {
+                    try {
+                        let createdDate;
+                        if (studentData.createdAt.toDate) {
+                            createdDate = studentData.createdAt.toDate();
+                        } else if (typeof studentData.createdAt === 'string') {
+                            createdDate = new Date(studentData.createdAt);
+                        } else if (studentData.createdAt.seconds) {
+                            createdDate = new Date(studentData.createdAt.seconds * 1000);
+                        } else {
+                            createdDate = new Date(studentData.createdAt);
+                        }
+                        
+                        if (!isNaN(createdDate.getTime())) {
+                            document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        } else {
+                            document.getElementById('accountCreated').textContent = 'Not Available';
+                        }
+                    } catch (error) {
+                        console.error('Error parsing createdAt:', error, studentData.createdAt);
+                        document.getElementById('accountCreated').textContent = 'Not Available';
+                    }
+                } else {
+                    document.getElementById('accountCreated').textContent = 'Not Available';
+                }
+                
+                // Setup notification listener after student data is loaded
+                setupNotificationListener();
+                await checkUnreadNotifications();
+                
+                updateProfileUI();
+                updateProfileAvatar();
+                
+                // Update last login time
+                await updateLastLogin(studentDocId);
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            let displayName = '';
+            if (user.displayName) {
+                displayName = user.displayName;
+            } else {
+                const nameInfo = extractNameFromEmail(user.email);
+                displayName = `${nameInfo.firstName} ${nameInfo.lastName}`.trim();
+            }
+            document.getElementById('profileName').textContent = displayName;
+            
+            const extractedId = extractUmakIdFromEmail(user.email);
+            document.getElementById('profileId').textContent = `ID: ${extractedId}`;
+            
+            document.getElementById('profileEmail').textContent = user.email;
+            document.getElementById('lastLogin').textContent = 'Now';
+            document.getElementById('accountCreated').textContent = new Date().toLocaleDateString();
+
+            updateProfileUI();
+            updateProfileAvatar();
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         }
         window.addEventListener('pagehide',()=>{if(unsubscribeNotificationListener){unsubscribeNotificationListener();unsubscribeNotificationListener=null;}});
         window.addEventListener('beforeunload',()=>{if(unsubscribeNotificationListener){unsubscribeNotificationListener();unsubscribeNotificationListener=null;}});
@@ -779,8 +1306,96 @@
 
         // ========== LAST LOGIN ==========
 
+<<<<<<< HEAD
         async function updateLastLogin(id){
             try{await updateDoc(doc(db,'students',id),{lastLogin:new Date().toISOString()});}catch(e){console.error(e);}
+=======
+    async function updateLastLogin(studentId) {
+        try {
+            const studentRef = doc(db, 'students', studentId);
+            await updateDoc(studentRef, {
+                lastLogin: new Date().toISOString()
+            });
+            // debug log removed
+        } catch (error) {
+            console.error('Error updating last login:', error);
+        }
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        const loadingScreen = document.getElementById('loadingScreen');
+        const mainContent = document.getElementById('mainContent');
+
+        if (user) {
+            try {
+                await loadStudentProfile(user);
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                setupEventListeners();
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+            }
+        } else {
+            window.location.href = '../login/index.html';
+        }
+    });
+
+    window.handleLogout = async function() {
+        if (confirm('Are you sure you want to logout?')) {
+            try {
+                await signOut(auth);
+                window.location.href = '../login/index.html';
+            } catch (error) {
+                console.error('Error logging out:', error);
+            }
+        }
+    };
+
+   window.editProfile = function() {
+    const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+    
+    const data = window.currentStudentData || {};
+    document.getElementById('editBirthday').value = data.birthday || '';
+    if (data.birthday) {
+        document.getElementById('editAge').value = calculateAge(data.birthday) + ' years old';
+    } else {
+        document.getElementById('editAge').value = '';
+    }
+
+    // Set max date to 15 years ago
+    const today = new Date();
+    document.getElementById('editBirthday').max = today.toISOString().split('T')[0];
+
+    document.getElementById('editGender').value = data.gender || '';
+    document.getElementById('editEmail').value = data.email || '';
+    document.getElementById('editContact').value = data.contactNumber || '';
+    document.getElementById('editHeight').value = data.height || '';
+    document.getElementById('editWeight').value = data.weight || '';
+document.getElementById('editMedical').value = data.medicalCondition || '';
+document.getElementById('medicalCharCount').textContent = (data.medicalCondition || '').length;
+    // Reset Save button and error states
+    const saveBtn = document.querySelector('#editProfileModal .btn-primary');
+    if (saveBtn) saveBtn.disabled = false;
+    document.getElementById('heightError').style.display = 'none';
+    document.getElementById('weightError').style.display = 'none';
+    document.getElementById('editHeight').style.borderColor = '';
+    document.getElementById('editWeight').style.borderColor = '';
+    
+    modal.show();
+};
+
+    window.saveProfile = async function() {
+    const form = document.getElementById('editProfileForm');
+    
+        const birthday = document.getElementById('editBirthday').value;
+        if (!birthday) {
+            document.getElementById('editBirthday').focus();
+            document.getElementById('editBirthday').setCustomValidity('Please enter your birthday.');
+            document.getElementById('editBirthday').reportValidity();
+            return;
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         }
 
         // ========== AUTH ==========
@@ -910,6 +1525,232 @@
                     document.getElementById('profileDropdown')?.classList.add('hidden');
                     document.getElementById('profileDropdownMobile')?.classList.add('hidden');
                 }
+<<<<<<< HEAD
+=======
+            }
+const medicalVal = document.getElementById('editMedical').value;
+if (medicalVal.length > 1000) {
+    document.getElementById('editMedical').focus();
+    document.getElementById('editMedical').setCustomValidity('Medical condition must not exceed 1000 characters.');
+    document.getElementById('editMedical').reportValidity();
+    return;
+} else {
+    document.getElementById('editMedical').setCustomValidity('');
+}
+
+            const updatedData = {
+                firstName: firstName,
+                lastName: lastName,
+birthday: document.getElementById('editBirthday').value,
+age: calculateAge(document.getElementById('editBirthday').value),
+                gender: document.getElementById('editGender').value,
+                email: email,
+                contactNumber: document.getElementById('editContact').value,
+                height: height,
+                weight: weight,
+                medicalCondition: document.getElementById('editMedical').value,
+                umakId: extractedId,
+                updatedAt: new Date().toISOString()
+            };
+            
+            // debug log removed
+            
+            const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            
+            const studentRef = doc(db, 'students', window.currentStudentId);
+            await updateDoc(studentRef, updatedData);
+            
+            const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height > 0 && weight > 0;
+            
+            if (bmiChanged) {
+                const bmi = calculateBMI(weight, height);
+                const category = getBMICategory(bmi);
+                
+                const bmiData = {
+                    studentId: window.currentStudentId,
+                    studentName: `${nameInfo.firstName} ${nameInfo.lastName}`.trim(),
+                    umakId: extractedId,
+                    section: window.currentStudentData?.section || 'Not Assigned',
+                    email: email,
+                    height: height,
+                    weight: weight,
+                    bmi: parseFloat(bmi),
+                    category: category,
+                    testType: 'pre',
+                    recordedAt: new Date().toISOString(),
+                    recordedBy: 'student',
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // debug log removed
+                await addDoc(collection(db, 'BMI'), bmiData);
+                // debug log removed
+                showProfileSavePopup('success', 'Profile and BMI record updated successfully!');
+            } else {
+                showProfileSavePopup('success', 'Profile updated successfully!');
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
+            
+            const user = auth.currentUser;
+            await loadStudentProfile(user);
+            updateProfileUI();
+            updateProfileAvatar();
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showProfileSavePopup('error', 'Failed to update profile. Please try again.');
+        }
+    };
+            function showProfileSavePopup(type, message) {
+    const existing = document.getElementById('profileSavePopupOverlay');
+    if (existing) existing.remove();
+
+    const isSuccess = type === 'success';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'profileSavePopupOverlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 99999; padding: 1rem;
+        animation: fadeInPopup 0.2s ease;
+    `;
+
+    overlay.innerHTML = `
+        <style>
+            @keyframes fadeInPopup { from { opacity:0; } to { opacity:1; } }
+            @keyframes slideUpPopup { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        </style>
+        <div style="
+            background:#fff;
+            border-radius:24px;
+            padding:2rem 1.5rem 1.5rem;
+            max-width:360px;
+            width:100%;
+            box-shadow:0 8px 40px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.10);
+            animation:slideUpPopup 0.35s cubic-bezier(.4,0,.2,1);
+            text-align:center;
+            font-family:'Inter',sans-serif;
+        ">
+            <!-- Icon -->
+            <div style="
+                width:68px; height:68px;
+                background:${isSuccess ? '#e6f4ea' : '#fce8e6'};
+                border-radius:50%;
+                display:flex; align-items:center; justify-content:center;
+                margin:0 auto 1.25rem;
+            ">
+                ${isSuccess ? `
+                <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="18" stroke="#34a853" stroke-width="3.5"/>
+                    <path d="M15 24l7 7 11-12" stroke="#34a853" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>` : `
+                <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="18" stroke="#ea4335" stroke-width="3.5"/>
+                    <path d="M24 16v10" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/>
+                    <circle cx="24" cy="32" r="2" fill="#ea4335"/>
+                </svg>`}
+            </div>
+
+            <!-- Title -->
+            <div style="font-size:1.2rem; font-weight:600; color:#202124; margin-bottom:0.35rem; letter-spacing:-0.01em;">
+                ${isSuccess ? 'Changes Saved!' : 'Save Failed'}
+            </div>
+
+            <!-- Message -->
+            <div style="font-size:0.875rem; color:#5f6368; margin-bottom:1.5rem; line-height:1.5;">
+                ${message}
+            </div>
+
+            <!-- Divider -->
+            <div style="height:1px; background:#e8eaed; margin:0 -1.5rem 1.25rem;"></div>
+
+            <!-- Button -->
+            <button id="profileSavePopupOkBtn" style="
+                width:100%;
+                padding:0.75rem;
+                border-radius:100px;
+                border:none;
+                background:${isSuccess ? '#34a853' : '#ea4335'};
+                color:#fff;
+                font-size:0.9375rem;
+                font-weight:500;
+                cursor:pointer;
+                font-family:'Inter',sans-serif;
+                min-height:48px;
+                transition:opacity 0.15s;
+            ">OK</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('profileSavePopupOkBtn').addEventListener('click', () => {
+        overlay.remove();
+    });
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+}
+    // Profile dropdown toggle
+    window.toggleProfileDropdown = function() {
+        const isMobile = window.innerWidth < 1024;
+        const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        
+        if (notificationDropdown) {
+            notificationDropdown.classList.add('hidden');
+        }
+        
+        dropdown.classList.toggle('hidden');
+        if (!dropdown.classList.contains('hidden')) {
+            setTimeout(() => {
+                document.addEventListener('click', closeProfileOnClickOutside);
+            }, 100);
+        } else {
+            document.removeEventListener('click', closeProfileOnClickOutside);
+        }
+    };
+
+    // Close dropdowns when clicking outside
+    function closeProfileOnClickOutside(event) {
+        const isMobile = window.innerWidth < 1024;
+        const dropdown = document.getElementById(isMobile ? 'profileDropdownMobile' : 'profileDropdown');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const profileBtn = document.getElementById('profilePictureBtn');
+        const profileBtnMobile = document.getElementById('profilePictureBtnMobile');
+        const notificationBtn = document.getElementById('notificationBellBtn');
+        
+        if (!dropdown.contains(event.target) && !profileBtn?.contains(event.target) && !profileBtnMobile?.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+        
+        if (notificationDropdown && !notificationDropdown.contains(event.target) && !notificationBtn?.contains(event.target)) {
+            notificationDropdown.classList.add('hidden');
+        }
+        
+        if (dropdown.classList.contains('hidden') && (!notificationDropdown || notificationDropdown.classList.contains('hidden'))) {
+            document.removeEventListener('click', closeProfileOnClickOutside);
+        }
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        const notificationBtn = document.getElementById('notificationBellBtn');
+        const notificationBtnMobile = document.getElementById('notificationBellBtnMobile');
+        
+        if (notificationBtn) notificationBtn.addEventListener('click', toggleNotificationDropdown);
+        if (notificationBtnMobile) notificationBtnMobile.addEventListener('click', toggleNotificationDropdown);
+        
+        const closeNotificationBtn = document.getElementById('closeNotificationBtn');
+        const closeNotificationBtnMobile = document.getElementById('closeNotificationBtnMobile');
+        
+        if (closeNotificationBtn) {
+            closeNotificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeNotificationDropdown();
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
             });
         }
 

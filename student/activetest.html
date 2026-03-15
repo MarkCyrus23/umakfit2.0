@@ -933,6 +933,7 @@ if(scheduledTestId){try{const testSnap=await getDoc(doc(db,'scheduledTests',sche
 
         function mapNormCategoryToScore(cat){return{Excellent:100,Good:90,Average:80,'Below Average':70,Poor:60}[cat]||75;}
 
+<<<<<<< HEAD
         async function calculateScoreWithNorms(testName,rawResult,testTarget,scheduledTestId){
             if(testName.toLowerCase().includes('skinfold')) return calculateScoreWithTarget(testName,rawResult,testTarget);
             const normResult=await resolveNormCategoryForScore(testName,rawResult,scheduledTestId);
@@ -980,6 +981,783 @@ if(scheduledTestId){try{const testSnap=await getDoc(doc(db,'scheduledTests',sche
             else if(n.includes('bmi')){const h=document.getElementById('heightInput'),w=document.getElementById('weightInput');if(!h?.value||!w?.value){showErrorPopup('Please enter both your height (cm) and weight (kg).');return;}const hm=parseFloat(h.value)/100;const bmi=(parseFloat(w.value)/(hm*hm)).toFixed(1);rawResult=bmi;resultValue=`BMI: ${bmi} (H: ${h.value}cm, W: ${w.value}kg)`;}
             else if(n.includes('skinfold')){const sex=document.getElementById('sexSelect')?.value;const s1=document.getElementById('site1Input')?.value;const s2=document.getElementById('site2Input')?.value;const s3=document.getElementById('site3Input')?.value;const calcDisplay=document.getElementById('calcBodyFat')?.textContent;if(!sex){showErrorPopup('Please select your sex.');return;}if(!s1||!s2||!s3){showErrorPopup('Please enter all 3 skinfold measurements.');return;}if(!calcDisplay||calcDisplay==='--'){showErrorPopup('Body fat could not be calculated. Please check your measurements.');return;}const siteName=sex==='male'?`Chest:${s1}mm, Abdomen:${s2}mm, Thigh:${s3}mm`:`Triceps:${s1}mm, Suprailium:${s2}mm, Thigh:${s3}mm`;const cls=window.getBodyFatClassification(parseFloat(calcDisplay),sex);rawResult=calcDisplay;resultValue=`${calcDisplay}% body fat (${cls.label}) | ${sex==='male'?'Male':'Female'} | ${siteName}`;}
             else{const i=document.getElementById('resultInput');if(!i||!i.value){showErrorPopup('Please enter your test result.');return;}rawResult=i.value;resultValue=i.value;}
+=======
+    if (!testId || !testName) {
+        showErrorOnLoad('Invalid test parameters. Please go back and select a test.');
+        return;
+    }
+
+    try {
+        // debug log removed
+        
+        document.getElementById('testName').textContent = 'Loading Test...';
+        document.getElementById('testSubtitle').textContent = 'Please wait while we load your test';
+        
+        const testDocRef = doc(db, 'scheduledTests', testId);
+        const testDocSnapshot = await getDoc(testDocRef);
+        
+        if (!testDocSnapshot.exists()) {
+            console.error('❌ Test document not found in Firestore:', testId);
+            showErrorOnLoad('Test not found. It may have been deleted or expired.');
+            return;
+        }
+
+        const testData = testDocSnapshot.data();
+        currentTest = { 
+            id: testDocSnapshot.id, 
+            ...testData
+        };
+        
+        // debug log removed
+        
+        // Ensure professor data exists
+        if (!currentTest.professorId || !currentTest.professorEmail) {
+            console.warn('⚠️ Professor data missing, using defaults');
+            currentTest.professorId = 'default-professor-id';
+            currentTest.professorEmail = 'professor@umak.edu.ph';
+        }
+        
+        // debug log removed
+        
+        let subtitleText = `Section: ${currentTest.section} • Deadline: ${new Date(currentTest.deadline).toLocaleDateString()}`;
+        document.getElementById('testName').textContent = currentTest.testName;
+        document.getElementById('testSubtitle').textContent = subtitleText;
+        
+        setupTestInputs(currentTest.testName);
+        updateInstructions(currentTest.testName);
+        listenForTestDeletion(testId);
+    } catch (error) {
+        console.error('❌ Error loading test:', error);
+        showErrorOnLoad('Error loading test data: ' + error.message);
+    }
+}
+function showErrorOnLoad(message) {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    
+    loadingScreen.style.display = 'flex';
+    loadingScreen.innerHTML = `
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
+            <div class="loading-text" style="color: #ef4444; margin-bottom: 15px;">Failed to Load Test</div>
+            <p style="color: #64748b; margin: 15px 0; max-width: 400px;">${message}</p>
+            <button onclick="window.location.href='./test.html'" style="
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                margin-top: 10px;
+            ">Return to Tests</button>
+        </div>
+    `;
+    mainContent.style.display = 'none';
+}
+
+
+        function updateInstructions(testName) {
+            const instructionsText = document.getElementById('quickInstructions');
+            const normalizedName = testName.toLowerCase();
+
+            if (normalizedName.includes('push-up') || normalizedName.includes('pushup')) {
+                instructionsText.textContent = 'Perform as many push-ups as you can with proper form. Keep your body straight, lower your chest to the ground, and push back up. Stop when you can no longer maintain correct form. Record your total repetitions below.';
+            } else if (normalizedName.includes('sit-up') || normalizedName.includes('situp')) {
+                instructionsText.textContent = 'Perform as many sit-ups as possible with proper form. Lie on your back with knees bent, hands behind your head, and curl up until your elbows touch your knees. Record your total repetitions below.';
+            } else if (normalizedName.includes('plank')) {
+                instructionsText.textContent = 'Click START to begin the timer. Hold a plank position with your body straight from head to heels, supporting yourself on your forearms and toes. When you can no longer maintain proper form, click STOP. Your time will be automatically recorded.';
+            } else if (normalizedName.includes('step test') || normalizedName.includes('3-minute')) {
+                instructionsText.textContent = 'Click START to begin the 3-minute countdown timer. A metronome will beep at 90 BPM — step up and down on the platform following the beat. The timer will automatically stop after 3 minutes. Then use the 1-minute recovery timer that appears and count your pulse on your wrist. Enter your total heartbeat count below once the recovery timer ends.';
+            } else if (normalizedName.includes('mile') || normalizedName.includes('run')) {
+                instructionsText.textContent = 'Click START to begin the timer and complete the run as fast as you can. When you finish, click STOP immediately. Your completion time will be automatically recorded.';
+            } else if (normalizedName.includes('sit-and-reach') || normalizedName.includes('sit and reach')) {
+                instructionsText.textContent = 'Sit on the floor with legs extended straight ahead. Slowly reach forward with both hands as far as possible, hold for 2 seconds. Measure the distance reached past your toes in centimeters. Perform 3 attempts and record the best result below.';
+            } else if (normalizedName.includes('shoulder flexibility')) {
+                instructionsText.textContent = 'Reach one arm over your shoulder and the other arm behind your back. Try to touch or overlap your fingers. Measure the distance between your hands in centimeters. If fingers touch, record 0. Record the measurement below.';
+            } else if (normalizedName.includes('grip strength')) {
+                instructionsText.textContent = 'Hold the grip strength dynamometer in one hand with your arm at your side. Squeeze as hard as you can for 3-5 seconds. Perform 3 attempts with each hand. Record the highest reading in kilograms below.';
+            } else if (normalizedName.includes('curl-up') || normalizedName.includes('curl up')) {
+                instructionsText.textContent = 'Lie on your back with knees bent and feet flat. Place tape marks 4.5 inches apart. With arms straight, slide your fingertips from the first mark to the second mark by curling your upper body. Perform one curl-up every 3 seconds following the metronome. Stop when you can no longer maintain the pace. Record your total repetitions.';
+            } else if (normalizedName.includes('bmi')) {
+                instructionsText.textContent = 'Remove shoes and heavy clothing. Measure your height accurately using the stadiometer, standing straight with heels together. Measure your weight on a calibrated scale. Enter both measurements below and your BMI will be calculated automatically using the formula: weight (kg) ÷ height² (m²).';
+            } else if (normalizedName.includes('skinfold')) {
+                instructionsText.textContent = 'This test requires a trained professional to perform skinfold measurements at 3 or 7 specific body sites using calipers. The measurements will be used in a formula to calculate your body fat percentage. Once the professional provides your calculated body fat percentage, enter it in the field below.';
+            } else {
+                instructionsText.textContent = 'Follow the test protocol as instructed. Complete the test according to proper form and technique. Record your results in the input field below when finished.';
+            }
+        }
+
+        async function loadStudentData(user) {
+            try {
+                const studentsQuery = query(
+                    collection(db, 'students'),
+                    where('email', '==', user.email)
+                );
+                const studentsSnapshot = await getDocs(studentsQuery);
+                
+                studentData = {
+                    displayName: user.displayName || user.email.split('@')[0] || 'Student',
+                    email: user.email,
+                    section: 'Not Assigned'
+                };
+                
+                if (!studentsSnapshot.empty) {
+                    studentsSnapshot.forEach((doc) => {
+                        const data = doc.data();
+                                        studentData = { 
+                    ...studentData,
+                    ...data,
+                    studentId: doc.id,
+                    age: data.age || 20
+                };
+                    });
+                }
+                
+                return studentData;
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                return null;
+            }
+        }
+            function showSuccessPopup(score, attempt, totalAttempts, resultId, testId) {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'successOverlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 99999; padding: 1rem;
+        animation: fadeIn 0.2s ease;
+    `;
+
+    // Score color
+    let scoreColor = '#ea4335';
+    if (score >= 90) scoreColor = '#34a853';
+    else if (score >= 80) scoreColor = '#1a73e8';
+    else if (score >= 70) scoreColor = '#fbbc04';
+
+    overlay.innerHTML = `
+        <style>
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes slideUp { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+            @keyframes checkDraw {
+                0% { stroke-dashoffset: 100; }
+                100% { stroke-dashoffset: 0; }
+            }
+            .popup-card {
+                background: #fff;
+                border-radius: 28px;
+                padding: 2.5rem 2rem 2rem;
+                max-width: 420px;
+                width: 100%;
+                box-shadow: 0 8px 40px rgba(60,64,67,0.18), 0 2px 8px rgba(60,64,67,0.10);
+                animation: slideUp 0.35s cubic-bezier(.4,0,.2,1);
+                text-align: center;
+                font-family: 'Google Sans', 'Inter', sans-serif;
+            }
+            .check-circle {
+                width: 72px; height: 72px;
+                background: #e6f4ea;
+                border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                margin: 0 auto 1.25rem;
+            }
+            .check-circle svg { width: 40px; height: 40px; }
+            .check-circle svg polyline {
+                stroke: #34a853;
+                stroke-width: 3.5;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                fill: none;
+                stroke-dasharray: 100;
+                stroke-dashoffset: 0;
+                animation: checkDraw 0.5s ease 0.2s both;
+            }
+            .popup-title {
+                font-size: 1.375rem;
+                font-weight: 600;
+                color: #202124;
+                margin-bottom: 0.4rem;
+                letter-spacing: -0.01em;
+            }
+            .popup-subtitle {
+                font-size: 0.875rem;
+                color: #5f6368;
+                margin-bottom: 1.5rem;
+            }
+            .score-chip {
+                display: inline-block;
+                padding: 0.5rem 1.5rem;
+                border-radius: 50px;
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                letter-spacing: -0.02em;
+            }
+            .attempt-text {
+                font-size: 0.8125rem;
+                color: #80868b;
+                margin-bottom: 1.75rem;
+            }
+            .popup-divider {
+                height: 1px;
+                background: #e8eaed;
+                margin: 0 -2rem 1.5rem;
+            }
+            .popup-btn {
+                width: 100%;
+                padding: 0.75rem 1.5rem;
+                border-radius: 100px;
+                border: none;
+                font-size: 0.9375rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: box-shadow 0.15s, background 0.15s;
+                font-family: 'Google Sans', 'Inter', sans-serif;
+                letter-spacing: 0.01em;
+            }
+            .popup-btn-primary {
+                background: #1a73e8;
+                color: #fff;
+            }
+            .popup-btn-primary:hover {
+                background: #1557b0;
+                box-shadow: 0 2px 8px rgba(26,115,232,0.35);
+            }
+        </style>
+        <div class="popup-card">
+            <div class="check-circle">
+                <svg viewBox="0 0 48 48">
+                    <polyline points="10,26 20,36 38,16"/>
+                </svg>
+            </div>
+            <div class="popup-title">Test Submitted</div>
+            <div class="popup-subtitle">Your results have been recorded</div>
+            <div class="score-chip" style="background:${scoreColor}18; color:${scoreColor};">
+                ${score}
+            </div>
+            <div class="attempt-text">Attempt ${attempt} of ${totalAttempts}</div>
+            <div class="popup-divider"></div>
+            <button class="popup-btn popup-btn-primary" id="viewResultBtn">
+                View Results
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('viewResultBtn').addEventListener('click', () => {
+        window.location.href = `./studentresult.html?resultId=${resultId}&testId=${testId}`;
+    });
+}
+
+function showErrorPopup(message, title = 'Missing Information') {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 99999; padding: 1rem;
+    `;
+
+    overlay.innerHTML = `
+        <div style="
+            background: #fff; border-radius: 28px; padding: 2.5rem 2rem 2rem;
+            max-width: 380px; width: 100%;
+            box-shadow: 0 8px 40px rgba(60,64,67,0.18);
+            text-align: center; font-family: 'Google Sans','Inter',sans-serif;
+            animation: slideUp 0.3s ease;
+        ">
+            <div style="
+                width:72px; height:72px; background:#fce8e6;
+                border-radius:50%; display:flex; align-items:center;
+                justify-content:center; margin: 0 auto 1.25rem;
+            ">
+                <svg width="36" height="36" viewBox="0 0 48 48">
+                    <line x1="14" y1="14" x2="34" y2="34" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/>
+                    <line x1="34" y1="14" x2="14" y2="34" stroke="#ea4335" stroke-width="3.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div style="font-size:1.25rem; font-weight:600; color:#202124; margin-bottom:0.5rem;">
+                ${title}
+            </div>
+            <div style="font-size:0.875rem; color:#5f6368; margin-bottom:1.75rem;">
+                ${message}
+            </div>
+            <div style="height:1px; background:#e8eaed; margin: 0 -2rem 1.5rem;"></div>
+            <button onclick="this.closest('[style*=fixed]').remove()" style="
+                width:100%; padding:0.75rem 1.5rem; border-radius:100px;
+                border:1px solid #dadce0; background:#fff; color:#3c4043;
+                font-size:0.9375rem; font-weight:500; cursor:pointer;
+                font-family:'Google Sans','Inter',sans-serif;
+            ">
+                Try Again
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+}
+        window.submitTest = async function() {
+    if (!currentTest || !studentData) {
+        showErrorPopup('Missing required data. Please reload the page and try again.');
+        return;
+    }
+
+            let resultValue = '';
+            let rawResult = '';
+            const testName = currentTest.testName.toLowerCase();
+
+            if (testName.includes('push-up') || testName.includes('pushup') || 
+                testName.includes('sit-up') || testName.includes('situp')) {
+                   const input = document.getElementById('repetitionsInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please enter the number of repetitions completed.');
+                    return;
+                }
+                rawResult = input.value;
+                resultValue = input.value + ' reps';
+            } else if (testName.includes('curl-up') || testName.includes('curl up')) {
+                   const input = document.getElementById('repetitionsInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please enter the number of curl-ups completed.');
+                    return;
+                }
+                rawResult = input.value;
+                resultValue = input.value + ' curl-ups';
+            } else if (testName.includes('plank')) {
+                  const input = document.getElementById('durationInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please start the timer and stop it when done.');
+                    return;
+                }
+                const [mins, secs] = input.value.split(':').map(Number);
+                rawResult = (mins * 60 + secs).toString();
+                resultValue = input.value;
+            } else if (testName.includes('step test') || testName.includes('3-minute')) {
+                  const input = document.getElementById('heartRateInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please enter your recovery heart rate (bpm).');
+                    return;
+                }
+                rawResult = input.value;
+                resultValue = input.value + ' bpm';
+            } else if (testName.includes('mile') || testName.includes('run') || testName.includes('1-mile')) {
+                   const input = document.getElementById('timeInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please start the timer and stop it when done.');
+                    return;
+                }
+                const [mins, secs] = input.value.split(':').map(Number);
+                rawResult = (mins * 60 + secs).toString();
+                resultValue = input.value;
+            } else if (testName.includes('sit-and-reach') || testName.includes('sit and reach')) {
+                  const input = document.getElementById('distanceInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please enter the distance reached (cm).');
+                    return;
+                }
+                rawResult = input.value;
+                resultValue = input.value + ' cm';
+            } else if (testName.includes('grip')) {
+                  const input = document.getElementById('strengthInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please enter your grip strength (kg).');
+                    return;
+                }
+                rawResult = input.value;
+                resultValue = input.value + ' kg';
+            } else if (testName.includes('bmi')) {
+                const heightInput = document.getElementById('heightInput');
+                const weightInput = document.getElementById('weightInput');
+                   if (!heightInput || !heightInput.value || !weightInput || !weightInput.value) {
+                    showErrorPopup('Please enter both your height (cm) and weight (kg).');
+                    return;
+                }
+                const heightCm = parseFloat(heightInput.value);
+                const weightKg = parseFloat(weightInput.value);
+                const heightM = heightCm / 100;
+                const bmi = (weightKg / (heightM * heightM)).toFixed(1);
+                rawResult = bmi;
+                resultValue = `BMI: ${bmi} (H: ${heightCm}cm, W: ${weightKg}kg)`;
+            } else if (testName.includes('skinfold')) {
+            const sex = document.getElementById('sexSelect')?.value;
+            const s1 = document.getElementById('site1Input')?.value;
+            const s2 = document.getElementById('site2Input')?.value;
+            const s3 = document.getElementById('site3Input')?.value;
+            const calcDisplay = document.getElementById('calcBodyFat')?.textContent;
+
+            if (!sex) { showErrorPopup('Please select your sex.'); return; }
+            if (!s1 || !s2 || !s3) { showErrorPopup('Please enter all 3 skinfold measurements.'); return; }
+            if (!calcDisplay || calcDisplay === '--') { showErrorPopup('Body fat could not be calculated. Please check your measurements.'); return; }
+
+            const siteName = sex === 'male'
+                ? `Chest:${s1}mm, Abdomen:${s2}mm, Thigh:${s3}mm`
+                : `Triceps:${s1}mm, Suprailium:${s2}mm, Thigh:${s3}mm`;
+
+            const classification = window.getBodyFatClassification(parseFloat(calcDisplay), sex);
+
+            rawResult = calcDisplay;
+            resultValue = `${calcDisplay}% body fat (${classification.label}) | ${sex === 'male' ? 'Male' : 'Female'} | ${siteName}`;
+
+            } else {
+                  const input = document.getElementById('resultInput');
+                if (!input || !input.value) {
+                    showErrorPopup('Please enter your test result.');
+                    return;
+                }
+                rawResult = input.value;
+                resultValue = input.value;
+            }
+
+            const notes = document.getElementById('notesField').value;
+            const timerValue = `${document.getElementById('minutes').textContent}:${document.getElementById('seconds').textContent}.${document.getElementById('milliseconds').textContent}`;
+
+            const calculatedScore = calculateScoreWithNorms(currentTest.testName, rawResult, currentTest.testTarget, studentData);
+
+function calculateScoreWithNorms(testName, rawResult, testTarget, student) {
+    const normalized = testName.toLowerCase();
+    const numericValue = parseFloat(rawResult);
+
+    // Helper: get age from student data
+    function getAge() {
+        if (student?.birthday) {
+            try {
+                const b = student.birthday.toDate ? student.birthday.toDate() : new Date(student.birthday);
+                const today = new Date();
+                let age = today.getFullYear() - b.getFullYear();
+                const m = today.getMonth() - b.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+                return age;
+            } catch(e) {}
+        }
+        return parseInt(student?.age) || 20;
+    }
+
+        function getAgeGroup(age) {
+            if (age <= 18) return '15-18';
+            if (age <= 22) return '19-22';
+            if (age <= 26) return '23-26';
+            return '27-30';
+        }
+
+        function getGender() {
+            const g = (student?.gender || '').toLowerCase();
+            return g.startsWith('f') ? 'female' : 'male';
+        }
+
+        const age = getAge();
+        const ageGroup = getAgeGroup(age);
+        const gender = getGender();
+
+        // Push-Up norm
+        if (normalized.includes('push-up') || normalized.includes('pushup')) {
+            const t = { male: { '15-18':[40,31,21,11], '19-22':[38,28,18,9], '23-26':[35,25,16,8], '27-30':[32,23,14,6] }, female: { '15-18':[25,19,13,7], '19-22':[23,17,11,6], '23-26':[20,15,9,5], '27-30':[18,13,8,4] } };
+            const [e,g,a,b] = t[gender][ageGroup];
+            if (numericValue >= e) return 'Excellent';
+            if (numericValue >= g) return 'Good';
+            if (numericValue >= a) return 'Average';
+            if (numericValue >= b) return 'Below Average';
+            return 'Poor';
+        }
+
+        // Curl-Up norm
+        if (normalized.includes('curl-up') || normalized.includes('curl up')) {
+            const t = { male: { '15-18':[50,41,31,21], '19-22':[47,38,28,19], '23-26':[44,35,25,17], '27-30':[40,32,22,15] }, female: { '15-18':[45,36,26,16], '19-22':[42,34,24,15], '23-26':[39,31,21,13], '27-30':[36,28,19,11] } };
+            const [e,g,a,b] = t[gender][ageGroup];
+            if (numericValue >= e) return 'Excellent';
+            if (numericValue >= g) return 'Good';
+            if (numericValue >= a) return 'Average';
+            if (numericValue >= b) return 'Below Average';
+            return 'Poor';
+        }
+
+        // Sit-and-Reach norm
+        if (normalized.includes('sit-and-reach') || normalized.includes('sit and reach')) {
+            const t = { male: { '15-18':[38,33,26,18], '19-22':[37,32,25,17], '23-26':[35.5,30.5,23.5,15.5], '27-30':[34,29,22,14] }, female: { '15-18':[39,34,27,19], '19-22':[38,33,26,18], '23-26':[37,32,25,17], '27-30':[36,31,24,16] } };
+            const [e,g,a,b] = t[gender][ageGroup];
+            if (numericValue >= e) return 'Excellent';
+            if (numericValue >= g) return 'Good';
+            if (numericValue >= a) return 'Average';
+            if (numericValue >= b) return 'Below Average';
+            return 'Poor';
+        }
+
+        // Step Test norm (lower HR = better)
+        if (normalized.includes('step test') || normalized.includes('3-minute')) {
+            const t = { male: { '15-18':[84,97,108,118], '19-22':[79,89,105,116], '23-26':[80,90,106,117], '27-30':[81,91,107,118] }, female: { '15-18':[89,103,113,124], '19-22':[85,98,109,118], '23-26':[86,99,110,119], '27-30':[88,101,112,121] } };
+            const [e,g,a,b] = t[gender][ageGroup];
+            if (numericValue <= e) return 'Excellent';
+            if (numericValue <= g) return 'Good';
+            if (numericValue <= a) return 'Average';
+            if (numericValue <= b) return 'Below Average';
+            return 'Poor';
+        }
+
+        // Skinfold - keep numeric
+        if (normalized.includes('skinfold')) {
+            return calculateScoreWithTarget(testName, rawResult, testTarget);
+        }
+
+        // All other tests - keep numeric
+        return calculateScoreWithTarget(testName, rawResult, testTarget);
+    }
+
+            try {
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').innerHTML = `
+                    <span class="btn-text-one">
+                        <i class="bi bi-hourglass-split"></i> Submitting...
+                    </span>
+                    <span class="btn-text-two">
+                        <i class="bi bi-hourglass-split"></i> Submitting...
+                    </span>
+                `;
+
+                const attemptsQuery = query(
+                    collection(db, 'testResults'),
+                    where('testId', '==', currentTest.id),
+                    where('studentEmail', '==', studentData.email)
+                );
+                const attemptsSnapshot = await getDocs(attemptsQuery);
+                const currentAttempts = attemptsSnapshot.size;
+
+                const isFirstAttempt = currentAttempts === 0;
+                const docRef = await addDoc(collection(db, 'testResults'), {
+                    testId: currentTest.id,
+                    testName: currentTest.testName,
+                    studentEmail: studentData.email,
+                    studentName: studentData.displayName,
+                    studentId: currentUser.uid,
+                    section: studentData.section || currentTest.section,
+                    result: resultValue,
+                    resultData: rawResult,
+                    testTarget: currentTest.testTarget || null,
+                    score: calculatedScore,
+                    timerValue: timerValue,
+                    notes: notes,
+                    attemptNumber: currentAttempts + 1,
+                    attemptsAllowed: currentTest.attemptsAllowed || 1,
+                    timestamp: serverTimestamp(),
+                    submittedAt: new Date().toISOString(),
+                    status: 'completed'
+                });
+
+                if (studentData.studentId) {
+                    await updateDoc(doc(db, 'students', studentData.studentId), {
+                        testsDone: increment(1),
+                        lastTestDate: serverTimestamp()
+                    });
+                }
+
+                if (isFirstAttempt) {
+                    const testRef = doc(db, 'scheduledTests', currentTest.id);
+                    await updateDoc(testRef, {
+                        completedStudents: increment(1)
+                    });
+                    // debug log removed
+                } else {
+                    // debug log removed
+                }
+
+                  showSuccessPopup(calculatedScore, currentAttempts + 1, currentTest.attemptsAllowed || 1, docRef.id, currentTest.id);
+                
+               
+            } catch (error) {
+                console.error('Error submitting test:', error);
+                     showErrorPopup('Error submitting test. Please try again.', 'Submission Failed');
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').innerHTML = '<i class="bi bi-check-circle-fill"></i> Submit Test Results';
+            }
+        };
+
+          function calculateScoreWithTarget(testName, rawResult, testTarget) {
+            const normalized = testName.toLowerCase();
+            const numericValue = parseFloat(rawResult);
+
+            // debug log removed
+
+           if (normalized.includes('skinfold')) {
+                // Based on table classifications
+                if (numericValue < 12) return 100; // V. Lean
+                if (numericValue < 18) return 90;  // Lean
+                if (numericValue < 28) return 75;  // Average
+                if (numericValue < 32) return 60;  // Fat
+                return 50;                          // Obese
+            }
+
+            // Targets are no longer used; rely on default/norm-based scoring
+            if (!testTarget || testTarget <= 0) {
+                return calculateDefaultScore(normalized, numericValue);
+            }
+
+            if (normalized.includes('push-up') || normalized.includes('pushup') ||
+                normalized.includes('sit-up') || normalized.includes('situp') ||
+                normalized.includes('curl-up') || normalized.includes('curl up')) {
+                if (numericValue >= testTarget) return 100;
+                const percentage = (numericValue / testTarget) * 100;
+                if (percentage >= 90) return 95;
+                if (percentage >= 80) return 90;
+                if (percentage >= 70) return 85;
+                if (percentage >= 60) return 80;
+                if (percentage >= 50) return 75;
+                if (percentage >= 40) return 70;
+                return Math.max(50, Math.round(percentage));
+            }
+
+            if (normalized.includes('plank')) {
+                if (numericValue >= testTarget) return 100;
+                const percentage = (numericValue / testTarget) * 100;
+                if (percentage >= 90) return 95;
+                if (percentage >= 80) return 90;
+                if (percentage >= 70) return 85;
+                if (percentage >= 60) return 80;
+                if (percentage >= 50) return 75;
+                return Math.max(50, Math.round(percentage));
+            }
+
+            if (normalized.includes('grip')) {
+                if (numericValue >= testTarget) return 100;
+                const percentage = (numericValue / testTarget) * 100;
+                if (percentage >= 90) return 95;
+                if (percentage >= 80) return 90;
+                if (percentage >= 70) return 85;
+                if (percentage >= 60) return 80;
+                if (percentage >= 50) return 75;
+                return Math.max(50, Math.round(percentage));
+            }
+
+            if (normalized.includes('sit-and-reach')) {
+                if (numericValue >= testTarget) return 100;
+                const percentage = (numericValue / testTarget) * 100;
+                if (percentage >= 90) return 95;
+                if (percentage >= 80) return 90;
+                if (percentage >= 70) return 85;
+                if (percentage >= 60) return 80;
+                if (percentage >= 50) return 75;
+                return Math.max(50, Math.round(percentage));
+            }
+
+            if (normalized.includes('mile') || normalized.includes('run')) {
+                if (numericValue <= testTarget) return 100;
+                const percentage = (testTarget / numericValue) * 100;
+                if (percentage >= 90) return 95;
+                if (percentage >= 80) return 90;
+                if (percentage >= 70) return 85;
+                if (percentage >= 60) return 80;
+                if (percentage >= 50) return 75;
+                return Math.max(50, Math.round(percentage));
+            }
+
+              if (normalized.includes('step test') || normalized.includes('3-minute')) {
+                if (numericValue < 68)  return 100; // Excellent
+                if (numericValue < 80)  return 90;  // Good
+                if (numericValue < 90)  return 80;  // Above Average
+                if (numericValue < 100) return 70;  // Average
+                if (numericValue < 110) return 60;  // Below Average
+                return 50;                          // Poor
+            }
+
+            return calculateDefaultScore(normalized, numericValue);
+        }
+
+        function calculateDefaultScore(normalized, numericValue) {
+            if (normalized.includes('push-up') || normalized.includes('pushup')) {
+                if (numericValue >= 40) return 100;
+                if (numericValue >= 30) return 90;
+                if (numericValue >= 20) return 80;
+                if (numericValue >= 15) return 70;
+                return 60;
+            }
+
+            if (normalized.includes('curl-up') || normalized.includes('curl up')) {
+                if (numericValue >= 75) return 100;
+                if (numericValue >= 50) return 90;
+                if (numericValue >= 30) return 80;
+                if (numericValue >= 20) return 70;
+                return 60;
+            }
+
+            if (normalized.includes('plank')) {
+                if (numericValue >= 120) return 100;
+                if (numericValue >= 90)  return 90;
+                if (numericValue >= 60)  return 80;
+                if (numericValue >= 45)  return 70;
+                return 60;
+            }
+
+            if (normalized.includes('grip')) {
+                if (numericValue >= 60) return 100;
+                if (numericValue >= 50) return 90;
+                if (numericValue >= 40) return 80;
+                if (numericValue >= 30) return 70;
+                return 60;
+            }
+
+            if (normalized.includes('sit-and-reach')) {
+                if (numericValue >= 20) return 100;
+                if (numericValue >= 15) return 90;
+                if (numericValue >= 10) return 80;
+                if (numericValue >= 5)  return 70;
+                return 60;
+            }
+              if (normalized.includes('step test') || normalized.includes('3-minute')) {
+                if (numericValue < 68)  return 100;
+                if (numericValue < 80)  return 90;
+                if (numericValue < 90)  return 80;
+                if (numericValue < 100) return 70;
+                if (numericValue < 110) return 60;
+                return 50;
+            }
+
+            return 75;
+        }
+
+        async function createActiveTestDocument() {
+            try {
+                // debug logs removed
+                    professorId: currentTest.professorId,
+                    professorEmail: currentTest.professorEmail
+                // });
+                
+                const activeTestData = {
+                    studentId: currentUser.uid,
+                    studentName: studentData.displayName,
+                    studentEmail: studentData.email,
+                    professorId: currentTest.professorId,
+                    professorEmail: currentTest.professorEmail,
+                    section: studentData.section || currentTest.section,
+                    testName: currentTest.testName,
+                    testId: currentTest.id,
+                    status: 'active',
+                    progress: 0,
+                    startTime: serverTimestamp(),
+                    metrics: {
+                        repetitions: 0,
+                        timeElapsed: '0:00',
+                        heartRate: null,
+                        formAnalysis: {
+                            formScore: 0,
+                            feedback: 'Test started...'
+                        }
+                    },
+                    createdAt: serverTimestamp()
+                };
+
+                const activeTestRef = await addDoc(collection(db, 'activeTests'), activeTestData);
+                // debug log removed
+                
+                const createdDoc = await getDoc(activeTestRef);
+                // debug log removed
+                
+                return activeTestRef.id;
+                
+            } catch (error) {
+                console.error('❌ Error creating active test document:', error);
+                return null;
+            }
+        }
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
 
             const notes=document.getElementById('notesField').value;
             const timerValue=`${document.getElementById('minutes').textContent}:${document.getElementById('seconds').textContent}.${document.getElementById('milliseconds').textContent}`;
@@ -1150,6 +1928,7 @@ if(scheduledTestId){try{const testSnap=await getDoc(doc(db,'scheduledTests',sche
             ['startBtn','pauseBtn','stopBtn','resetBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=true;});
         }
 
+<<<<<<< HEAD
         // Auth
         onAuthStateChanged(auth,async user=>{
             if(user){
@@ -1167,6 +1946,84 @@ if(scheduledTestId){try{const testSnap=await getDoc(doc(db,'scheduledTests',sche
                     document.addEventListener('click',event=>{if(!event.target.closest('#notificationBellBtn')&&!event.target.closest('#notificationBellBtnMobile')&&!event.target.closest('#notificationDropdown')&&!event.target.closest('#notificationDropdownMobile'))closeNotificationDropdown();});
                 } catch(e){showErrorOnLoad('Error: '+(e.message||'Unknown error occurred'));}
             } else window.location.href='../login/index.html';
+=======
+    // Disable timer controls
+    ['startBtn','pauseBtn','stopBtn','resetBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = true;
+    });
+}
+        // Auth state change
+        onAuthStateChanged(auth, async (user) => {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+
+    if (user) {
+        try {
+            // debug log removed
+            currentUser = user;
+            
+            updateProfileUI();
+            
+            const loadingText = document.querySelector('.loading-text');
+            if (loadingText) loadingText.textContent = 'Loading your test...';
+            
+            await loadStudentData(user);
+            
+            // Setup notification listener
+            setupNotificationListener();
+            await checkUnreadNotifications();
+            
+            await loadTestData();
+            
+            // debug log removed
+            
+ loadingScreen.style.display = 'none';
+mainContent.style.display = 'block';
+                    
+                    // Setup notification event listeners
+                    const notificationBtn = document.getElementById('notificationBellBtn');
+                    const notificationBtnMobile = document.getElementById('notificationBellBtnMobile');
+                    
+                    if (notificationBtn) notificationBtn.addEventListener('click', toggleNotificationDropdown);
+                    if (notificationBtnMobile) notificationBtnMobile.addEventListener('click', toggleNotificationDropdown);
+                    
+                    const closeNotificationBtn = document.getElementById('closeNotificationBtn');
+                    const closeNotificationBtnMobile = document.getElementById('closeNotificationBtnMobile');
+                    
+                    if (closeNotificationBtn) {
+                        closeNotificationBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            closeNotificationDropdown();
+                        });
+                    }
+                    
+                    if (closeNotificationBtnMobile) {
+                        closeNotificationBtnMobile.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            closeNotificationDropdown();
+                        });
+                    }
+                    
+                    // Close dropdowns when clicking outside
+                    document.addEventListener('click', (event) => {
+                        if (!event.target.closest('#notificationBellBtn') && 
+                            !event.target.closest('#notificationBellBtnMobile') && 
+                            !event.target.closest('#notificationDropdown') && 
+                            !event.target.closest('#notificationDropdownMobile')) {
+                            closeNotificationDropdown();
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Error loading page:', error);
+                    showErrorOnLoad('Error: ' + (error.message || 'Unknown error occurred'));
+                }
+            } else {
+                // debug log removed
+                window.location.href = '../login/index.html';
+            }
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         });
 
         window.handleLogout = function(){showLogoutConfirmPopup();};

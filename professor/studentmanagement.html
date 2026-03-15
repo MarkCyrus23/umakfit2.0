@@ -2794,61 +2794,46 @@ attemptsHTML += `</div>`;
     };
 
     function setupRealtimeUpdates() {
-        // Clean up existing listeners first
-        cleanupAllListeners();
-        
-        console.log('Setting up realtime updates...');
-        
-        let sectionsFirstLoad = true;
-        sectionsUnsubscribe = onSnapshot(collection(db, 'sections'), () => {
-            if (sectionsFirstLoad) { sectionsFirstLoad = false; return; } // skip initial fire
-            debouncedUpdate(async () => {
-                await loadSections();
-                await loadScheduledTests();
-                await loadStudents();
-            }, 1500);
+        // Clean up existing listeners
+        if (sectionsUnsubscribe) sectionsUnsubscribe();
+        if (testResultsUnsubscribe) testResultsUnsubscribe();
+        if (testPermissionsUnsubscribe) testPermissionsUnsubscribe();
+
+        // Listen for section changes
+        sectionsUnsubscribe = onSnapshot(collection(db, 'sections'), async () => {
+            // debug log removed
+            await loadSections();
+            await loadStudents();
         });
-        
-        // Change the scheduledTests listener to NOT reload sections:
-        let scheduledFirstLoad = true;
-        window.scheduledTestsUnsubscribe = onSnapshot(collection(db, 'scheduledTests'), () => {
-            if (scheduledFirstLoad) { scheduledFirstLoad = false; return; }
-            debouncedUpdate(async () => {
-                await loadScheduledTests();  // ← REMOVE loadSections() from here
-                await loadStudents();
-            }, 1500);
+let reloadDebounceTimer = null;
+testResultsUnsubscribe = onSnapshot(collection(db, 'testResults'), async () => {
+    const modalOpen = document.getElementById('studentTestsModal')?.style.display === 'flex';
+    if (modalOpen) return;
+    clearTimeout(reloadDebounceTimer);
+    reloadDebounceTimer = setTimeout(async () => {
+        await loadStudents();
+        await loadOverdueStudents();
+    }, 3000);
+});
+
+ // Listen for test permissions changes
+testPermissionsUnsubscribe = onSnapshot(collection(db, 'testPermissions'), async () => {
+    // Skip background reload if the overdue tests modal is open (user is actively using it)
+    const modalOpen = document.getElementById('studentTestsModal')?.style.display === 'flex';
+    if (!modalOpen) {
+        await loadOverdueStudents();
+    }
+});
+
+        // Also listen for test permissions from any professor (for enabling tests)
+        const additionalPermissionsListener = onSnapshot(collection(db, 'testPermissions'), async () => {
+            // This will catch all test permissions changes
+            await loadOverdueStudents();
         });
 
-        let resultsFirstLoad = true;
-        testResultsUnsubscribe = onSnapshot(collection(db, 'testResults'), () => {
-            if (resultsFirstLoad) { resultsFirstLoad = false; return; }
-            const modalOpen = document.getElementById('studentTestsModal')?.style.display === 'flex' ||
-                             document.getElementById('viewStudentModal')?.style.display === 'flex';
-            if (modalOpen || !isPageVisible) return;
-            debouncedUpdate(async () => {
-                await loadStudents();
-                await loadOverdueStudents();
-            }, 2000);
-        });
-        
-        // Listen for test permissions changes
-        testPermissionsUnsubscribe = onSnapshot(collection(db, 'testPermissions'), async () => {
-            const modalOpen = document.getElementById('studentTestsModal')?.style.display === 'flex';
-            if (!modalOpen && isPageVisible) {
-                await loadOverdueStudents();
-            }
-        });
-    }
-    
-    // Debouncing function
-    let updateTimeout;
-    function debouncedUpdate(callback, delay = 2000) {
-        clearTimeout(updateTimeout);
-        updateTimeout = setTimeout(() => {
-            if (isPageVisible) {
-                callback();
-            }
-        }, delay);
+        // Store for cleanup
+        if (!window.additionalListeners) window.additionalListeners = [];
+        window.additionalListeners.push(additionalPermissionsListener);
     }
 
     function cleanupAllListeners() {

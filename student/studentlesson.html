@@ -579,6 +579,7 @@
             ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=email;});
         }
 
+<<<<<<< HEAD
         function toggleProfileDropdown(event){
             event?.stopPropagation();
             const isMobile=window.innerWidth<1024;
@@ -603,6 +604,13 @@
             e.stopPropagation(); closeProfileDropdown(); closeNotificationDropdown();
             hamburger.classList.toggle('active'); mobileDrawer.classList.toggle('active'); drawerOverlay.classList.toggle('active');
             document.body.style.overflow=mobileDrawer.classList.contains('active')?'hidden':'';
+=======
+        unsubscribeNotifListener = onSnapshot(notificationsQuery, (snapshot) => {
+            // debug log removed
+            checkUnreadNotifications();
+        }, (error) => {
+            console.error('❌ Error in notification listener:', error);
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         });
         drawerOverlay?.addEventListener('click',()=>{
             hamburger.classList.remove('active'); mobileDrawer.classList.remove('active'); drawerOverlay.classList.remove('active');

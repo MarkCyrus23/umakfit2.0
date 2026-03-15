@@ -909,6 +909,7 @@ if (testId) {
                     if (!el) return;
                     if (unread > 0) { el.textContent = unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
                 });
+<<<<<<< HEAD
             } catch (e) { console.error('checkUnreadNotifications:', e); }
         }
 
@@ -945,6 +946,24 @@ if (testId) {
                     document.querySelectorAll('.notification-item').forEach(item => {
                         item.addEventListener('click', function() { markSingleNotificationAsRead(this.getAttribute('data-notification-id')); });
                     });
+=======
+                
+                // debug log removed
+                
+                // Update BOTH badges with same count
+                const countBadge = document.getElementById('navNotificationCount');
+                const countBadgeMobile = document.getElementById('navNotificationCountMobile');
+                
+                if (unreadCount > 0) {
+                    if (countBadge) {
+                        countBadge.textContent = unreadCount;
+                        countBadge.classList.remove('hidden');
+                    }
+                    if (countBadgeMobile) {
+                        countBadgeMobile.textContent = unreadCount;
+                        countBadgeMobile.classList.remove('hidden');
+                    }
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 } else {
                     dropdownBody.innerHTML = `<div class="p-8 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl mb-3 block"></i><p class="text-gray-600">No notifications yet</p></div>`;
                 }
@@ -957,6 +976,7 @@ if (testId) {
             localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify([...new Set([...read,...ids])]));
             updateNotificationBadgeAfterRead(ids);
         }
+<<<<<<< HEAD
         function markSingleNotificationAsRead(id) {
             if (!studentData?.email) return;
             const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
@@ -972,10 +992,167 @@ if (testId) {
                 ['navNotificationCount','navNotificationCountMobile'].forEach(id => {
                     const el = document.getElementById(id); if (!el) return;
                     if (unread > 0) { el.textContent = unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
+=======
+
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email)
+);
+        
+        const notificationsSnapshot = await getDocs(notificationsQuery);
+        
+        if (!notificationsSnapshot.empty) {
+            // ⭐ FIX: Use composite key (title + message + timestamp) to detect true duplicates
+            const seenNotifications = new Set();
+            const uniqueNotifications = [];
+            
+            notificationsSnapshot.forEach(doc => {
+                const notification = doc.data();
+                
+                // Create unique key from content
+                const contentKey = `${notification.title}|${notification.message}|${notification.createdAt?.toDate?.().getTime() || ''}`;
+                
+                // Only add if we haven't seen this exact notification before
+                if (!seenNotifications.has(contentKey)) {
+                    seenNotifications.add(contentKey);
+                    uniqueNotifications.push({ id: doc.id, ...notification });
+                }
+            });
+            
+            // debug logs removed
+            
+            // Get read notifications from localStorage
+            const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+            
+            // Sort notifications by date (newest first)
+            uniqueNotifications.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || new Date(0);
+                return dateB - dateA;
+            });
+            
+            // Track unread notification IDs
+            const unreadNotificationIds = [];
+            uniqueNotifications.forEach(notification => {
+                if (!readNotifications.includes(notification.id)) {
+                    unreadNotificationIds.push(notification.id);
+                }
+            });
+            
+            let html = '';
+            // Show only the first 5 unique notifications
+            uniqueNotifications.slice(0, 5).forEach(notification => {
+                const createdDate = notification.createdAt?.toDate?.();
+                const dateStr = createdDate ? createdDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : 'Recently';
+                
+                const isRead = readNotifications.includes(notification.id);
+                
+                html += `
+                    <div class="notification-item p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${isRead ? 'bg-gray-50' : 'bg-white'}" data-notification-id="${notification.id}">
+                        <strong class="text-gray-900 text-sm block mb-1 font-semibold">${notification.title || 'Notification'}</strong>
+                        <p class="text-gray-600 text-sm mb-1 leading-relaxed">${notification.message || ''}</p>
+                        <small class="text-gray-400 text-xs">${dateStr}</small>
+                    </div>
+                `;
+            });
+            
+            dropdownBody.innerHTML = html;
+            
+            // Mark notifications as read when dropdown is opened
+            if (unreadNotificationIds.length > 0) {
+                markNotificationsAsRead(unreadNotificationIds);
+            }
+            
+            // Add click handlers to individual notifications
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const notificationId = this.getAttribute('data-notification-id');
+                    markSingleNotificationAsRead(notificationId);
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 });
             } catch(e) { console.error(e); }
         }
 
+<<<<<<< HEAD
+=======
+        function markSingleNotificationAsRead(notificationId) {
+            if (!studentData || !studentData.email) return;
+            
+            // Get existing read notifications
+            const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+            
+            // Add this notification if not already read
+            if (!readNotifications.includes(notificationId)) {
+                readNotifications.push(notificationId);
+                localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify(readNotifications));
+                
+                // Update badge after marking as read
+                updateNotificationBadgeAfterRead([notificationId]);
+            }
+        }
+
+  async function updateNotificationBadgeAfterRead(markedAsReadIds) {
+    try {
+        if (!studentData || !studentData.section) return;
+        
+        // Get all notifications
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email)
+);
+        
+        const notificationsSnapshot = await getDocs(notificationsQuery);
+        
+        // FIX: Use Set to ensure unique notification IDs
+        const uniqueNotificationIds = new Set();
+        notificationsSnapshot.forEach(doc => {
+            uniqueNotificationIds.add(doc.id);
+        });
+        
+        // Get current read notifications from localStorage
+        const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+        
+        // Count unread notifications
+        let unreadCount = 0;
+        uniqueNotificationIds.forEach(notificationId => {
+            if (!readNotifications.includes(notificationId)) {
+                unreadCount++;
+            }
+        });
+        
+        // debug log removed
+        
+        // Update badges
+        const countBadge = document.getElementById('navNotificationCount');
+        const countBadgeMobile = document.getElementById('navNotificationCountMobile');
+        
+        if (unreadCount > 0) {
+            if (countBadge) {
+                countBadge.textContent = unreadCount;
+                countBadge.classList.remove('hidden');
+            }
+            if (countBadgeMobile) {
+                countBadgeMobile.textContent = unreadCount;
+                countBadgeMobile.classList.remove('hidden');
+            }
+        } else {
+            if (countBadge) countBadge.classList.add('hidden');
+            if (countBadgeMobile) countBadgeMobile.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error updating notification badge:', error);
+    }
+}
+
+        // Modified toggle functions
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         function toggleNotificationDropdown(event) {
             event?.stopPropagation();
             const isMobile = window.innerWidth < 1024;
@@ -1105,6 +1282,7 @@ if (testId) {
 
         async function updateChartsWithRealData() {
             try {
+<<<<<<< HEAD
                 if (!studentData?.email) return;
                 const snap = await getDocs(query(collection(db,'testResults'), where('studentEmail','==',studentData.email), where('status','==','completed'), orderBy('submittedAt','asc')));
                 const categoryData = { 'Cardiorespiratory Endurance':[], 'Muscular Strength':[], 'Muscular Endurance':[], 'Flexibility':[], 'Body Composition':[] };
@@ -1115,6 +1293,56 @@ if (testId) {
                     const ts = r.submittedAt?.toDate?.() || new Date(r.date);
                     if (categoryData[cat]) categoryData[cat].push({ score, timestamp: ts, testName: r.testName });
                 });
+=======
+                if (!studentData || !studentData.email) return;
+
+                const resultsQuery = query(
+                    collection(db, 'testResults'),
+                    where('studentEmail', '==', studentData.email),
+                    where('status', '==', 'completed'),
+                    orderBy('submittedAt', 'asc')
+                );
+                
+                const resultsSnapshot = await getDocs(resultsQuery);
+                
+                const categoryData = {
+                    'Cardiorespiratory Endurance': [],
+                    'Muscular Strength': [],
+                    'Muscular Endurance': [],
+                    'Flexibility': [],
+                    'Body Composition': []
+                };
+                
+                // debug log removed
+                
+                // Group results by category with timestamps
+                resultsSnapshot.forEach((doc) => {
+                    const result = doc.data();
+                    const category = getCategoryForTest(result.testName);
+                    
+                    const score = result.score || calculateTestScore(
+                        result.testName, 
+                        result.resultData || result.result, 
+                        result.testTarget
+                    );
+                    
+                    const timestamp = result.submittedAt?.toDate?.() || new Date(result.date);
+                    
+                    // debug log removed
+                    
+                    if (categoryData[category]) {
+                        categoryData[category].push({
+                            score: score,
+                            timestamp: timestamp,
+                            testName: result.testName
+                        });
+                    }
+                });
+                
+                // debug log removed
+                
+                // Update Fitness Overview Chart
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 if (window.fitnessOverviewChart) {
                     const all = []; Object.entries(categoryData).forEach(([c,ts]) => ts.forEach(t=>all.push({...t,category:c})));
                     all.sort((a,b)=>a.timestamp-b.timestamp);
@@ -1127,6 +1355,10 @@ if (testId) {
                     window.fitnessOverviewChart.data.labels=labels;
                     ['Cardiorespiratory Endurance','Muscular Strength','Muscular Endurance','Flexibility','Body Composition'].forEach((c,i)=>{window.fitnessOverviewChart.data.datasets[i].data=dbc[c];});
                     window.fitnessOverviewChart.update('active');
+<<<<<<< HEAD
+=======
+                    // debug log removed
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 }
                 if (window.performanceRadarChart) {
                     window.performanceRadarChart.data.datasets[0].data=[
@@ -1136,7 +1368,18 @@ if (testId) {
                         getLatestScore(categoryData['Flexibility']),
                         getLatestScore(categoryData['Body Composition'])
                     ];
+<<<<<<< HEAD
                     window.performanceRadarChart.update();
+=======
+                    
+                    // debug log removed
+                    
+                    window.performanceRadarChart.data.datasets[0].data = currentPerformance;
+                    window.performanceRadarChart.data.datasets[1].data = [85, 85, 85, 85, 85];
+                    
+                    window.performanceRadarChart.update();
+                    // debug log removed
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 }
             } catch(e) { console.error('updateChartsWithRealData:', e); }
         }
@@ -1195,6 +1438,7 @@ if (testId) {
                         }
                     }
                 });
+<<<<<<< HEAD
             } catch(e) {
                 console.error('createOverallProgressChart:', e);
                 const container=document.getElementById('overallProgressChart');
@@ -1212,6 +1456,75 @@ if (testId) {
             if(n.includes('curl-up')||n.includes('curl up')||n.includes('plank'))return'Muscular Endurance';
             if(n.includes('step')||n.includes('run')||n.includes('cardio')||n.includes('mile')||n.includes('bmi'))return'Cardiorespiratory Endurance';
             return 'Cardiorespiratory Endurance';
+=======
+                // debug log removed
+            } catch (error) {
+                console.error('❌ Error creating overall progress chart:', error);
+                const container = document.getElementById('overallProgressChart');
+                if (container) {
+                    container.innerHTML = `<div class="text-center py-12"><i class="bi bi-exclamation-circle text-red-500 text-6xl mb-3"></i><p class="text-red-500 font-semibold mb-1">Error loading chart</p><small class="text-gray-400">${error.message}</small></div>`;
+                }
+            }
+        }
+        
+        // Helper function to categorize tests
+        function getCategoryForTest(testName) {
+            const normalized = testName.toLowerCase().trim();
+            
+            // debug log removed
+            
+            for (const [category, data] of Object.entries(testCategories)) {
+                if (data.tests.some(t => 
+                    normalized.includes(t.toLowerCase()) || 
+                    t.toLowerCase().includes(normalized)
+                )) {
+                    // debug log removed
+                    return category;
+                }
+            }
+            
+            if (normalized.includes('sit-and-reach') || 
+                normalized.includes('sit and reach') ||
+                normalized.includes('flexibility') ||
+                normalized.includes('shoulder')) {
+                // debug log removed
+                return 'Flexibility';
+            } else if (normalized.includes('push-up') || 
+                       normalized.includes('pushup') || 
+                       normalized.includes('push up') ||
+                       normalized.includes('grip')) {
+                // debug log removed
+                return 'Muscular Strength';
+            } else if (normalized.includes('curl-up') ||
+                       normalized.includes('curl up') ||
+                       normalized.includes('plank')) {
+                // debug log removed
+                return 'Muscular Endurance';
+            } else if (normalized.includes('step') || 
+                       normalized.includes('run') || 
+                       normalized.includes('cardio') || 
+                       normalized.includes('mile') ||
+                       normalized.includes('bmi')) {
+                // debug log removed
+                return 'Cardiorespiratory Endurance';
+            }
+            
+            // debug log removed
+            return 'Cardiorespiratory Endurance';
+        }
+        
+        function getLatestScore(categoryData) {
+            if (categoryData.length === 0) return 0;
+            return categoryData[categoryData.length - 1].score;
+        }
+
+        function getAverageScore(categoryData) {
+            if (!categoryData || categoryData.length === 0) return 0;
+            const sum = categoryData.reduce((total, item) => total + item.score, 0);
+            const average = sum / categoryData.length;
+            // debug log removed
+            return Math.round(average);
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         }
         function getLatestScore(d){return d.length===0?0:d[d.length-1].score;}
         function getAverageScore(d){if(!d||d.length===0)return 0;return Math.round(d.reduce((t,i)=>t+i.score,0)/d.length);}
@@ -1220,10 +1533,38 @@ if (testId) {
 
         async function loadStudentData(user) {
             try {
+<<<<<<< HEAD
                 const snap = await getDocs(query(collection(db,'students'), where('email','==',user.email)));
                 if (!snap.empty) {
                     const data = snap.docs[0].data();
                     let displayName = user.displayName || (data.firstName||data.lastName?`${data.firstName||''} ${data.lastName||''}`.trim() : user.email.split('@')[0]);
+=======
+                // debug log removed
+                
+                // Try to get student data from students collection using email
+                const studentsQuery = query(
+                    collection(db, 'students'),
+                    where('email', '==', user.email)
+                );
+                
+                const studentsSnapshot = await getDocs(studentsQuery);
+                
+                if (!studentsSnapshot.empty) {
+                    // Get the first matching student document
+                    const studentDoc = studentsSnapshot.docs[0];
+                    const data = studentDoc.data();
+                    
+                    let displayName = '';
+                    if (user.displayName) {
+                        displayName = user.displayName;
+                    } else if (data.firstName || data.lastName) {
+                        displayName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+                    } else {
+                        displayName = user.email.split('@')[0];
+                    }
+
+                    // Store complete student data including section
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     studentData = {
                         uid: user.uid, displayName, email: data.email||user.email,
                         studentId: data.umakId||data.studentId||data.student_id||'000000',
@@ -1251,6 +1592,12 @@ if (testId) {
                     setupDashboardDeadlineWatcher();
                     return studentData;
                 } else {
+<<<<<<< HEAD
+=======
+                    // debug log removed
+                    
+                    // Create a minimal student data object from Firebase auth
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     studentData = {
                         uid: user.uid, displayName: user.displayName||user.email.split('@')[0],
                         email: user.email, studentId:'Not Assigned', course:'Not Assigned',
@@ -1290,8 +1637,23 @@ if (testId) {
 
         async function loadUpcomingTests() {
             try {
+<<<<<<< HEAD
                 if (!studentData?.section || studentData.section === 'Not Assigned') {
                     document.getElementById('upcomingTestsCard').innerHTML = `<div class="text-center py-8 sm:py-12"><i class="bi bi-calendar-x text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i><p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No section assigned</p><small class="text-gray-400 text-xs sm:text-sm">Contact your instructor to be assigned to a section</small></div>`;
+=======
+                if (!studentData || !studentData.section || studentData.section === 'Not Assigned') {
+                    // debug log removed
+                    const container = document.getElementById('upcomingTestsCard');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="text-center py-8 sm:py-12">
+                                <i class="bi bi-calendar-x text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i>
+                                <p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No section assigned</p>
+                                <small class="text-gray-400 text-xs sm:text-sm">Contact your instructor to be assigned to a section</small>
+                            </div>
+                        `;
+                    }
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     return;
                 }
                 const testsSnap = await getDocs(query(collection(db,'scheduledTests'), where('section','==',studentData.section), where('isVisible','==',true)));
@@ -1466,6 +1828,7 @@ if (testId) {
 
         async function updatePerformanceSummary() {
             try {
+<<<<<<< HEAD
                 if (!studentData?.section || studentData.section==='Not Assigned') {
                     document.getElementById('completionRate').textContent='0%'; document.getElementById('testsCompletedCount').textContent='0 / 0';
                     document.getElementById('currentStreak').textContent='0 weeks'; document.getElementById('classRanking').textContent='--';
@@ -1491,6 +1854,115 @@ if (testId) {
                     const snap2=await getDocs(query(collection(db,'students'),where('email','==',studentData.email)));
                     if(!snap2.empty)await updateDoc(snap2.docs[0].ref,{weekStreak});
                 } catch(e){}
+=======
+                if (!studentData || !studentData.email || !studentData.section || studentData.section === 'Not Assigned') {
+                    // debug log removed
+                    document.getElementById('completionRate').textContent = '0%';
+                    document.getElementById('testsCompletedCount').textContent = '0 / 0';
+                    document.getElementById('currentStreak').textContent = '0 weeks';
+                    document.getElementById('classRanking').textContent = '--';
+                    document.getElementById('classRankingDetails').textContent = 'No section assigned';
+                    document.getElementById('strongestCategory').textContent = 'No Data';
+                    document.getElementById('strongestCategoryScore').textContent = 'Complete your profile';
+                    return;
+                }
+
+                // Get all assigned tests for this student's section
+                const assignedTestsQuery = query(
+                    collection(db, 'scheduledTests'),
+                    where('section', '==', studentData.section),
+                    where('isVisible', '==', true),
+                    where('isActive', '==', true)
+                );
+                const assignedTestsSnapshot = await getDocs(assignedTestsQuery);
+
+                // debug log removed
+
+                const seenTestIds = new Set();
+                let totalAssignedTests = 0;
+
+                // Count unique tests and check student selection
+                assignedTestsSnapshot.forEach((doc) => {
+                    const test = doc.data();
+                    const testId = doc.id;
+                    
+                    // Skip duplicate test IDs
+                    if (seenTestIds.has(testId)) {
+                        return;
+                    }
+                    seenTestIds.add(testId);
+                    
+                    // Check if student is selected for this test
+                    let isStudentSelected = true; // Default to true for backward compatibility
+                    if (test.selectedStudents && Array.isArray(test.selectedStudents)) {
+                        isStudentSelected = test.selectedStudents.includes(studentData.email);
+                    }
+                    
+                    // Count all tests that the student is selected for
+                    if (isStudentSelected) {
+                        totalAssignedTests++;
+                        // debug log removed
+                    } else {
+                        // debug log removed
+                    }
+                });
+
+                // debug log removed
+
+                // Get completed tests (unique tests only)
+                const completedTestsQuery = query(
+                    collection(db, 'testResults'),
+                    where('studentEmail', '==', studentData.email)
+                );
+                const completedTestsSnapshot = await getDocs(completedTestsQuery);
+
+                // Count unique completed tests by testId
+                const completedTestIds = new Set();
+                const tests = [];
+
+                completedTestsSnapshot.forEach(doc => {
+                    const result = doc.data();
+                    completedTestIds.add(result.testId);
+                    tests.push(result);
+                });
+
+                const totalCompleted = completedTestIds.size;
+
+                // Calculate completion rate
+                const completionRate = totalAssignedTests > 0 ? Math.round((totalCompleted / totalAssignedTests) * 100) : 0;
+                document.getElementById('completionRate').textContent = completionRate + '%';
+
+                // Update Tests Completed Count
+                document.getElementById('testsCompletedCount').textContent = `${totalCompleted} / ${totalAssignedTests}`;
+
+                // Calculate week streak
+               const testDatesForStreak = tests.map(t => 
+                t.submittedAt?.toDate?.() || (t.submittedAt ? new Date(t.submittedAt) : null)
+            ).filter(Boolean);
+            const weekStreak = calculateWeekStreak(testDatesForStreak);
+            document.getElementById('currentStreak').textContent = weekStreak + ' week' + (weekStreak !== 1 ? 's' : '');
+
+                    // Also sync to Firestore so test.html picks it up via studentData.weekStreak
+                    if (studentData && studentData.email) {
+                        try {
+                            const { doc: fsDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                            const studentsQuery2 = query(collection(db, 'students'), where('email', '==', studentData.email));
+                            const snap2 = await getDocs(studentsQuery2);
+                            if (!snap2.empty) {
+                                await updateDoc(snap2.docs[0].ref, { weekStreak: weekStreak });
+                            }
+                        } catch(e) { console.warn('Could not sync weekStreak:', e); }
+                    }
+
+                // debug log removed
+                    totalAssignedTests,
+                    totalCompleted,
+                    completionRate: completionRate + '%',
+                    weekStreak: weekStreak + ' weeks'
+                // });
+
+                // Calculate Class Ranking and Strongest Category
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                 await calculateClassRanking();
                 await calculateStrongestCategory();
             } catch(e) { console.error('updatePerformanceSummary:', e); document.getElementById('completionRate').textContent='0%'; document.getElementById('testsCompletedCount').textContent='0 / 0'; document.getElementById('currentStreak').textContent='0 weeks'; document.getElementById('classRanking').textContent='--'; document.getElementById('strongestCategory').textContent='Error'; }
@@ -1637,6 +2109,7 @@ if (testId) {
             ['profileDropdownEmail','profileDropdownEmailMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=studentData?.email||currentUser?.email||'';});
         }
 
+<<<<<<< HEAD
         async function loadTestHistory(){
             try{
                 if(!currentUser||!studentData)return;
@@ -1649,6 +2122,71 @@ if (testId) {
                     const container=document.getElementById('recentTestResultCard');
                     if(results.length>0){allTestResults=[results[0]];renderSingleTestResult(results[0],container);}
                     else{allTestResults=[];container.innerHTML=`<div class="text-center py-8 sm:py-12"><i class="bi bi-clipboard-data text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i><p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No test results yet</p><small class="text-gray-400 text-xs sm:text-sm">Complete a test to see your results here</small></div>`;}
+=======
+        // Get week number
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return weekNum;
+        }
+
+        // Update nav notification count
+        function updateNavNotificationCount(count) {
+            const badge = document.getElementById('navNotificationCount');
+            const badgeMobile = document.getElementById('navNotificationCountMobile');
+            
+            [badge, badgeMobile].forEach(el => {
+                if (el) {
+                    if (count > 0) {
+                        el.textContent = count > 99 ? '99+' : count;
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // Update profile UI
+        function updateProfileUI() {
+            if (!currentUser) return;
+            
+            const photoURL = currentUser?.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(studentData?.displayName || 'User') + '&background=3b82f6&color=fff&size=128';
+            
+            // Update all profile pictures
+            const profileBtn = document.getElementById('profilePictureBtn');
+            const profileBtnMobile = document.getElementById('profilePictureBtnMobile');
+            if (profileBtn) profileBtn.src = photoURL;
+            if (profileBtnMobile) profileBtnMobile.src = photoURL;
+            
+            // Update dropdown pictures
+            const dropdownPic = document.getElementById('profileDropdownPicture');
+            const dropdownPicMobile = document.getElementById('profileDropdownPictureMobile');
+            if (dropdownPic) dropdownPic.src = photoURL;
+            if (dropdownPicMobile) dropdownPicMobile.src = photoURL;
+            
+            // Update names
+            const dropdownName = document.getElementById('profileDropdownName');
+            const dropdownNameMobile = document.getElementById('profileDropdownNameMobile');
+            if (dropdownName) dropdownName.textContent = studentData?.displayName || 'Student';
+            if (dropdownNameMobile) dropdownNameMobile.textContent = studentData?.displayName || 'Student';
+            
+            // Update emails
+            const dropdownEmail = document.getElementById('profileDropdownEmail');
+            const dropdownEmailMobile = document.getElementById('profileDropdownEmailMobile');
+            if (dropdownEmail) dropdownEmail.textContent = studentData?.email || currentUser?.email || '';
+            if (dropdownEmailMobile) dropdownEmailMobile.textContent = studentData?.email || currentUser?.email || '';
+        }
+
+        // Load test history
+        async function loadTestHistory() {
+            try {
+                if (!currentUser || !studentData) {
+                    // debug log removed
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                     return;
                 }
                 const container=document.getElementById('recentTestResultCard');
@@ -1657,6 +2195,7 @@ if (testId) {
             }catch(e){console.error('loadTestHistory:',e);document.getElementById('recentTestResultCard').innerHTML=`<div class="text-center py-8 sm:py-12"><i class="bi bi-exclamation-circle text-red-500 text-5xl sm:text-6xl mb-2 sm:mb-3"></i><p class="text-red-500 font-semibold mb-1 text-sm sm:text-base">Error loading test results</p><small class="text-gray-400 text-xs sm:text-sm">${e.message}</small></div>`;}
         }
 
+<<<<<<< HEAD
         async function renderSingleTestResult(result,container){
             if(!result){container.innerHTML=`<div class="text-center py-16 bg-gray-50 rounded-xl"><i class="bi bi-clipboard-data text-6xl text-gray-300 mb-3"></i><p class="text-gray-600 font-semibold">No test results yet</p><small class="text-gray-400">Complete a test to see results</small></div>`;return;}
             let submittedDate;
@@ -1680,6 +2219,417 @@ if (testId) {
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${color.bg} ${color.text} ${color.border}">
                                 <i class="bi bi-award-fill"></i> ${label}
                             </span>
+=======
+                // debug logs removed
+
+                // Query by studentEmail
+                const historyQuery = query(
+                    collection(db, 'testResults'),
+                    where('studentEmail', '==', studentData.email),
+                    where('status', '==', 'completed'),
+                    orderBy('submittedAt', 'desc'),
+                    limit(1)
+                );
+                
+                let historySnapshot;
+                try {
+                    historySnapshot = await getDocs(historyQuery);
+                    // debug log removed
+                } catch (indexError) {
+                    console.warn('Index not ready, trying without orderBy:', indexError);
+                    const simpleQuery = query(
+                        collection(db, 'testResults'),
+                        where('studentEmail', '==', studentData.email),
+                        where('status', '==', 'completed')
+                    );
+                    historySnapshot = await getDocs(simpleQuery);
+                    
+                    const results = [];
+                    historySnapshot.forEach(doc => {
+                        results.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    results.sort((a, b) => {
+                        const dateA = a.submittedAt?.toDate?.() || new Date(a.date || 0);
+                        const dateB = b.submittedAt?.toDate?.() || new Date(b.date || 0);
+                        return dateB - dateA;
+                    });
+                    
+                    const container = document.getElementById('recentTestResultCard');
+                    if (results.length > 0) {
+                        allTestResults = [results[0]];
+                        renderSingleTestResult(results[0], container);
+                    } else {
+                        allTestResults = [];
+                        container.innerHTML = `
+                            <div class="text-center py-8 sm:py-12">
+                                <i class="bi bi-clipboard-data text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i>
+                                <p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No test results yet</p>
+                                <small class="text-gray-400 text-xs sm:text-sm">Complete a test to see your results here</small>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                const container = document.getElementById('recentTestResultCard');
+                
+                if (!container) {
+                    console.error('Container "recentTestResultCard" not found!');
+                    return;
+                }
+                
+                if (!historySnapshot.empty) {
+                    const results = [];
+                    historySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        // debug log removed
+                        results.push({ id: doc.id, ...data });
+                    });
+                    
+                    // debug log removed
+                    
+                    allTestResults = results;
+                    renderSingleTestResult(results[0], container);
+                    
+                } else {
+                    // debug log removed
+                    allTestResults = [];
+                    container.innerHTML = `
+                        <div class="text-center py-8 sm:py-12">
+                            <i class="bi bi-clipboard-data text-5xl sm:text-6xl text-gray-300 mb-2 sm:mb-3"></i>
+                            <p class="text-gray-600 font-semibold mb-1 text-sm sm:text-base">No test results yet</p>
+                            <small class="text-gray-400 text-xs sm:text-sm">Complete a test to see your results here</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading test history:', error);
+                console.error('Error details:', error.message);
+                const container = document.getElementById('recentTestResultCard');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 sm:py-12">
+                            <i class="bi bi-exclamation-circle text-red-500 text-5xl sm:text-6xl mb-2 sm:mb-3"></i>
+                            <p class="text-red-500 font-semibold mb-1 text-sm sm:text-base">Error loading test results</p>
+                            <small class="text-gray-400 text-xs sm:text-sm">${error.message}</small>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Render single test result with 2 decimal places
+        function renderSingleTestResult(result, container) {
+    if (!result) {
+        container.innerHTML = `
+            <div class="text-center py-16 bg-gray-50 rounded-xl">
+                <i class="bi bi-clipboard-data text-6xl text-gray-300 mb-3"></i>
+                <p class="text-gray-600 font-semibold">No test results yet</p>
+                <small class="text-gray-400">Complete a test to see results</small>
+            </div>
+        `;
+        return;
+    }
+
+    let submittedDate;
+    if (result.submittedAt?.toDate) {
+        submittedDate = result.submittedAt.toDate();
+    } else if (result.date) {
+        submittedDate = new Date(result.date);
+    } else if (result.submittedAt?.seconds) {
+        submittedDate = new Date(result.submittedAt.seconds * 1000);
+    } else {
+        submittedDate = new Date();
+    }
+
+    const dateStr = !isNaN(submittedDate.getTime())
+        ? submittedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : 'Date unavailable';
+
+    const normCat = getNormCategoryForDashboard(result.testName, result.result ?? result.resultData);
+
+    const normColors = {
+        'Excellent':     { bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-300' },
+        'Good':          { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-300' },
+        'Average':       { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
+        'Below Average': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
+        'Poor':          { bg: 'bg-red-100',    text: 'text-red-700',    border: 'border-red-300' },
+        'Completed':     { bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-300' },
+    };
+
+    const color = normColors[normCat] || normColors['Completed'];
+    const label = normCat || 'Completed';
+
+    const html = `
+        <div class="bg-gray-50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-gray-100 transition-colors border border-gray-200">
+            <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-gray-900 text-sm sm:text-base mb-2">${result.testName}</h4>
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${color.bg} ${color.text} ${color.border}">
+                        <i class="bi bi-award-fill"></i> ${label}
+                    </span>
+                </div>
+                <small class="text-gray-500 text-xs">Completed: ${dateStr}</small>
+            </div>
+            <button data-result-id="${result.id}" class="view-result-btn w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-xs sm:text-sm hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 hover:shadow-lg transition-all whitespace-nowrap">
+                View Result
+            </button>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    const viewResultBtn = container.querySelector('.view-result-btn');
+    if (viewResultBtn) {
+        viewResultBtn.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            window.location.href = `./studentresult.html?resultId=${resultId}`;
+        });
+    }
+}
+
+        // Calculate test score
+function calculateTestScore(testName, result, testTarget = null) {
+    const normalized = testName.toLowerCase().trim();
+    
+    // Always 100 for completion-based tests
+    if (normalized.includes('skinfold') || 
+        normalized.includes('step test') || 
+        normalized.includes('3-minute')) {
+        return 100;
+    }
+    
+    // Check if professor already set a final score (matches grades page)
+    if (result && typeof result === 'object' && result !== null) {
+        if (result.score !== undefined && result.score !== null) {
+            const score = parseFloat(result.score);
+            if (!isNaN(score) && score >= 0 && score <= 100) {
+                // debug log removed
+                return score;
+            }
+        }
+    }
+    
+    // Extract numeric value from result (matches grades page)
+    let numericValue = 0;
+    
+    if (typeof result === 'object' && result !== null) {
+        numericValue = result.repetitions || result.time || result.distance || 
+                      result.value || result.result || result.count || 
+                      result.score || 0;
+    } else if (typeof result === 'string') {
+        const match = result.match(/(\d+\.?\d*)/);
+        if (match) {
+            numericValue = parseFloat(match[1]);
+        } else {
+            numericValue = parseFloat(result) || 0;
+        }
+    } else {
+        numericValue = parseFloat(result) || 0;
+    }
+    
+    // debug log removed
+    
+    // Use test target if available (matches grades page)
+    if (testTarget && testTarget > 0) {
+        if (normalized.includes('push-up') || normalized.includes('pushup') || 
+            normalized.includes('sit-up') || normalized.includes('situp') ||
+            normalized.includes('curl-up')) {
+            
+            const reps = numericValue;
+            if (reps >= testTarget) return 100;
+            
+            const percentage = (reps / testTarget) * 100;
+            let score = Math.min(100, Math.max(50, percentage));
+            
+            if (percentage >= 100) score = 100;
+            else if (percentage >= 90) score = 95;
+            else if (percentage >= 80) score = 90;
+            else if (percentage >= 70) score = 85;
+            else if (percentage >= 60) score = 80;
+            else if (percentage >= 50) score = 75;
+            
+            return Math.round(score);
+        }
+        
+        if (normalized.includes('plank')) {
+            let seconds = numericValue;
+            if (seconds >= testTarget) return 100;
+            
+            const percentage = (seconds / testTarget) * 100;
+            let score = Math.min(100, Math.max(50, percentage));
+            
+            if (percentage >= 100) score = 100;
+            else if (percentage >= 90) score = 95;
+            else if (percentage >= 80) score = 90;
+            else if (percentage >= 70) score = 85;
+            else if (percentage >= 60) score = 80;
+            else if (percentage >= 50) score = 75;
+            
+            return Math.round(score);
+        }
+        
+        if (normalized.includes('sit-and-reach')) {
+            const distance = numericValue;
+            if (distance >= testTarget) return 100;
+            
+            const percentage = (distance / testTarget) * 100;
+            let score = Math.min(100, Math.max(50, percentage));
+            
+            if (percentage >= 100) score = 100;
+            else if (percentage >= 90) score = 95;
+            else if (percentage >= 80) score = 90;
+            else if (percentage >= 70) score = 85;
+            else if (percentage >= 60) score = 80;
+            else if (percentage >= 50) score = 75;
+            
+            return Math.round(score);
+        }
+        
+        if (normalized.includes('grip')) {
+            if (numericValue >= testTarget) return 100;
+            
+            const percentage = (numericValue / testTarget) * 100;
+            let score = Math.min(100, Math.max(50, percentage));
+            
+            if (percentage >= 90) score = 95;
+            else if (percentage >= 80) score = 90;
+            else if (percentage >= 70) score = 85;
+            else if (percentage >= 60) score = 80;
+            else if (percentage >= 50) score = 75;
+            
+            return Math.round(score);
+        }
+        
+        if (normalized.includes('mile') || normalized.includes('run')) {
+            if (numericValue <= testTarget) return 100;
+            
+            const percentage = (testTarget / numericValue) * 100;
+            let score = Math.min(100, Math.max(50, percentage));
+            
+            if (percentage >= 90) score = 95;
+            else if (percentage >= 80) score = 90;
+            else if (percentage >= 70) score = 85;
+            else if (percentage >= 60) score = 80;
+            else if (percentage >= 50) score = 75;
+            
+            return Math.round(score);
+        }
+        
+        if (normalized.includes('step test') || normalized.includes('3-minute')) {
+            if (numericValue <= testTarget) return 100;
+            
+            const percentage = (testTarget / numericValue) * 100;
+            let score = Math.min(100, Math.max(50, percentage));
+            
+            if (percentage >= 90) score = 95;
+            else if (percentage >= 80) score = 90;
+            else if (percentage >= 70) score = 85;
+            else if (percentage >= 60) score = 80;
+            else if (percentage >= 50) score = 75;
+            
+            return Math.round(score);
+        }
+    }
+    
+    // Fallback scoring (matches grades page)
+    if (normalized.includes('push-up') || normalized.includes('pushup')) {
+        if (numericValue >= 40) return 100;
+        if (numericValue >= 30) return 90;
+        if (numericValue >= 20) return 80;
+        if (numericValue >= 15) return 70;
+        return 60;
+    }
+    
+    if (normalized.includes('curl-up') || normalized.includes('curl up')) {
+        if (numericValue >= 75) return 100;
+        if (numericValue >= 50) return 90;
+        if (numericValue >= 30) return 80;
+        if (numericValue >= 20) return 70;
+        return 60;
+    }
+    
+    if (normalized.includes('plank')) {
+        if (numericValue >= 120) return 100;
+        if (numericValue >= 90) return 90;
+        if (numericValue >= 60) return 80;
+        if (numericValue >= 45) return 70;
+        return 60;
+    }
+    
+    if (normalized.includes('grip')) {
+        if (numericValue >= 60) return 100;
+        if (numericValue >= 50) return 90;
+        if (numericValue >= 40) return 80;
+        if (numericValue >= 30) return 70;
+        return 60;
+    }
+    
+    if (normalized.includes('sit-and-reach')) {
+        if (numericValue >= 20) return 100;
+        if (numericValue >= 15) return 90;
+        if (numericValue >= 10) return 80;
+        if (numericValue >= 5) return 70;
+        return 60;
+    }
+    
+    return 75;
+}
+        // Get rating
+        function getRating(score) {
+            if (score >= 90) return { text: 'Excellent', class: 'text-green-600' };
+            if (score >= 80) return { text: 'Good', class: 'text-blue-600' };
+            if (score >= 70) return { text: 'Fair', class: 'text-yellow-600' };
+            return { text: 'Needs Improvement', class: 'text-red-600' };
+        }
+
+        
+
+        // Start test
+        function startTest(testId) {
+            window.location.href = `./testdetails.html?testId=${testId}`;
+        }
+        
+        // Check if profile is complete
+        function isProfileComplete(studentData) {
+            return studentData && 
+                studentData.age > 0 && 
+                studentData.gender && 
+                studentData.gender !== 'Not Specified' &&
+                studentData.height > 0 && 
+                studentData.weight > 0 &&
+                studentData.contactNumber && 
+                studentData.contactNumber !== 'Not Provided';
+        }
+
+        // Show profile completion modal
+        function showProfileRequiredModal() {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('profileRequiredModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'profileRequiredModal';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] px-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-fade-in">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="bi bi-exclamation-triangle text-3xl text-yellow-600"></i>
+                            </div>
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Profile Incomplete</h3>
+                            <p class="text-sm sm:text-base text-gray-600">
+                                You need to complete your profile before taking any tests. Please provide your age, gender, height, weight, and contact number.
+                            </p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProfileRequiredModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-all">
+                                Cancel
+                            </button>
+                            <button onclick="goToEditProfile()" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all">
+                                Edit Profile
+                            </button>
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
                         </div>
                         <small class="text-gray-500 text-xs">Completed: ${dateStr}</small>
                     </div>
@@ -1732,6 +2682,7 @@ if (testId) {
         let unsubscribeAuth=null;
         const loadingTimeout=setTimeout(()=>{loadingScreen.classList.add('hidden');mainContent.classList.remove('hidden');},1500);
 
+<<<<<<< HEAD
         unsubscribeAuth=onAuthStateChanged(auth,async user=>{
             if(user){
                 try{
@@ -1746,6 +2697,96 @@ if (testId) {
                     loadStudentData(user).then(()=>generateMiniCalendar()).catch(e=>console.error('Background load error:',e));
                 }catch(e){console.error('Auth check error:',e);clearTimeout(loadingTimeout);loadingScreen.classList.add('hidden');mainContent.classList.remove('hidden');}
             }else{clearTimeout(loadingTimeout);window.location.href='../login/index.html';}
+=======
+// Max 1.5s loading screen regardless
+const loadingTimeout = setTimeout(() => {
+    loadingScreen.classList.add('hidden');
+    mainContent.classList.remove('hidden');
+}, 1500);
+
+unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        try {
+            currentUser = user;
+            const userEmail = user.email.toLowerCase();
+            let isStudent = false;
+            let userRole = null;
+
+            // Method 1: students collection
+            try {
+                const studentsQuery = query(collection(db, 'students'), where('email', '==', userEmail));
+                const studentsSnapshot = await getDocs(studentsQuery);
+                if (!studentsSnapshot.empty) {
+                    const sData = studentsSnapshot.docs[0].data();
+                    userRole = sData.role || 'student';
+                    isStudent = (userRole === 'student');
+                }
+            } catch (e) {}
+
+            // Method 2: users by email key
+            if (!isStudent && userRole === null) {
+                try {
+                    const userEmailKey = userEmail.replace(/\./g, '_');
+                    const userDoc = await getDoc(doc(db, 'users', userEmailKey));
+                    if (userDoc.exists()) { userRole = userDoc.data().role; isStudent = userRole === 'student'; }
+                } catch (e) {}
+            }
+
+            // Method 3: users by UID
+            if (!isStudent && userRole === null) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) { userRole = userDoc.data().role; isStudent = userRole === 'student'; }
+                } catch (e) {}
+            }
+
+            if (!isStudent) {
+                clearTimeout(loadingTimeout);
+                alert(userRole ? `Access Denied: Students only.\nYour role: ${userRole}` : 'Access Denied: Your account is not configured as a student.');
+                await signOut(auth);
+                window.location.href = '../login/index.html';
+                return;
+            }
+
+            // ✅ Show page immediately
+            clearTimeout(loadingTimeout);
+            loadingScreen.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+
+            // ✅ Init charts + calendar skeleton right away
+            initializeCharts();
+            generateMiniCalendar(); // renders empty calendar immediately
+
+            // ✅ Load student data, then re-render calendar with deadlines
+            loadStudentData(user).then(() => {
+                generateMiniCalendar(); // re-render now that studentData is available
+                // debug log removed
+            }).catch(err => {
+                console.error('Background load error:', err);
+            });
+
+        } catch (error) {
+            console.error('Error during auth check:', error);
+            clearTimeout(loadingTimeout);
+            loadingScreen.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        }
+    } else {
+        clearTimeout(loadingTimeout);
+        window.location.href = '../login/index.html';
+    }
+});
+
+window.addEventListener('pagehide', () => {
+    if (unsubscribeAuth) unsubscribeAuth();
+});
+window.addEventListener('beforeunload', () => {
+    if (unsubscribeAuth) unsubscribeAuth();
+});
+        // ✅ Unsubscribe auth listener when leaving page (prevents memory leaks)
+        window.addEventListener('pagehide', () => {
+            unsubscribeAuth();
+>>>>>>> 2250b26b063aa635f5d05e66c263c7ec594e65dc
         });
         window.addEventListener('pagehide',()=>{if(unsubscribeAuth)unsubscribeAuth();});
         window.addEventListener('beforeunload',()=>{if(unsubscribeAuth)unsubscribeAuth();});
