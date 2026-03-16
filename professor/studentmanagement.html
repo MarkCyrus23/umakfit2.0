@@ -1818,16 +1818,28 @@ window.loadOverdueStudents = async function() {
         const bestPerTest     = new Map();
         const allAttemptsByTest = new Map();
 
-        for (const d of attSnap.docs) {
-            const attempt = { id:d.id, ...d.data() };
-            const key = attempt.testId || attempt.testName;
-            if (!allAttemptsByTest.has(key)) allAttemptsByTest.set(key, { testName:attempt.testName||'Unknown', attempts:[] });
-            allAttemptsByTest.get(key).attempts.push(attempt);
-const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
-const savedCat = (attempt.score||attempt.category);
-const cat = (VALID_CATS.has(savedCat) ? savedCat : null) || await getNormCategoryWithPriority(attempt.testName||'', attempt.result||attempt.repetitions||attempt, attempt.testId, student.email, profile.gender, _studentAge(profile));
-            if (!bestPerTest.has(key)||(CATEGORY_ORDER[cat]||3)>(CATEGORY_ORDER[bestPerTest.get(key)]||0)) bestPerTest.set(key,cat);
-        }
+ const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
+
+// Build attempts map first (sync, no Firestore)
+const allDocs = attSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+allDocs.forEach(attempt => {
+    const key = attempt.testId || attempt.testName;
+    if (!allAttemptsByTest.has(key)) allAttemptsByTest.set(key, { testName:attempt.testName||'Unknown', attempts:[] });
+    allAttemptsByTest.get(key).attempts.push(attempt);
+});
+
+// Resolve all categories in PARALLEL
+const catResults = await Promise.all(allDocs.map(attempt => {
+    const savedCat = attempt.score || attempt.category;
+    if (VALID_CATS.has(savedCat)) return Promise.resolve(savedCat);
+    return getNormCategoryWithPriority(attempt.testName||'', attempt.result||attempt.repetitions||attempt, attempt.testId, student.email, profile.gender, _studentAge(profile));
+}));
+
+allDocs.forEach((attempt, i) => {
+    const key = attempt.testId || attempt.testName;
+    const cat = catResults[i];
+    if (!bestPerTest.has(key)||(CATEGORY_ORDER[cat]||3)>(CATEGORY_ORDER[bestPerTest.get(key)]||0)) bestPerTest.set(key, cat);
+});
 
         const completedIds = new Set(attSnap.docs.map(d=>d.data().testId).filter(Boolean));
         const now = new Date();
@@ -1914,29 +1926,39 @@ const cat = (VALID_CATS.has(savedCat) ? savedCat : null) || await getNormCategor
                     return v(a.result??a.repetitions)>=v(best.result??best.repetitions)?a:best;
                 }, attempts[0]);
 
-                for (const [i, att] of forNum.entries()) {
-                    const num = i+1;
-                    let d = new Date();
-                    if (att.submittedAt) { if(att.submittedAt.toDate) d=att.submittedAt.toDate(); else if(att.submittedAt.seconds) d=new Date(att.submittedAt.seconds*1000); else d=new Date(att.submittedAt); }
-const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
-const savedCat = (att.score||att.category);
-const cat = (VALID_CATS.has(savedCat) ? savedCat : null) || await getNormCategoryWithPriority(att.testName||'',att.result||att.repetitions||att,att.testId,att.studentEmail,profile.gender,_studentAge(profile));
+ // Pre-resolve all attempt categories in parallel BEFORE building HTML
+const attemptCats = await Promise.all(forNum.map(att => {
+    const savedCat = att.score || att.category;
+    if (VALID_CATS.has(savedCat)) return Promise.resolve(savedCat);
+    return getNormCategoryWithPriority(att.testName||'', att.result||att.repetitions||att, att.testId, att.studentEmail, profile.gender, _studentAge(profile));
+}));
+
+for (const [i, att] of forNum.entries()) {
+    const num = i+1;
+    let d = new Date();
+    if (att.submittedAt) { if(att.submittedAt.toDate) d=att.submittedAt.toDate(); else if(att.submittedAt.seconds) d=new Date(att.submittedAt.seconds*1000); else d=new Date(att.submittedAt); }
+    const cat = attemptCats[i];
+
                     let rv = '—';
                     if (att.result!=null) rv = typeof att.result==='object' ? `${att.result.repetitions||att.result.time||att.result.distance||att.result.value||0} ${att.testUnit||''}` : `${att.result} ${att.testUnit||''}`;
                     else if (att.repetitions!=null) rv = `${att.repetitions} ${att.testUnit||''}`;
                     const isBest = att.id===bestAttempt.id;
                     const bg = isBest ? '#f0fdf4' : (i%2===0?'#ffffff':'#f8fafc');
-                    completedHTML += `<div style="background:${bg};padding:12px 14px;border-top:1px solid #f1f5f9;">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
-                            <div><div style="font-size:12px;color:#64748b;margin-bottom:2px;">Attempt ${num} • ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>
-                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                <span style="font-weight:500;">${rv}</span>
-                                ${renderCategoryBadge(cat)}
-                                ${isBest?'<span style="color:#10b981;font-size:12px;font-weight:700;">🏆 Best</span>':''}
-                                <button class="btn-action btn-view" style="padding:4px 8px;font-size:11px;" onclick="viewAttemptDetails('${att.id}')"><i class="fas fa-info-circle"></i> Details</button>
-                            </div>
-                        </div>
-                    </div>`;
+
+ completedHTML += `<div style="background:${bg};padding:10px 14px;border-top:1px solid #f1f5f9;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Attempt ${num} • ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+            <div style="font-weight:600;font-size:13px;color:#1e293b;margin-top:2px;">${rv}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            ${renderCategoryBadge(cat)}
+            ${isBest?'<span style="color:#10b981;font-size:11px;font-weight:700;">🏆</span>':''}
+            <button class="btn-action btn-view" style="padding:4px 8px;font-size:11px;white-space:nowrap;" onclick="viewAttemptDetails('${att.id}')"><i class="fas fa-info-circle"></i> Details</button>
+        </div>
+    </div>
+</div>`;
+
                 }
                 completedHTML += `</div>`;
             }
