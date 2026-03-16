@@ -1823,7 +1823,9 @@ window.loadOverdueStudents = async function() {
             const key = attempt.testId || attempt.testName;
             if (!allAttemptsByTest.has(key)) allAttemptsByTest.set(key, { testName:attempt.testName||'Unknown', attempts:[] });
             allAttemptsByTest.get(key).attempts.push(attempt);
-            const cat = (attempt.score||attempt.category) || await getNormCategoryWithPriority(attempt.testName||'', attempt.result||attempt.repetitions||attempt, attempt.testId, student.email, profile.gender, _studentAge(profile));
+const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
+const savedCat = (attempt.score||attempt.category);
+const cat = (VALID_CATS.has(savedCat) ? savedCat : null) || await getNormCategoryWithPriority(attempt.testName||'', attempt.result||attempt.repetitions||attempt, attempt.testId, student.email, profile.gender, _studentAge(profile));
             if (!bestPerTest.has(key)||(CATEGORY_ORDER[cat]||3)>(CATEGORY_ORDER[bestPerTest.get(key)]||0)) bestPerTest.set(key,cat);
         }
 
@@ -1916,7 +1918,9 @@ window.loadOverdueStudents = async function() {
                     const num = i+1;
                     let d = new Date();
                     if (att.submittedAt) { if(att.submittedAt.toDate) d=att.submittedAt.toDate(); else if(att.submittedAt.seconds) d=new Date(att.submittedAt.seconds*1000); else d=new Date(att.submittedAt); }
-                    const cat = (att.score||att.category) || await getNormCategoryWithPriority(att.testName||'',att.result||att.repetitions||att,att.testId,att.studentEmail,profile.gender,_studentAge(profile));
+const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
+const savedCat = (att.score||att.category);
+const cat = (VALID_CATS.has(savedCat) ? savedCat : null) || await getNormCategoryWithPriority(att.testName||'',att.result||att.repetitions||att,att.testId,att.studentEmail,profile.gender,_studentAge(profile));
                     let rv = '—';
                     if (att.result!=null) rv = typeof att.result==='object' ? `${att.result.repetitions||att.result.time||att.result.distance||att.result.value||0} ${att.testUnit||''}` : `${att.result} ${att.testUnit||''}`;
                     else if (att.repetitions!=null) rv = `${att.repetitions} ${att.testUnit||''}`;
