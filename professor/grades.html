@@ -106,6 +106,10 @@
             #studentDetailModal .p-6{padding:1rem !important}
             .detail-table th,.detail-table td{font-size:11px !important;padding:10px 8px !important}
         }
+        .pagination-btn{display:inline-flex;align-items:center;justify-content:center;height:36px;min-width:36px;padding:0 10px;border-radius:8px;border:1px solid #e1e6ef;background:white;color:#374151;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+        .pagination-btn:hover:not(:disabled){border-color:#2d6fc4;color:#2d6fc4;background:#f0f6ff;}
+        .pagination-btn.active{background:#2d6fc4;border-color:#2d6fc4;color:white;font-weight:700;}
+        .pagination-btn:disabled{opacity:0.4;cursor:not-allowed;}
     </style>
 </head>
 <body class="font-sans bg-surface text-text-primary min-h-screen m-0 p-0">
@@ -297,7 +301,7 @@
                         <div class="w-[52px] h-[52px] rounded-2xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent text-[22px] flex-shrink-0"><i class="fas fa-graduation-cap"></i></div>
                         <div>
                             <div class="text-xs text-white/50 uppercase tracking-[2px] mb-1">Faculty Member</div>
-                            <div class="font-display text-2xl font-bold text-white mb-1">Grades Management</div>
+                            <div class="font-display text-2xl font-bold text-white mb-1">Performance Management</div>
                             <div class="text-[13px] text-white/45">View student performance across all sections</div>
                         </div>
                     </div>
@@ -367,11 +371,15 @@
                         <div class="text-gray-500 text-sm">No grades match your current filters, or no activities have been completed yet.</div>
                     </div>
                 </div>
-                <div id="tableWrapper" class="hidden overflow-x-auto">
+                  <div id="tableWrapper" class="hidden overflow-x-auto">
                     <table class="grades-table">
                         <thead><tr><th style="width:40px">#</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Overall Performance</th><th>Action</th></tr></thead>
                         <tbody id="gradesTableBody"></tbody>
                     </table>
+                </div>
+                <div id="paginationBottom" class="hidden px-6 py-3 border-t border-border flex items-center justify-between flex-wrap gap-2 bg-surface">
+                    <div class="text-sm text-text-muted" id="paginationInfo">Showing 1–10 of 0 students</div>
+                    <div class="flex items-center gap-1.5" id="paginationControls"></div>
                 </div>
             </div>
         </div>
@@ -515,94 +523,25 @@
         if (avg >= 1.5) return 'Below Average';
         return 'Poor';
     }
-
-    function _applyThresholds(thresholds, lowerIsBetter, value) {
-        if (!thresholds) return null;
-        if (lowerIsBetter) {
-            if (value <= thresholds.Excellent) return 'Excellent';
-            if (value <= thresholds.Good) return 'Good';
-            if (value <= thresholds.Average) return 'Average';
-            if (value <= thresholds['Below Average']) return 'Below Average';
-            return 'Poor';
-        } else {
-            if (value >= thresholds.Excellent) return 'Excellent';
-            if (value >= thresholds.Good) return 'Good';
-            if (value >= thresholds.Average) return 'Average';
-            if (value >= thresholds['Below Average']) return 'Below Average';
-            return 'Poor';
-        }
+    function _applyThresholds(nd,value){
+        if(!nd)return null;
+        const lib=nd.lowerIsBetter??false;
+        for(const cat of['Excellent','Good','Average','Below Average']){const t=nd.thresholds?.[cat];if(t==null)continue;if(lib?value<=t:value>=t)return cat;}
+        return'Poor';
     }
-
- async function classifyResult(testName, rawResult, testId, studentEmail, studentGender, studentAge) {
-    if(!testName) return 'Average';
-    const testKey = resolveTestKey(testName); 
-    if(!testKey) return 'Average';
-    
-    const gender = _genderKey(studentGender);
-    const ageGroup = _ageGroup(studentAge);
-    const value = typeof rawResult === 'number' ? rawResult : extractNumericResult(rawResult);
-    
-    // SAFE CACHE KEY GENERATION - handle undefined/null values
-    const safeEmail = studentEmail || 'no-email';
-    const safeTestId = testId || 'no-testid';
-    const ck = `${safeEmail}|${testKey}|${gender}|${ageGroup}|${safeTestId}`;
-    
-    if(_classifyCache.has(ck)) return _classifyCache.get(ck);
-    
-    const set = cat => { _classifyCache.set(ck, cat); return cat; };
-    
-    console.log(`🔍 Classifying: ${testName} (${testKey}) - Value: ${value} - Student: ${safeEmail}`);
-    
-    // Check if this is a skinfold test
-    const isSkinfoldTest = testName.toLowerCase().includes('skinfold') || 
-                          testName.toLowerCase().includes('body fat') || 
-                          testName.toLowerCase().includes('caliper') ||
-                          testName.toLowerCase().includes('body composition');
-    
-    if (isSkinfoldTest) {
-        // For skinfold, we need to parse the category from the result string
-        const resultStr = String(rawResult || '').toLowerCase();
-        if (resultStr.includes('lean')) return set('Lean');
-        if (resultStr.includes('essential')) return set('Essential Fat');
-        if (resultStr.includes('athletic')) return set('Athletic');
-        if (resultStr.includes('fitness')) return set('Fitness');
-        if (resultStr.includes('overfat')) return set('Overfat');
-        if (resultStr.includes('obese')) return set('Obese');
-        
-        // If no category in string, try to parse as body fat percentage
-        if (!isNaN(value)) {
-            if (gender === 'female') {
-                if (value < 14) return set('Essential Fat');
-                if (value < 21) return set('Athletic');
-                if (value < 25) return set('Fitness');
-                if (value < 32) return set('Average');
-                if (value < 39) return set('Overfat');
-                return set('Obese');
-            } else {
-                if (value < 6) return set('Essential Fat');
-                if (value < 14) return set('Athletic');
-                if (value < 18) return set('Fitness');
-                if (value < 25) return set('Average');
-                if (value < 30) return set('Overfat');
-                return set('Obese');
-            }
-        }
-        return set('Average');
-    }
-    
-    // 1. Student-specific norms - with safe email check
-    if (safeEmail !== 'no-email') {
-        const snk = `${safeEmail}|${testKey}`;
-        if (!_studentNormCache.has(snk)) {
-            try {
-                const s = await getDoc(doc(db, 'studentNorms', safeEmail, 'tests', testKey));
-                _studentNormCache.set(snk, s.exists() ? s.data() : NORM_MISS);
-            } catch(_) { _studentNormCache.set(snk, NORM_MISS); }
-        }
-        const snd = _studentNormCache.get(snk);
-        if (snd !== NORM_MISS && snd.thresholds) {
-            const cat = _applyThresholds(snd.thresholds, snd.lowerIsBetter || false, value);
-            if (cat) return set(cat);
+    async function classifyResult(testName,rawResult,testId,studentEmail,studentGender,studentAge){
+        if(!testName)return'Average';
+        const testKey=resolveTestKey(testName);if(!testKey)return'Average';
+        const gender=_genderKey(studentGender),ageGroup=_ageGroup(studentAge);
+        const value=typeof rawResult==='number'?rawResult:extractNumericResult(rawResult);
+       const ck=`${studentEmail}|${testKey}|${gender}|${ageGroup}|${testId||'none'}|${value}`;
+        if(_classifyCache.has(ck))return _classifyCache.get(ck);
+        const set=cat=>{_classifyCache.set(ck,cat);return cat;};
+        // 1. Student override
+        if(studentEmail){
+            const snk=`${studentEmail}|${testKey}`;
+            if(!_studentNormCache.has(snk)){try{const s=await getDoc(doc(db,'studentNorms',studentEmail,'tests',testKey));_studentNormCache.set(snk,s.exists()?s.data():NORM_MISS);}catch(_){_studentNormCache.set(snk,NORM_MISS);}}
+            const snd=_studentNormCache.get(snk);if(snd!==NORM_MISS){return set(_applyThresholds(snd,value));}
         }
     }
     
@@ -655,10 +594,10 @@
         return '-';
     }
 
-    const _loadingTimeout=setTimeout(()=>{document.getElementById('loadingScreen').style.display='none';document.getElementById('mainContent').style.display='block';},1500);
-    
+    // Keep portal locked until auth is verified (prevents URL-typing bypass).
+    const _loadingTimeout=setTimeout(()=>{},2500);
     let _authUnsub=onAuthStateChanged(auth,async user=>{
-        if(!user){clearTimeout(_loadingTimeout);window.location.href='/login/index.html';return;}
+        if(!user){clearTimeout(_loadingTimeout);window.location.href='../login/index.html';return;}
         try{
             currentUser=user;
             clearTimeout(_loadingTimeout);
@@ -735,20 +674,18 @@
         for(let i=0;i<sectionNames.length;i+=30)sc30.push(sectionNames.slice(i,i+30));
         await Promise.all(sc30.map(chunk=>getDocs(query(collection(db,'students'),where('section','in',chunk))).then(snap=>snap.forEach(d=>{const sd=d.data();if(sd.email)studentsMap.set(sd.email,sd);})).catch(()=>{})));
         if(!studentsMap.size){try{const all=await getDocs(collection(db,'students'));all.forEach(d=>{const sd=d.data();if(sd.email)studentsMap.set(sd.email,sd);});}catch(e){console.error(e);}}
-        
-        // Load test results
+        // 2. Load testResults in batched IN query (max 10 per call)
+        // 2. Load testResults by studentEmail (more reliable than section field)
         const allDocs=[];
-        const sc10=[];
-        for(let i=0;i<sectionNames.length;i+=10)sc10.push(sectionNames.slice(i,i+10));
-        await Promise.all(sc10.map(chunk=>getDocs(query(collection(db,'testResults'),where('section','in',chunk),where('status','==','completed'))).then(snap=>snap.forEach(d=>allDocs.push(d))).catch(e=>console.error('testResults batch error:',e))));
-        
-        // Deduplicate
-        const seen=new Set();
-        const unique=allDocs.filter(d=>{if(seen.has(d.id))return false;seen.add(d.id);return true;});
-        
-        // Group by student+testId
-        const attemptsByStudentTest = new Map();
-        
+        const studentEmails=Array.from(studentsMap.keys());
+        const em10=[];for(let i=0;i<studentEmails.length;i+=10)em10.push(studentEmails.slice(i,i+10));
+        await Promise.all(em10.map(chunk=>getDocs(query(collection(db,'testResults'),where('studentEmail','in',chunk),where('status','==','completed'))).then(snap=>snap.forEach(d=>allDocs.push(d))).catch(e=>console.error('testResults batch error:',e))));
+        // 3. Deduplicate
+        const seen=new Set();const unique=allDocs.filter(d=>{if(seen.has(d.id))return false;seen.add(d.id);return true;});
+        // 4. Classify best per student+test
+       // 4. Classify ALL attempts per student+test (keep all, mark best later)
+        const allAttempts=[];
+        const bestPerTest=new Map(); // mk → best entry (for overall calculation)
         for(const ds of unique){
             const data=ds.data();
             const se=data.studentEmail||'';
@@ -784,53 +721,21 @@ if (stored && VALID_CATS.includes(stored)) {
             
             let sd2=new Date();
             if(data.submittedAt){if(typeof data.submittedAt.toDate==='function')sd2=data.submittedAt.toDate();else if(data.submittedAt.seconds)sd2=new Date(data.submittedAt.seconds*1000);else if(typeof data.submittedAt==='string')sd2=new Date(data.submittedAt);}
-            
-            const entry={
-                id:ds.id,
-                studentName:data.studentName||'Unknown',
-                section:data.section||'',
-                testId: testId,
-                testName,
-                result:extractDisplayResult(data),
-                category:cat,
-                date:sd2.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),
-                dateObject:sd2,
-                studentEmail:se,
-                isSkinfold: SKINFOLD_CATS.has(cat) || testName.toLowerCase().includes('skinfold'),
-                attemptNum
-            };
-            
-            if(!attemptsByStudentTest.has(key)) attemptsByStudentTest.set(key, []);
-            attemptsByStudentTest.get(key).push(entry);
-        }
-        
-        // Determine best attempt per student+test (for non-skinfold only)
-        const bestPerTest=new Map();
-        const allAttempts = [];
-        
-        for(const [key, attempts] of attemptsByStudentTest.entries()){
-            attempts.sort((a, b) => a.attemptNum - b.attemptNum);
-            allAttempts.push(...attempts);
-            
-            // Skip skinfold for best calculation
-            if(attempts[0].isSkinfold) continue;
-            
-            // Find best attempt based on category order
-            let best = attempts[0];
-            let bestScore = CATEGORY_ORDER[best.category] || 0;
-            
-            for(let i=1; i<attempts.length; i++){
-                const score = CATEGORY_ORDER[attempts[i].category] || 0;
-                if(score > bestScore){
-                    best = attempts[i];
-                    bestScore = score;
-                }
+            const entry={id:ds.id,studentName:data.studentName||'Unknown',section:data.section||'',testName,result:extractDisplayResult(data),category:cat,date:sd2.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),dateObject:sd2,studentEmail:se,isSkinfold};
+            // Only add if not already present (guard against batched query overlap)
+            if(!allAttempts.some(a=>a.id===ds.id)){
+                allAttempts.push(entry);
             }
-            bestPerTest.set(key, best);
+            // Track best per test (for overall — skip skinfold)
+            if(!isSkinfold){
+                const cs=CATEGORY_ORDER[cat]||3;
+                const ex=bestPerTest.get(mk);
+                if(!ex||cs>(CATEGORY_ORDER[ex.category]||0))bestPerTest.set(mk,entry);
+            }
         }
-        
-        window._rawGrades = allAttempts.sort((a,b)=>b.dateObject-a.dateObject);
-        window._bestGrades = Array.from(bestPerTest.values());
+        // Store ALL attempts; _bestGrades used for overall category calculation only
+        window._rawGrades=allAttempts.sort((a,b)=>b.dateObject-a.dateObject);
+        window._bestGrades=Array.from(bestPerTest.values());
     }
 
     function buildFinalGrades(){
@@ -840,29 +745,19 @@ if (stored && VALID_CATS.includes(stored)) {
         
         // Group by student
         allRaw.forEach(g=>{
-            const key=g.studentEmail || `${g.studentName}_${g.section}`.toLowerCase();
-            if(!map[key])map[key]={key,name:g.studentName,section:g.section,email:g.studentEmail,categories:[],instances:[],uniqueTests:new Set()};
-            
-            map[key].instances.push({
-                name:g.testName,
-                date:g.date,
-                dateObject:g.dateObject,
-                result:g.result,
-                category:g.category,
-                isSkinfold:g.isSkinfold,
-                attemptNum:g.attemptNum,
-                testId:g.testId
-            });
-            
-            // Track unique tests by testId
-            if(g.testId) {
-                map[key].uniqueTests.add(g.testId);
-            } else {
-                map[key].uniqueTests.add(`${g.testName}_${g.section}`);
-            }
-        });
-        
-        // Build overall category from BEST non-skinfold attempts
+        const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
+        if(!map[key])map[key]={key,name:g.studentName,section:g.section,email:g.studentEmail,categories:[],instances:[]};
+        // Deduplicate by resultId to prevent duplicate entries
+        const alreadyExists=map[key].instances.some(i=>
+            i.name===g.testName &&
+            i.dateObject?.getTime()===g.dateObject?.getTime() &&
+            i.result===g.result
+        );
+        if(!alreadyExists){
+            map[key].instances.push({name:g.testName,date:g.date,dateObject:g.dateObject,result:g.result,category:g.category,isSkinfold:g.isSkinfold,id:g.id});
+        }
+    });
+        // Build overall category from BEST non-skinfold attempts only
         bestOnly.forEach(g=>{
             const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
             if(!map[key])map[key]={key,name:g.studentName,section:g.section,email:g.studentEmail,categories:[],instances:[],uniqueTests:new Set()};
@@ -882,21 +777,35 @@ if (stored && VALID_CATS.includes(stored)) {
                 totalActivities: totalUniqueTests
             };
         }).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-        
-        filteredFinalGrades=[...currentFinalGrades];
-        renderTable(filteredFinalGrades);
-        updateStats(filteredFinalGrades);
+        filteredFinalGrades=[...currentFinalGrades];window._filteredGradesRef=filteredFinalGrades;_currentPage=1;renderTable(filteredFinalGrades,1);updateStats(filteredFinalGrades);
     }
 
-    function renderTable(grades){
+    let _currentPage=1;
+    const _pageSize=10;
+
+    function renderTable(grades,page){
         const loading=document.getElementById('tableLoading'),empty=document.getElementById('tableEmpty'),wrapper=document.getElementById('tableWrapper'),body=document.getElementById('gradesTableBody'),count=document.getElementById('tableCount');
+        const pTop=document.getElementById('paginationBottom');
         loading.style.display='none';
-        if(!grades.length){empty.classList.remove('hidden');wrapper.classList.add('hidden');count.textContent='0 students';return;}
+        if(!grades.length){
+            empty.classList.remove('hidden');wrapper.classList.add('hidden');
+            if(pTop)pTop.classList.add('hidden');
+            count.textContent='0 students';return;
+        }
+        _currentPage=page||_currentPage;
+        const total=grades.length,tp=Math.max(1,Math.ceil(total/_pageSize));
+        if(_currentPage>tp)_currentPage=tp;
+        const si=(_currentPage-1)*_pageSize,ei=Math.min(si+_pageSize,total);
         empty.classList.add('hidden');wrapper.classList.remove('hidden');
-        count.textContent=`${grades.length} student${grades.length!==1?'s':''}`;
-        body.innerHTML=grades.map((g,i)=>`
+        if(pTop)pTop.classList.remove('hidden');
+        count.textContent=`${total} student${total!==1?'s':''}`;
+        // Info text
+        const info=document.getElementById('paginationInfo');
+        if(info)info.textContent=`Showing ${si+1}–${ei} of ${total} student${total!==1?'s':''}`;
+        // Rows
+        body.innerHTML=grades.slice(si,ei).map((g,i)=>`
             <tr data-key="${esc(g.key)}" onclick="showDetail(this.dataset.key)">
-                <td data-label="#" style="color:#64748b;font-family:monospace;">${i+1}</td>
+                <td data-label="#" style="color:#64748b;font-family:monospace;">${si+i+1}</td>
                 <td data-label="Student">
                     <div style="display:flex;align-items:center;gap:8px;max-width:100%;">
                         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0;">${esc((g.name||'?').charAt(0).toUpperCase())}</div>
@@ -908,7 +817,26 @@ if (stored && VALID_CATS.includes(stored)) {
                 <td data-label="Overall Performance">${renderCategoryBadge(g.overallCategory)}</td>
                 <td data-label="Action"><button onclick="event.stopPropagation();showDetail(this.closest('tr').dataset.key)" style="padding:6px 12px;border:none;border-radius:20px;font-weight:600;font-size:11px;cursor:pointer;background:linear-gradient(135deg,#4a5a72,#2d3d52);color:white;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;"><i class="fas fa-eye" style="font-size:11px;"></i> View</button></td>
             </tr>`).join('');
+        // Pagination controls
+        renderPaginationControls(grades,_currentPage,tp);
     }
+
+    function renderPaginationControls(grades,cp,tp){
+        const ctrl=document.getElementById('paginationControls');if(!ctrl)return;
+        const pages=[];
+        if(tp<=7){for(let i=1;i<=tp;i++)pages.push(i);}
+        else{pages.push(1);if(cp>3)pages.push('…');for(let i=Math.max(2,cp-1);i<=Math.min(tp-1,cp+1);i++)pages.push(i);if(cp<tp-2)pages.push('…');pages.push(tp);}
+        ctrl.innerHTML=`
+            <button class="pagination-btn" ${cp===1?'disabled':''} onclick="_goToPage(${cp-1},window._filteredGradesRef)">‹</button>
+            ${pages.map(p=>p==='…'?`<span style="padding:0 4px;color:#94a3b8;font-size:16px;line-height:36px;">…</span>`:`<button class="pagination-btn ${p===cp?'active':''}" onclick="_goToPage(${p},window._filteredGradesRef)">${p}</button>`).join('')}
+            <button class="pagination-btn" ${cp===tp?'disabled':''} onclick="_goToPage(${cp+1},window._filteredGradesRef)">›</button>`;
+    }
+
+    window._goToPage=function(page,grades){
+        if(!grades)return;
+        _currentPage=page;
+        renderTable(grades,page);
+    };
 
     function updateStats(grades){
         const total=grades.length,exc=grades.filter(g=>g.overallCategory==='Excellent').length,gd=grades.filter(g=>g.overallCategory==='Good').length;
@@ -917,145 +845,66 @@ if (stored && VALID_CATS.includes(stored)) {
         document.getElementById('statTotal').textContent=total;document.getElementById('statExcellent').textContent=exc;document.getElementById('statGood').textContent=gd;document.getElementById('statMostCommon').textContent=mc;
     }
 
-    window.showDetail = function(key) {
-        const g = currentFinalGrades.find(x => x.key === key);
-        if (!g) return;
-        
-        // Update modal header
-        document.getElementById('detailAvatar').textContent = (g.name || '?').charAt(0).toUpperCase();
-        document.getElementById('detailStudentName').textContent = g.name || 'Student';
-        document.getElementById('detailStudentSection').textContent = `Section: ${g.section} • ${g.email || ''}`;
-        document.getElementById('detailTotalAct').textContent = g.totalActivities;
-        document.getElementById('detailAvgCategory').innerHTML = renderCategoryBadge(g.overallCategory);
-        
-        // Update status card
-        const cc = {
-            Excellent: 'linear-gradient(135deg,#0e8a5f,#0a6646)',
-            Good: 'linear-gradient(135deg,#2d6fc4,#1e4d8c)',
-            Average: 'linear-gradient(135deg,#b07e16,#8a6010)',
-            'Below Average': 'linear-gradient(135deg,#ea580c,#c2410c)',
-            Poor: 'linear-gradient(135deg,#c0392b,#922b21)',
-            'No Grades': 'linear-gradient(135deg,#64748b,#475569)'
-        };
-        document.getElementById('detailStatusCard').style.background = cc[g.overallCategory] || cc.Average;
-        document.getElementById('detailStatusText').textContent = g.overallCategory;
-        
-        // Group instances by testId
-        const instancesByTestId = {};
-        g.instances.forEach(act => {
-            const testId = act.testId || act.name;
-            if (!instancesByTestId[testId]) instancesByTestId[testId] = [];
-            instancesByTestId[testId].push(act);
-        });
-        
-        // Sort each test's attempts by attempt number
-        Object.values(instancesByTestId).forEach(attempts => {
-            attempts.sort((a, b) => (a.attemptNum || 1) - (b.attemptNum || 1));
-        });
-        
-        // Flatten back to array
-        const sortedInstances = [];
-        Object.entries(instancesByTestId).forEach(([testId, attempts]) => {
-            sortedInstances.push(...attempts);
-            sortedInstances.push({ isSpacer: true, testId });
-        });
-        if (sortedInstances.length > 0 && sortedInstances[sortedInstances.length - 1].isSpacer) {
-            sortedInstances.pop();
+   window.showDetail=function(key){
+    const g=currentFinalGrades.find(x=>x.key===key);if(!g)return;
+    const SKINFOLD_CATS=new Set(['Lean','Essential Fat','Athletic','Fitness','Overfat','Obese']);
+    document.getElementById('detailAvatar').textContent=(g.name||'?').charAt(0).toUpperCase();
+    document.getElementById('detailStudentName').textContent=g.name||'Student';
+    document.getElementById('detailStudentSection').textContent=`Section: ${g.section} • ${g.email||''}`;
+    document.getElementById('detailTotalAct').textContent=g.totalActivities;
+    document.getElementById('detailAvgCategory').innerHTML=renderCategoryBadge(g.overallCategory);
+    const cc={Excellent:'linear-gradient(135deg,#0e8a5f,#0a6646)',Good:'linear-gradient(135deg,#2d6fc4,#1e4d8c)',Average:'linear-gradient(135deg,#b07e16,#8a6010)','Below Average':'linear-gradient(135deg,#ea580c,#c2410c)',Poor:'linear-gradient(135deg,#c0392b,#922b21)','No Grades':'linear-gradient(135deg,#64748b,#475569)'};
+    document.getElementById('detailStatusCard').style.background=cc[g.overallCategory]||cc.Average;
+    document.getElementById('detailStatusText').textContent=g.overallCategory;
+
+    // Sort all instances newest first
+    const sorted=[...g.instances].sort((a,b)=>b.dateObject-a.dateObject);
+
+    // Compute attempt numbers per test (chronological = oldest is attempt 1)
+    const chronological=[...g.instances].sort((a,b)=>a.dateObject-b.dateObject);
+    const attemptCountChrono={};
+    const attemptNumMap=new Map();
+    chronological.forEach(act=>{
+        const mk=act.name;
+        if(!attemptCountChrono[mk])attemptCountChrono[mk]=0;
+        attemptCountChrono[mk]++;
+        // Use unique key: name + dateObject ms + result
+        attemptNumMap.set(`${mk}|${act.dateObject?.getTime()}|${act.result}`, attemptCountChrono[mk]);
+    });
+
+    // Find best per test (highest category rank, tiebreak by most recent)
+    const bestMap={};
+    sorted.forEach(act=>{
+        const isSkinfold=act.isSkinfold||((act.name||'').toLowerCase().includes('skinfold'))||SKINFOLD_CATS.has(act.category);
+        if(isSkinfold)return;
+        const mk=act.name;
+        const cs=CATEGORY_ORDER[act.category]||0;
+        const existing=bestMap[mk];
+        if(!existing){bestMap[mk]=act;}
+        else{
+            const ps=CATEGORY_ORDER[existing.category]||0;
+            // Higher rank wins; if tied, keep most recent (sorted newest first so first seen wins tie)
+            if(cs>ps)bestMap[mk]=act;
         }
-        
-        // Build best-per-test map
-        const bestMap = {};
-        g.instances.forEach(act => {
-            const isSkinfold = act.isSkinfold || SKINFOLD_CATS.has(act.category);
-            if (isSkinfold) return;
-            
-            const testId = act.testId || act.name;
-            if (!bestMap[testId]) {
-                bestMap[testId] = { ...act };
-            } else {
-                const ps = CATEGORY_ORDER[bestMap[testId].category] || 0;
-                const cs = CATEGORY_ORDER[act.category] || 0;
-                if (cs > ps) bestMap[testId] = { ...act };
-            }
-        });
-        
-        // Render the table
-        let currentTestName = '';
-        let tableHtml = '';
-        
-        sortedInstances.forEach(act => {
-            if (act.isSpacer) {
-                tableHtml += `
-                    <tr style="background: #f8fafc;">
-                        <td colspan="4" style="padding: 8px 14px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="height: 1px; flex: 1; background: linear-gradient(90deg, transparent, #cbd5e1, transparent);"></div>
-                                <span style="font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Next Test</span>
-                                <div style="height: 1px; flex: 1; background: linear-gradient(90deg, transparent, #cbd5e1, transparent);"></div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            const isSkinfold = act.isSkinfold || SKINFOLD_CATS.has(act.category);
-            const testId = act.testId || act.name;
-            const isBest = !isSkinfold && bestMap[testId] && 
-                          bestMap[testId].dateObject && act.dateObject && 
-                          bestMap[testId].dateObject.getTime() === act.dateObject.getTime() && 
-                          bestMap[testId].result === act.result;
-            
-            currentTestName = act.name;
-            
-            tableHtml += `
-                <tr style="${isBest ? 'background:#f0fdf4;' : ''}">
-                    <td style="color:#64748b; vertical-align: top; padding: 16px 14px;">
-                        ${esc(act.date || '—')}
-                    </td>
-                    <td style="font-weight:600; color:#0a1628; vertical-align: top; padding: 16px 14px;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 14px;">${esc(act.name)}</span>
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f1f5f9; border-radius: 12px; font-size: 11px; color: #475569;">
-                                    <i class="fas fa-redo-alt" style="font-size: 9px;"></i>
-                                    Take ${act.attemptNum || 1}
-                                </span>
-                                ${isBest ? `
-                                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #d1fae5; border-radius: 12px; font-size: 11px; color: #065f46; font-weight: 600;">
-                                        <i class="fas fa-star" style="font-size: 9px;"></i>
-                                        Best Attempt
-                                    </span>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </td>
-                    <td style="font-family: monospace; vertical-align: top; padding: 16px 14px;">
-                        <span style="display: inline-block; padding: 4px 8px; background: #f8fafc; border-radius: 6px; font-size: 13px;">
-                            ${esc(String(act.result ?? '—'))}
-                        </span>
-                    </td>
-                    <td style="vertical-align: top; padding: 16px 14px;">
-                        ${renderCategoryBadge(act.category)}
-                    </td>
-                </tr>
-            `;
-        });
-        
-        if (!tableHtml) {
-            tableHtml = `
-                <tr>
-                    <td colspan="4" style="text-align: center; padding: 40px 20px; color: #94a3b8;">
-                        <i class="fas fa-clipboard-list" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                        <div style="font-size: 14px;">No activity history available</div>
-                    </td>
-                </tr>
-            `;
-        }
-        
-        document.getElementById('detailTableBody').innerHTML = tableHtml;
-        document.getElementById('studentDetailModal').classList.add('open');
-    };
+    });
+
+    document.getElementById('detailTableBody').innerHTML=sorted.map(act=>{
+        const isSkinfold=act.isSkinfold||((act.name||'').toLowerCase().includes('skinfold'))||SKINFOLD_CATS.has(act.category);
+        const attemptNum=attemptNumMap.get(`${act.name}|${act.dateObject?.getTime()}|${act.result}`)||1;
+        // Best: same category rank and same attempt number
+        const best=bestMap[act.name];
+        const isBest=!isSkinfold&&best&&
+            (CATEGORY_ORDER[act.category]||0)===(CATEGORY_ORDER[best.category]||0)&&
+            attemptNum===attemptNumMap.get(`${best.name}|${best.dateObject?.getTime()}|${best.result}`);
+        return`<tr style="${isBest?'background:#f0fdf4;':''}">
+            <td style="color:#64748b;">${esc(act.date||'—')}</td>
+            <td style="font-weight:600;color:#0a1628;">${esc(act.name)}<br><small style="color:#94a3b8;font-weight:400;">Attempt ${attemptNum}</small></td>
+            <td style="font-family:monospace;">${esc(String(act.result??'—'))}</td>
+            <td>${renderCategoryBadge(act.category)}${isBest?'<br><small style="color:#059669;font-weight:700;font-size:10px;">★ Best</small>':''}</td>
+        </tr>`;
+    }).join('');
+    document.getElementById('studentDetailModal').classList.add('open');
+};
 
     window.applyFilters=function(){
         const sec=document.getElementById('filterSection').value,cf=document.getElementById('filterCategory').value,sort=document.getElementById('sortBy').value;
@@ -1067,10 +916,7 @@ if (stored && VALID_CATS.includes(stored)) {
         else if(sort==='worst')filtered.sort((a,b)=>a.overallScore-b.overallScore);
         else if(sort==='name-desc')filtered.sort((a,b)=>(b.name||'').localeCompare(a.name||''));
         else filtered.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-        
-        filteredFinalGrades=filtered;
-        renderTable(filtered);
-        updateStats(filtered);
+        filteredFinalGrades=filtered;window._filteredGradesRef=filtered;_currentPage=1;renderTable(filtered,1);updateStats(filtered);
     };
 
     window.recalculateGrades=async function(){
@@ -1102,7 +948,7 @@ if (stored && VALID_CATS.includes(stored)) {
         document.getElementById('profileDropdown')?.classList.remove('show');
         document.getElementById('logoutCancelBtn').onclick=()=>overlay.remove();
         overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-        document.getElementById('logoutConfirmBtn').onclick=async()=>{const btn=document.getElementById('logoutConfirmBtn');btn.textContent='Logging out...';btn.disabled=true;btn.style.opacity='0.7';try{_cleanup();await signOut(auth);window.location.href='/login/index.html';}catch(err){console.error(err);overlay.remove();alert('Error logging out.');}};
+        document.getElementById('logoutConfirmBtn').onclick=async()=>{const btn=document.getElementById('logoutConfirmBtn');btn.textContent='Logging out...';btn.disabled=true;btn.style.opacity='0.7';try{_cleanup();await signOut(auth);window.location.href='../login/index.html';}catch(err){console.error(err);overlay.remove();alert('Error logging out.');}};
     }
     
     window.handleLogout=async function(e){if(e){e.preventDefault();e.stopPropagation();}showLogoutConfirmPopup();};
