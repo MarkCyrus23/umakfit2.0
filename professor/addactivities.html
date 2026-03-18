@@ -1496,13 +1496,14 @@ async function loadTestResults(userEmail) {
             if (!window._allAttemptsMap) window._allAttemptsMap = new Map();
             if (!window._allAttemptsMap.has(allKey)) window._allAttemptsMap.set(allKey, []);
             window._allAttemptsMap.get(allKey).push({
-                id: ds.id,
-                testName: r.testName||'Unknown',
-                category,
-                result: r.result||r.resultData||r.repetitions||'N/A',
-                date: submittedDate,
-                attempt: r.attemptNumber||1
-            });
+            id: ds.id,
+            testId: r.testId||ds.id,
+            testName: r.testName||'Unknown',
+            category,
+            result: r.result||r.resultData||r.repetitions||'N/A',
+            date: submittedDate,
+            attempt: r.attemptNumber||1
+        });
         }));
 
         testGroups.forEach(result => {
@@ -1607,18 +1608,50 @@ window.showStudentTestResults = function(se) {
 // Build full attempts list from raw studentResultsMap data
 const allAttempts = window._allAttemptsMap?.get(`all_${se}`) || [...sd.tests];
 
-document.getElementById('studentTestsTableBody').innerHTML = [...allAttempts]
-  .sort((a, b) => b.date - a.date)
-  .map(t => {
-    const isBest = sd.tests.some(bt => bt.id === t.id);
-    return `<tr style="${isBest ? 'background:#f0fdf4;' : ''}">
-        <td data-label="Date">${t.date.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}<br><small style="color:#8a98ae;">${t.date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small></td>
-        <td data-label="Test Name"><strong>${esc(t.testName)}</strong></td>
-        <td data-label="Performance">${renderCategoryBadge(t.category)}${isBest ? '<br><small style="color:#059669;font-weight:700;font-size:10px;">★ Best</small>' : ''}</td>
-        <td data-label="Result">${esc(String(t.result||'N/A'))}</td>
-        <td data-label="Attempt">Attempt ${t.attempt||1}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="5" style="text-align:center;padding:20px;color:#8a98ae;">No results found</td></tr>`;
+// Group by testId (unique per scheduled test)
+const groupMap = new Map();
+allAttempts.forEach(t => {
+    const key = t.testId || t.testName;
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key).push(t);
+});
+
+// Sort attempts within each group by attempt number ascending
+groupMap.forEach(attempts => {
+    attempts.sort((a, b) => (a.attempt||1) - (b.attempt||1));
+});
+
+
+const sortedGroups = [...groupMap.values()]
+    .sort((a, b) => (b[0]?.date || 0) - (a[0]?.date || 0));
+
+const rows = [];
+sortedGroups.forEach((attempts, groupIndex) => {
+    // NEXT TEST divider between groups
+    if (groupIndex > 0) {
+        rows.push(`<tr><td colspan="5" style="padding:4px 0;border:none;background:transparent;">
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 16px;">
+                <div style="flex:1;height:1px;background:#e1e6ef;"></div>
+                <span style="font-size:11px;font-weight:700;color:#8a98ae;letter-spacing:1.5px;white-space:nowrap;text-transform:uppercase;">Next Test</span>
+                <div style="flex:1;height:1px;background:#e1e6ef;"></div>
+            </div>
+        </td></tr>`);
+    }
+
+    attempts.forEach(t => {
+        const isBest = sd.tests.some(bt => bt.id === t.id);
+        rows.push(`<tr style="${isBest ? 'background:#f0fdf4;' : ''}">
+            <td data-label="Date">${t.date.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}<br><small style="color:#8a98ae;">${t.date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small></td>
+            <td data-label="Test Name"><strong>${esc(t.testName)}</strong></td>
+            <td data-label="Performance">${renderCategoryBadge(t.category)}${isBest ? '<br><small style="color:#059669;font-weight:700;font-size:10px;">★ Best</small>' : ''}</td>
+            <td data-label="Result">${esc(String(t.result||'N/A'))}</td>
+            <td data-label="Attempt">Attempt ${t.attempt||1}</td>
+        </tr>`);
+    });
+});
+
+document.getElementById('studentTestsTableBody').innerHTML = rows.join('') ||
+    `<tr><td colspan="5" style="text-align:center;padding:20px;color:#8a98ae;">No results found</td></tr>`;
     document.getElementById('studentTestResultsModal').style.display = 'flex';
     document.getElementById('modalBodyContent').scrollTop = 0;
 };

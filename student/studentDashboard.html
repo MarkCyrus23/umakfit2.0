@@ -1712,7 +1712,14 @@ async function processAndUpdateStats(testResults) {
                     if (!deadlineMap.has(day)) deadlineMap.set(day, []);
                     deadlineMap.get(day).push({
                         name: test.testName || 'Test',
-                        time: test.deadlineTime || deadlineDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                        time: (() => {
+                            if (test.deadlineTime) {
+                                const [h, m] = test.deadlineTime.split(':');
+                                const d = new Date(); d.setHours(+h, +m);
+                                return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            }
+                            return deadlineDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        })()
                     });
                 });
                 return deadlineMap;
