@@ -950,7 +950,7 @@
     const _loadingTimeout = setTimeout(() => {
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainContent').classList.remove('hidden');
-    }, 1500);
+    }, 800);
 
     onAuthStateChanged(auth, async user => {
         if (!user) {
@@ -964,12 +964,17 @@
             updateProfileUI(user.photoURL, currentProfessor.fullName, user.email);
 
             // Load in parallel where possible
-            await loadSections();
-            await Promise.all([loadScheduledTests(), loadStudents(), window.loadOverdueStudents()]);
-
+           // Show page immediately after auth, load data in background
             clearTimeout(_loadingTimeout);
             document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('mainContent').classList.remove('hidden');
+
+            // Load sections first (students depend on it), then rest in parallel
+            loadSections().then(() => {
+                Promise.all([loadScheduledTests(), loadStudents(), window.loadOverdueStudents()]);
+            });
+
+            
 
             setupRealtimeUpdates();
         } catch (err) {

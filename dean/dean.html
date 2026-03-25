@@ -126,21 +126,29 @@
         /* Table responsive mobile cards */
 /* Table responsive mobile cards */
         @media (max-width: 768px) {
-            .custom-table thead { display:none; }
-            .custom-table, .custom-table tbody, .custom-table tr, .custom-table td { display:block; width:100%; }
-            .custom-table tr { border:1px solid #e1e6ef; border-radius:10px; margin-bottom:10px; padding:12px 14px; background:white; }
-            .custom-table td { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border:none; font-size:13px; border-bottom:1px solid #f4f6fa; white-space:normal; word-break:break-word; }
-            .custom-table td:last-child { border-bottom:none; }
-            .custom-table td::before { content:attr(data-label); font-size:11px; font-weight:700; color:#8a98ae; text-transform:uppercase; letter-spacing:0.5px; flex-shrink:0; margin-right:10px; min-width:90px; }
-            .overflow-x-auto { overflow-x: unset !important; }
-            .tbl-actions { flex-wrap:wrap; }
+    .custom-table thead { display:none; }
+    .custom-table, .custom-table tbody, .custom-table tr, .custom-table td { display:block; width:100%; }
+    .custom-table tr { border:1px solid #e1e6ef; border-radius:10px; margin-bottom:10px; padding:12px 14px; background:white; }
+    .custom-table td { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border:none; font-size:13px; border-bottom:1px solid #f4f6fa; white-space:normal; word-break:break-word; }
+    .custom-table td:last-child { border-bottom:none; }
+    .custom-table td::before { content:attr(data-label); font-size:11px; font-weight:700; color:#8a98ae; text-transform:uppercase; letter-spacing:0.5px; flex-shrink:0; margin-right:10px; min-width:90px; }
+    .tbl-actions { flex-wrap:wrap; }
         }
         /* Rank numbers */
         .rank-1 { background:linear-gradient(135deg,#f5d020,#f0a500); color:white; box-shadow:0 3px 8px rgba(240,165,0,0.35); }
         .rank-2 { background:linear-gradient(135deg,#bdc3c7,#95a5a6); color:white; }
         .rank-3 { background:linear-gradient(135deg,#d4854b,#b5651d); color:white; }
 
-
+        /* Prevent landscape horizontal scroll on student ranking table */
+@media (max-width: 768px) {
+    #studentRankingPage .overflow-x-auto {
+        overflow-x: hidden !important;
+    }
+    #studentRankingPage .custom-table {
+        min-width: unset !important;
+        width: 100% !important;
+    }
+}
     </style>
 </head>
 <body class="font-sans bg-surface text-text-primary min-h-screen m-0 p-0">
@@ -616,13 +624,16 @@
                         Pre-Assessment Records
                     </div>
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <select class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans" id="preAssessmentFilter" onchange="filterPreAssessments()">
-                            <option value="all">All Categories</option>
-                            <option value="underweight">Underweight</option>
-                            <option value="normal">Normal</option>
-                            <option value="overweight">Overweight</option>
-                            <option value="obese">Obese</option>
-                        </select>
+                       <select class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans" id="preSectionFilter" onchange="filterPreAssessments()">
+    <option value="all">All Sections</option>
+                </select>
+                <select class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans" id="preAssessmentFilter" onchange="filterPreAssessments()">
+                    <option value="all">All Categories</option>
+                    <option value="underweight">Underweight</option>
+                    <option value="normal">Normal</option>
+                    <option value="overweight">Overweight</option>
+                    <option value="obese">Obese</option>
+                </select>
                         <div class="relative flex items-center">
                             <i class="fas fa-search absolute left-3 text-text-muted text-[13px] pointer-events-none"></i>
                             <input type="text" class="pl-9 pr-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface w-[220px] focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all font-sans" id="searchPreAssessments" placeholder="Search students…" onkeyup="filterPreAssessments()">
@@ -663,13 +674,16 @@
                         Post-Assessment Records
                     </div>
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <select class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans" id="postAssessmentFilter" onchange="filterPostAssessments()">
-                            <option value="all">All Categories</option>
-                            <option value="underweight">Underweight</option>
-                            <option value="normal">Normal</option>
-                            <option value="overweight">Overweight</option>
-                            <option value="obese">Obese</option>
-                        </select>
+                        <select class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans" id="postSectionFilter" onchange="filterPostAssessments()">
+                        <option value="all">All Sections</option>
+                    </select>
+                    <select class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans" id="postAssessmentFilter" onchange="filterPostAssessments()">
+                        <option value="all">All Categories</option>
+                        <option value="underweight">Underweight</option>
+                        <option value="normal">Normal</option>
+                        <option value="overweight">Overweight</option>
+                        <option value="obese">Obese</option>
+                    </select>
                         <div class="relative flex items-center">
                             <i class="fas fa-search absolute left-3 text-text-muted text-[13px] pointer-events-none"></i>
                             <input type="text" class="pl-9 pr-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface w-[220px] focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all font-sans" id="searchPostAssessments" placeholder="Search students…" onkeyup="filterPostAssessments()">
@@ -2121,7 +2135,8 @@ for(const [sid, data] of Object.entries(stuData)) {
     }
 }
         // 4. Map test results to students
-       const bestStudentTestMap = {};
+       // 4. Map test results to students
+        const bestStudentTestMap = {};
         testResults.forEach(t => {
             const score = t.score || 0; if (score <= 0) return;
             const rawSid = t.studentId || t.studentEmail || t.umakId || t.email || '';
@@ -2137,7 +2152,12 @@ for(const [sid, data] of Object.entries(stuData)) {
         Object.values(bestStudentTestMap).forEach(t => {
             const sid = t.resolvedSid;
             const score = t.score;
-            const type = t.type || 'unknown';
+            // Fix: check all possible type fields stored in Firestore
+            const rawType = t.type || t.testType || t.assessmentType || t.resultType || '';
+            const type = rawType.toLowerCase().includes('post') ? 'post'
+                       : rawType.toLowerCase().includes('pre')  ? 'pre'
+                       : rawType === 'post' || rawType === 'pre' ? rawType
+                       : '';
             if (!stuData[sid]) {
                 stuData[sid] = { name: t.studentName || 'Unknown Student', id: sid, section: t.section || 'N/A', email: (t.studentEmail || t.email || '').toLowerCase(), tests: [], preScores: [], postScores: [], allScores: [], hasData: false, bmiAvg: null, bmiCategory: '', bmiCount: 0, bmiRecords: [] };
             }
@@ -2172,8 +2192,20 @@ for(const [sid, data] of Object.entries(stuData)) {
             });
         }
 
-        const withData = studentRankings.filter(s=>s.hasData).sort((a,b)=>b.avgScore-a.avgScore);
-        const withoutData = studentRankings.filter(s=>!s.hasData).sort((a,b)=>a.name.localeCompare(b.name));
+        // Also collect all sections from stuData itself (not just testResults)
+        // so students without test results still appear in section filter
+        Object.values(stuData).forEach(d => {
+            if (d.section && d.section !== 'N/A') studentSections.add(d.section);
+        });
+
+        const withData = studentRankings.filter(s => s.hasData)
+            .sort((a, b) => {
+                if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+                if (b.testsTaken !== a.testsTaken) return b.testsTaken - a.testsTaken;
+                return a.name.localeCompare(b.name);
+            });
+        const withoutData = studentRankings.filter(s => !s.hasData)
+            .sort((a, b) => a.name.localeCompare(b.name));
         studentRankings = [...withData, ...withoutData];
         updateStudentSectionFilter(); filterStudentRankings(); updateStudentRankingSummaryStats();
     } catch(e) { console.error('loadStudentRankings error:', e); }
@@ -2186,33 +2218,57 @@ for(const [sid, data] of Object.entries(stuData)) {
         el.value=cur;
     }
 
-    window.filterStudentRankings = function() {
-        const search=(document.getElementById('searchStudentRankings')?.value||'').toLowerCase();
-        const sec=document.getElementById('studentSectionFilter')?.value||'all';
-        const type=document.getElementById('studentTestTypeFilter')?.value||'all';
-        filteredStudentRankings=studentRankings.filter(s => {
-            const ms=s.name.toLowerCase().includes(search)||s.id.toLowerCase().includes(search);
-            const msc=sec==='all'||s.section===sec;
-            let mt=true; if(type==='pre') mt=s.preScores&&s.preScores.length>0; else if(type==='post') mt=s.postScores&&s.postScores.length>0;
-            return ms&&msc&&mt;
+   window.filterStudentRankings = function() {
+    const search = (document.getElementById('searchStudentRankings')?.value || '').toLowerCase();
+    const sec = document.getElementById('studentSectionFilter')?.value || 'all';
+    const type = document.getElementById('studentTestTypeFilter')?.value || 'all';
+
+    // When "all sections" — show ALL students from ALL sections
+    filteredStudentRankings = studentRankings.filter(s => {
+        const ms = !search || s.name.toLowerCase().includes(search) || s.id.toLowerCase().includes(search);
+        // Section filter: 'all' shows everyone, specific section filters by exact match
+        const msc = sec === 'all' || s.section === sec;
+        let mt = true;
+        if (type === 'pre') mt = s.preScores && s.preScores.length > 0;
+        else if (type === 'post') mt = s.postScores && s.postScores.length > 0;
+        return ms && msc && mt;
+    });
+
+    // Sort: has data first (by avgScore → testsTaken → name), no-data last (alphabetical)
+    const withData = filteredStudentRankings.filter(s => s.hasData)
+        .sort((a, b) => {
+            if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+            if (b.testsTaken !== a.testsTaken) return b.testsTaken - a.testsTaken;
+            return a.name.localeCompare(b.name);
         });
-        renderStudentRankingTable(); updateStudentRankingSummaryStats();
-    };
+    const withoutData = filteredStudentRankings.filter(s => !s.hasData)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    filteredStudentRankings = [...withData, ...withoutData];
+
+    renderStudentRankingTable();
+    updateStudentRankingSummaryStats();
+};
 
     function renderStudentRankingTable() {
-    const tbody = document.getElementById('studentRankingTableBody'); if (!tbody) return;
+    const tbody = document.getElementById('studentRankingTableBody');
+    if (!tbody) return;
     if (!filteredStudentRankings.length) {
-        tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-user-graduate"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Students Found</div></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
+            <div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-user-graduate"></i></div>
+            <div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Students Found</div>
+            </div></td></tr>`;
         return;
     }
+ 
     let rankCounter = 0;
     tbody.innerHTML = filteredStudentRankings.map(s => {
         const hasData = s.hasData;
         if (hasData) rankCounter++;
         const rankDisplay = hasData ? rankCounter : '—';
         const rc = hasData ? (rankCounter <= 3 ? `rank-${rankCounter}` : 'rank-other') : 'rank-other';
-
-        // BMI display
+ 
+        // BMI display — use only latest pre-BMI
         let bmiDisplay = '—';
         if (s.bmiCount > 0 && s.bmiAvg !== null && s.bmiAvg > 0) {
             const cat = s.bmiCategory || getBMICategory(s.bmiAvg);
@@ -2223,26 +2279,25 @@ for(const [sid, data] of Object.entries(stuData)) {
                 <span class="bmi-pill ${catClass}" style="font-size:9px;padding:2px 5px;">${catDisplay}</span>
             </div>`;
         }
-
-        // Post-test avg display
+ 
+        // Post-test avg
         const postDisplay = s.postTestAvg > 0 ? s.postTestAvg.toFixed(1) : '—';
-
-        // Improvement display
+ 
+        // Improvement
         let impDisplay = '<span style="color:#8a98ae;">—</span>';
-        if (hasData && (s.improvement !== 0 || (s.preScores.length > 0 && s.postScores.length > 0))) {
+        if (hasData && (s.preScores.length > 0 && s.postScores.length > 0)) {
             const ic = s.improvement > 0 ? 'trend-up' : s.improvement < 0 ? 'trend-down' : 'trend-neutral';
             const ii = s.improvement > 0 ? 'arrow-up' : s.improvement < 0 ? 'arrow-down' : 'minus';
             impDisplay = `<span class="${ic}"><i class="fas fa-${ii}" style="margin-right:4px;"></i>${s.improvement > 0 ? '+' : ''}${s.improvement.toFixed(1)}</span>`;
         }
-
-        // Performance display — uses same norm-based category as grades.html
-        // avgScore is on 1–5 scale (CATEGORY_ORDER), map to text category
+ 
+        // Performance
         let perfDisplay = '<span style="color:#8a98ae;font-size:12px;">No result yet</span>';
         if (hasData && s.avgScore > 0) {
             const rt = getScoreRating(s.avgScore);
             perfDisplay = `<span class="score-pill ${rt.cls}">${rt.text}</span>`;
         }
-
+ 
         return `<tr style="${!hasData ? 'opacity:0.65;' : ''}">
             <td data-label="Rank"><div class="rank-num ${rc}" style="${!hasData ? 'background:#f4f6fa;color:#4a5a72;border:1px solid #e1e6ef;' : ''}">${rankDisplay}</div></td>
             <td data-label="Student Name">
@@ -2256,7 +2311,7 @@ for(const [sid, data] of Object.entries(stuData)) {
             <td data-label="Post-Test Avg">${postDisplay}</td>
             <td data-label="Improvement">${impDisplay}</td>
             <td data-label="Performance">${perfDisplay}</td>
-                <td data-label="Actions">
+            <td data-label="Actions">
                 <div class="tbl-actions">
                     <button class="tbl-btn tbl-btn-view" onclick="viewStudentDetails('${s.id.replace(/'/g, "\\'")}')">
                         <i class="fas fa-eye"></i> View
@@ -2270,18 +2325,32 @@ for(const [sid, data] of Object.entries(stuData)) {
 
 
     function updateStudentRankingSummaryStats() {
+    // Count only students in the CURRENT filtered view that have data
+    const withData = filteredStudentRankings.filter(s => s.hasData);
+ 
     document.getElementById('totalStudentsRanked').textContent = filteredStudentRankings.length;
-    const avgs = filteredStudentRankings.filter(s => s.hasData).map(s => s.avgScore).filter(s => s > 0);
-    const stuOverallAvg = avgs.length ? avgs.reduce((a,b) => a+b, 0) / avgs.length : 0;
+ 
+    const avgs = withData.map(s => s.avgScore).filter(s => s > 0);
+    const stuOverallAvg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : 0;
     document.getElementById('studentOverallAvgScore').textContent = stuOverallAvg > 0 ? getScoreRating(stuOverallAvg).text : '—';
-    const top = filteredStudentRankings.filter(s => s.hasData);
-    if (top.length > 0) {
-        document.getElementById('topStudentName').textContent = top[0].name;
-        document.getElementById('topStudentScore').textContent = getScoreRating(top[0].avgScore).text + ' overall';
+ 
+    // Top student = highest avgScore among those who have data
+    // If tie, prefer more tests taken (higher completion)
+    const sorted = [...withData].sort((a, b) => {
+        if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+        return b.testsTaken - a.testsTaken;
+    });
+ 
+    if (sorted.length > 0) {
+        const top = sorted[0];
+        document.getElementById('topStudentName').textContent = top.name;
+        const rt = getScoreRating(top.avgScore);
+        document.getElementById('topStudentScore').textContent = rt.text + ' — ' + top.testsTaken + ' test' + (top.testsTaken !== 1 ? 's' : '');
     } else {
         document.getElementById('topStudentName').textContent = '—';
         document.getElementById('topStudentScore').textContent = 'No data yet';
     }
+ 
     document.getElementById('studentSectionsCount').textContent = studentSections.size;
 }
 
@@ -2294,18 +2363,411 @@ for(const [sid, data] of Object.entries(stuData)) {
         showAlert('studentRankingAlert','Report exported!','success');
     };
 
-    window.viewStudentDetails = async function(studentId) {
-        const s=studentRankings.find(r=>r.id===studentId); if(!s) return;
-        const rank=studentRankings.findIndex(r=>r.id===studentId)+1;
-        const rc=rank<=3?`rank-${rank}`:'rank-other'; const rt=getScoreRating(s.avgScore);
-        const sortedTests=[...(s.tests||[])].sort((a,b)=>{ const da=a.date?.toDate?.()||new Date(a.date||0); const db=b.date?.toDate?.()||new Date(b.date||0); return db-da; });
-        const testRows=sortedTests.map(t=>{ const d=t.date?.toDate?.()||new Date(t.date||0); return `<tr><td data-label="Test Name">${t.name}</td><td data-label="Type">${t.type||'N/A'}</td><td data-label="Score"><strong>${t.score}</strong></td><td data-label="Date">${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td></tr>`; }).join('')||'<tr><td colspan="4" style="text-align:center;color:#8a98ae;padding:16px;">No test history available.</td></tr>';
-        const bmiHistory=s.bmiRecords||[];
-        const bmiRows=bmiHistory.map(b=>{ const d=b.date?.toDate?.()||new Date(b.date||0); const cat=b.category||getBMICategory(b.bmi); const catClass=getBMICategoryClass(cat); const catDisplay=getBMICategoryDisplay(cat); return `<tr><td data-label="BMI"><strong>${b.bmi.toFixed(2)}</strong></td><td data-label="Category"><span class="bmi-pill ${catClass}">${catDisplay}</span></td><td data-label="Date">${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td></tr>`; }).join('')||'<tr><td colspan="3" style="text-align:center;color:#8a98ae;padding:16px;">No BMI records available.</td></tr>';
-        document.getElementById('studentDetailsTitle').textContent=`Student: ${s.name}`;
-        document.getElementById('studentDetailsContent').innerHTML=`<div class="detail-grid" style="margin-bottom:24px;"><div class="detail-block"><div class="detail-block-label">Full Name</div><div class="detail-block-val">${s.name}</div></div><div class="detail-block"><div class="detail-block-label">Student ID</div><div class="detail-block-val" style="font-family:'DM Mono',monospace;font-size:13px;">${s.id}</div></div><div class="detail-block"><div class="detail-block-label">Section</div><div class="detail-block-val">${s.section}</div></div><div class="detail-block"><div class="detail-block-label">Tests Taken</div><div class="detail-block-val">${s.testsTaken}</div></div><div class="detail-block"><div class="detail-block-label">Average Score</div><div class="detail-block-val big">${s.avgScore.toFixed(1)}</div></div><div class="detail-block"><div class="detail-block-label">Rating</div><div class="detail-block-val"><span class="score-pill ${rt.cls}" style="font-size:13px;">${rt.text}</span></div></div><div class="detail-block"><div class="detail-block-label">Pre-Test Average</div><div class="detail-block-val">${s.preTestAvg>0?s.preTestAvg.toFixed(1):'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Post-Test Average</div><div class="detail-block-val">${s.postTestAvg>0?s.postTestAvg.toFixed(1):'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Improvement</div><div class="detail-block-val" style="${s.improvement>0?'color:#0e8a5f':s.improvement<0?'color:#c0392b':'color:#8a98ae'}">${s.improvement>0?'+':''}${s.improvement.toFixed(1)}</div></div><div class="detail-block"><div class="detail-block-label">Overall Rank</div><div class="detail-block-val"><div class="rank-num ${rc}" style="width:40px;height:40px;font-size:18px;">${rank}</div></div></div></div><div style="font-size:15px;font-weight:700;color:#0a1628;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;"><i class="fas fa-weight"></i></div>BMI History (${bmiHistory.length} records)</div><div class="overflow-x-auto" style="margin-bottom:24px;"><table class="custom-table"><thead><tr><th>BMI</th><th>Category</th><th>Date</th></tr></thead><tbody>${bmiRows}</tbody></table></div><div style="font-size:15px;font-weight:700;color:#0a1628;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;"><i class="fas fa-history"></i></div>Test History</div><div class="overflow-x-auto"><table class="custom-table"><thead><tr><th>Test Name</th><th>Type</th><th>Score</th><th>Date</th></tr></thead><tbody>${testRows}</tbody></table></div>`;
-        document.getElementById('studentDetailsModal').style.display='flex';
-    };
+   window.viewStudentDetails = async function(studentId) {
+    const s = studentRankings.find(r => r.id === studentId);
+    if (!s) return;
+
+    const rank = filteredStudentRankings.findIndex(r => r.id === studentId) + 1;
+    const rc = rank <= 3 ? `rank-${rank}` : 'rank-other';
+
+    // Show loading state immediately
+    document.getElementById('studentDetailsTitle').textContent = `Student: ${s.name}`;
+    document.getElementById('studentDetailsContent').innerHTML = `
+        <div style="text-align:center;padding:48px 24px;">
+            <div class="spinner" style="margin:0 auto 16px;"></div>
+            <div style="font-size:14px;color:#8a98ae;">Loading student data…</div>
+        </div>`;
+    document.getElementById('studentDetailsModal').style.display = 'flex';
+
+    // ── Resolve all possible identifiers ──
+    const isEmail    = (s.id || '').includes('@');
+    const stuEmail   = isEmail ? s.id.toLowerCase() : (s.email || '').toLowerCase();
+    const stuUmak    = !isEmail ? s.id.trim() : (s.umakId || s.studentId || '').trim();
+    const allEmails  = [...new Set([stuEmail, (s.email||'').toLowerCase()].filter(Boolean))];
+    const allUmakIds = [...new Set([stuUmak, (s.umakId||''), (s.studentId||'')].filter(Boolean))];
+
+    // ── Fetch student doc to get real gender/birthday ──
+    let stuGender = 'male', stuAgeGroup = '19-22';
+    try {
+        const fetchPromises = [];
+        allEmails.forEach(e => {
+            if (e) fetchPromises.push(db.collection('users').where('email','==',e).limit(1).get());
+            if (e) fetchPromises.push(db.collection('students').where('email','==',e).limit(1).get());
+        });
+        allUmakIds.forEach(uid => {
+            if (uid) fetchPromises.push(db.collection('students').where('umakId','==',uid).limit(1).get());
+        });
+        const snaps = await Promise.all(fetchPromises);
+        for (const snap of snaps) {
+            if (!snap.empty) {
+                const d = snap.docs[0].data();
+                const g = (d.gender || '').toLowerCase();
+                stuGender = g.startsWith('f') ? 'female' : 'male';
+                if (d.birthday) {
+                    try {
+                        const bd = d.birthday.toDate ? d.birthday.toDate() : new Date(d.birthday);
+                        const today = new Date();
+                        let age = today.getFullYear() - bd.getFullYear();
+                        const m = today.getMonth() - bd.getMonth();
+                        if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+                        if (!isNaN(age) && age > 0) {
+                            if (age <= 18) stuAgeGroup = '15-18';
+                            else if (age <= 22) stuAgeGroup = '19-22';
+                            else if (age <= 26) stuAgeGroup = '23-26';
+                            else stuAgeGroup = '27-30';
+                        }
+                    } catch(_) {}
+                }
+                break;
+            }
+        }
+    } catch(e) { console.warn('Could not fetch student doc:', e); }
+
+    // ── Fetch raw testResults from Firestore ──
+    let rawTests = [];
+    try {
+        const queries = [];
+        allEmails.forEach(e => {
+            if (e) queries.push(db.collection('testResults').where('studentEmail','==',e).get());
+        });
+        allUmakIds.forEach(uid => {
+            if (uid) {
+                queries.push(db.collection('testResults').where('umakId','==',uid).get());
+                queries.push(db.collection('testResults').where('studentId','==',uid).get());
+                queries.push(db.collection('testResults').where('studentId','==',`student_${uid}`).get());
+            }
+        });
+        if (s.name) {
+            queries.push(db.collection('testResults').where('studentName','==',s.name).get());
+        }
+
+        const snaps = await Promise.all(queries);
+        const seen = new Set();
+        snaps.forEach(snap => snap.forEach(d => {
+            if (!seen.has(d.id)) { seen.add(d.id); rawTests.push({id:d.id,...d.data()}); }
+        }));
+
+        // Last resort: scan already-loaded testResults array
+        if (!rawTests.length && testResults.length) {
+            rawTests = testResults.filter(t => {
+                const tEmail = (t.studentEmail || t.email || '').toLowerCase();
+                const tUmak  = (t.umakId || '').trim().toUpperCase();
+                const tSid   = (t.studentId || '').replace(/^student_/i,'').trim().toUpperCase();
+                const tName  = (t.studentName || '').toLowerCase();
+                return allEmails.some(e => e && tEmail === e)
+                    || allUmakIds.some(u => u && (tUmak === u.toUpperCase() || tSid === u.toUpperCase()))
+                    || (s.name && tName === s.name.toLowerCase());
+            });
+        }
+    } catch(e) { console.error('viewStudentDetails fetch error:', e); }
+
+    // ── Fetch fitnessNorms from Firestore (same as studentgrades.html) ──
+    // Pre-fetch all needed norm docs in parallel
+    const normDocCache = new Map();
+    const testKeys = new Set();
+    rawTests.forEach(t => {
+        const tl = (t.testName || '').toLowerCase();
+        let key = null;
+        if (tl.includes('push')) key = 'push_up';
+        else if (tl.includes('curl')) key = 'curl_up';
+        else if (tl.includes('sit') && tl.includes('reach')) key = 'sit_and_reach';
+        else if (tl.includes('step') || tl.includes('3-minute')) key = 'step_test';
+        else if (tl.includes('skinfold') || tl.includes('skin fold')) key = 'skinfold';
+        if (key) testKeys.add(key);
+    });
+
+    // Fetch default norms + student-specific norms in parallel
+    const normFetches = [];
+    testKeys.forEach(key => {
+        const docId = `${key}_${stuGender}_${stuAgeGroup}`;
+        normFetches.push(
+            db.collection('fitnessNorms').doc(docId).get()
+              .then(snap => { if (snap.exists) normDocCache.set(`default:${key}`, snap.data()); })
+              .catch(() => {})
+        );
+        if (stuEmail) {
+            normFetches.push(
+                db.collection('studentNorms').doc(stuEmail).collection('tests').doc(key).get()
+                  .then(snap => { if (snap.exists) normDocCache.set(`student:${key}`, snap.data()); })
+                  .catch(() => {})
+            );
+        }
+    });
+    // Also fetch scheduled test docs for customNorms
+    const testIds = new Set(rawTests.map(t => t.testId).filter(Boolean));
+    testIds.forEach(tid => {
+        normFetches.push(
+            db.collection('scheduledTests').doc(tid).get()
+              .then(snap => { if (snap.exists) normDocCache.set(`scheduled:${tid}`, snap.data()); })
+              .catch(() => {})
+        );
+    });
+    await Promise.all(normFetches);
+
+    // ── Norm resolution (mirrors studentgrades.html applyThresholds) ──
+    function applyThresholds(nd, value) {
+        const lowerIsBetter = nd.lowerIsBetter ?? false;
+        for (const cat of ['Excellent', 'Good', 'Average', 'Below Average']) {
+            const threshold = nd.thresholds[cat];
+            if (threshold == null) continue;
+            if (lowerIsBetter && value <= threshold) return cat;
+            if (!lowerIsBetter && value >= threshold) return cat;
+        }
+        return 'Poor';
+    }
+
+    function resolveTestKey(testName) {
+        const tl = (testName || '').toLowerCase();
+        if (tl.includes('push')) return 'push_up';
+        if (tl.includes('curl')) return 'curl_up';
+        if (tl.includes('sit') && tl.includes('reach')) return 'sit_and_reach';
+        if (tl.includes('step') || tl.includes('3-minute')) return 'step_test';
+        if (tl.includes('skinfold') || tl.includes('skin fold')) return 'skinfold';
+        return null;
+    }
+
+    function getNormCatForTest(t) {
+        const testKey = resolveTestKey(t.testName);
+        if (!testKey) return null;
+        const value = extractNumericResult(t.result || t.resultData);
+
+        // 1. Student-specific norms
+        const stuNorm = normDocCache.get(`student:${testKey}`);
+        if (stuNorm?.thresholds) return applyThresholds(stuNorm, value);
+
+        // 2. customNorms on scheduledTest
+        if (t.testId) {
+            const sched = normDocCache.get(`scheduled:${t.testId}`);
+            if (sched?.customNorms?.thresholds) return applyThresholds(sched.customNorms, value);
+        }
+
+        // 3. Default fitnessNorms
+        const defNorm = normDocCache.get(`default:${testKey}`);
+        if (defNorm?.thresholds) return applyThresholds(defNorm, value);
+
+        // 4. Fallback to hardcoded
+        return getNormCategory(t.testName, t.result || t.resultData, stuGender, stuAgeGroup);
+    }
+
+    const NORM_RANK_MAP = { 'Excellent':5, 'Good':4, 'Average':3, 'Below Average':2, 'Poor':1 };
+
+    // ── Deduplicate: best attempt per testId (same as studentgrades.html) ──
+    const testGroups = {};
+    rawTests.forEach(t => {
+        const groupKey = t.testId || t.scheduledTestId || t.testName;
+        const normCat  = getNormCatForTest(t);
+        const dateObj  = t.submittedAt?.toDate?.() || (t.submittedAt ? new Date(t.submittedAt) : new Date(0));
+        if (!testGroups[groupKey]) {
+            testGroups[groupKey] = { ...t, normCategory: normCat, submittedAt: dateObj };
+        } else {
+            const existRank = NORM_RANK_MAP[testGroups[groupKey].normCategory] ?? 0;
+            const newRank   = NORM_RANK_MAP[normCat] ?? 0;
+            if (newRank > existRank || (newRank === existRank && dateObj > testGroups[groupKey].submittedAt)) {
+                testGroups[groupKey] = { ...t, normCategory: normCat, submittedAt: dateObj };
+            }
+        }
+    });
+    const dedupedTests = Object.values(testGroups);
+
+    // ── Compute overall performance (mirrors rankToCategory in studentgrades.html) ──
+    const normRanks = dedupedTests.map(t => NORM_RANK_MAP[t.normCategory] ?? 0).filter(r => r > 0);
+    const overallAvg = normRanks.length ? normRanks.reduce((a,b) => a+b, 0) / normRanks.length : 0;
+
+    function rankToCategory(rank) {
+        if (rank >= 4.5) return 'Excellent';
+        if (rank >= 3.5) return 'Good';
+        if (rank >= 2.5) return 'Average';
+        if (rank >= 1.5) return 'Below Average';
+        return 'Poor';
+    }
+    const overallCat    = overallAvg > 0 ? rankToCategory(overallAvg) : null;
+    const overallRating = overallCat ? getScoreRating(NORM_RANK_MAP[overallCat]) : null;
+
+    // ── Fetch BMI pre/post ──
+    let bmiPreRecord = null, bmiPostRecord = null;
+    try {
+        const bmiSnap = await db.collection('BMI').get();
+        const matches = [];
+        bmiSnap.forEach(d => {
+            const a = d.data();
+            const docEmail  = (a.email || a.studentEmail || '').toLowerCase();
+            const docUmak   = (a.umakId || (a.studentId||'').replace(/^student_/i,'')).trim().toUpperCase();
+            const nameMatch = (a.studentName || a.name || '').toLowerCase() === s.name.toLowerCase();
+            if ((stuEmail && docEmail === stuEmail) || (stuUmak && docUmak === stuUmak.toUpperCase()) || nameMatch) {
+                matches.push({id:d.id,...a});
+            }
+        });
+        matches.sort((a,b) => {
+            const da = a.recordedAt?.toDate?.() || new Date(a.recordedAt||0);
+            const db2 = b.recordedAt?.toDate?.() || new Date(b.recordedAt||0);
+            return db2 - da;
+        });
+        bmiPreRecord  = matches.find(m => (m.testType||m.type||'').toLowerCase()==='pre')  || null;
+        bmiPostRecord = matches.find(m => (m.testType||m.type||'').toLowerCase()==='post') || null;
+    } catch(e) { console.error('BMI fetch error:', e); }
+
+    function bmiDetailBlock(record, label) {
+        if (!record) return `<div class="detail-block"><div class="detail-block-label">${label}</div><div class="detail-block-val" style="color:#8a98ae;">No data</div></div>`;
+        const bmi = parseFloat(record.bmi)||0;
+        const cat = resolveBMICat(record.category, bmi);
+        const date = parseBMIDate(record);
+        return `<div class="detail-block">
+            <div class="detail-block-label">${label}</div>
+            <div class="detail-block-val">
+                ${bmi > 0 ? `<span style="font-family:'DM Mono',monospace;font-weight:700;">${bmi.toFixed(2)}</span>` : 'N/A'}
+                ${bmi > 0 ? `<span class="bmi-pill ${getBMICategoryClass(cat)}" style="font-size:11px;margin-left:6px;">${getBMICategoryDisplay(cat)}</span>` : ''}
+                ${record.height ? `<div style="font-size:11px;color:#8a98ae;margin-top:4px;">H: ${record.height}cm &nbsp; W: ${record.weight||'N/A'}kg</div>` : ''}
+                <div style="font-size:11px;color:#8a98ae;">${date}</div>
+            </div>
+        </div>`;
+    }
+
+    // ── Build test rows sorted by date desc (matches studentgrades.html Recent Test Results) ──
+    const sortedTests = [...rawTests].sort((a,b) => {
+        const da = a.submittedAt?.toDate?.() || new Date(a.submittedAt||0);
+        const db2 = b.submittedAt?.toDate?.() || new Date(b.submittedAt||0);
+        return db2 - da;
+    });
+
+    // For "best" badge — use deduped map
+    const bestByGroup = {};
+    dedupedTests.forEach(t => {
+        const gk = t.testId || t.scheduledTestId || t.testName;
+        bestByGroup[gk] = t.id;
+    });
+
+    // Attempt counter per testName (for Attempt N label)
+    const attemptCounter = {};
+
+    const testRows = sortedTests.length ? sortedTests.map(t => {
+        const testName = t.testName || 'Unknown';
+        if (!attemptCounter[testName]) attemptCounter[testName] = 0;
+        attemptCounter[testName]++;
+        const attemptNum = attemptCounter[testName];
+
+        const normCat = getNormCatForTest(t);
+        const normCls = normCat === 'Excellent' ? 'score-excellent'
+                      : normCat === 'Good'      ? 'score-good'
+                      : (normCat === 'Below Average' || normCat === 'Poor') ? 'score-poor'
+                      : 'score-fair';
+
+        const gk = t.testId || t.scheduledTestId || t.testName;
+        const isBest = bestByGroup[gk] === t.id;
+
+        // Raw result display
+        let resultDisplay = '—';
+        const rawResult = t.result || t.resultData;
+        if (rawResult !== undefined && rawResult !== null) {
+            if (typeof rawResult === 'object' && rawResult !== null) {
+                const val = rawResult.value ?? rawResult.result ?? rawResult.score ?? rawResult.count ?? rawResult.repetitions ?? rawResult.reps ?? rawResult.time ?? null;
+                if (val !== null) resultDisplay = String(val);
+                else { const keys = Object.keys(rawResult); resultDisplay = keys.length === 1 ? String(rawResult[keys[0]]) : JSON.stringify(rawResult); }
+            } else resultDisplay = String(rawResult);
+        }
+
+        const dateObj = t.submittedAt?.toDate?.() || (t.submittedAt ? new Date(t.submittedAt) : null);
+        const dateStr = dateObj && !isNaN(dateObj) ? dateObj.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'N/A';
+        const timeStr = dateObj && !isNaN(dateObj) ? dateObj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '';
+
+        return `<tr style="${isBest ? 'background:#f0fdf4;' : ''}">
+            <td data-label="Date & Time" style="font-size:13px;min-width:120px;white-space:nowrap;">
+                <strong style="display:block;">${dateStr}</strong>
+                <span style="font-size:11px;color:#8a98ae;display:block;margin-top:2px;">${timeStr}</span>
+            </td>
+            <td data-label="Test Name" style="font-weight:600;color:#0a1628;">${testName}</td>
+            <td data-label="Performance" style="text-align:center;">
+                ${normCat ? `<span class="score-pill ${normCls}" style="font-size:11px;">${normCat}</span>` : '<span style="color:#8a98ae;font-size:12px;">—</span>'}
+                ${isBest ? '<br><small style="color:#059669;font-weight:700;font-size:10px;">★ Best</small>' : ''}
+            </td>
+            <td data-label="Score" style="text-align:center;font-size:13px;font-weight:600;color:#0a1628;">${resultDisplay}</td>
+            <td data-label="Attempt" style="text-align:center;font-size:13px;color:#4a5a72;">Attempt ${attemptNum}</td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#8a98ae;padding:24px 16px;font-size:13px;">No test history available yet.</td></tr>';
+
+    // ── BMI history ──
+    const bmiHistory = (s.bmiRecords || []).sort((a,b) => {
+        const da = a.date?.toDate?.() || new Date(a.date||0);
+        const db2 = b.date?.toDate?.() || new Date(b.date||0);
+        return db2 - da;
+    });
+    const bmiRows = bmiHistory.length ? bmiHistory.map(b => {
+        const d = b.date?.toDate?.() || new Date(b.date||0);
+        const cat = b.category || getBMICategory(b.bmi);
+        return `<tr>
+            <td data-label="BMI"><strong style="font-family:'DM Mono',monospace;">${b.bmi.toFixed(2)}</strong></td>
+            <td data-label="Category"><span class="bmi-pill ${getBMICategoryClass(cat)}">${getBMICategoryDisplay(cat)}</span></td>
+            <td data-label="Date" style="font-size:12px;color:#8a98ae;">${isNaN(d)?'N/A':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:#8a98ae;padding:24px 16px;font-size:13px;">No BMI records available yet.</td></tr>';
+
+    // ── Norm badge style (matches studentgrades.html) ──
+    function normBadgeStyle(cat) {
+        if (!cat) return 'background:#fef3d4;color:#b07e16;';
+        const c = cat.toLowerCase();
+        if (c === 'excellent')      return 'background:#d4f0e6;color:#0e8a5f;border:1px solid #86efac;';
+        if (c === 'good')           return 'background:#d6eaf8;color:#1a6fa8;border:1px solid #93c5fd;';
+        if (c === 'average')        return 'background:#fef3d4;color:#b07e16;border:1px solid #fcd34d;';
+        if (c === 'below average')  return 'background:#fff7ed;color:#ea580c;border:1px solid #fdba74;';
+        return 'background:#fce8e6;color:#c0392b;border:1px solid #fca5a5;';
+    }
+
+    document.getElementById('studentDetailsTitle').textContent = `Student: ${s.name}`;
+    document.getElementById('studentDetailsContent').innerHTML = `
+        <div class="detail-grid" style="margin-bottom:24px;">
+            <div class="detail-block"><div class="detail-block-label">Full Name</div><div class="detail-block-val">${s.name}</div></div>
+            <div class="detail-block"><div class="detail-block-label">Student ID</div><div class="detail-block-val" style="font-family:'DM Mono',monospace;font-size:13px;">${s.id}</div></div>
+            <div class="detail-block"><div class="detail-block-label">Section</div><div class="detail-block-val">${s.section}</div></div>
+            <div class="detail-block"><div class="detail-block-label">Tests Taken</div><div class="detail-block-val">${rawTests.length || s.testsTaken || 0}</div></div>
+            <div class="detail-block">
+                <div class="detail-block-label">Overall Performance</div>
+                <div class="detail-block-val">
+                    ${overallCat
+                        ? `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:50px;font-size:14px;font-weight:700;${normBadgeStyle(overallCat)}">${overallCat}</span>`
+                        : '<span style="color:#8a98ae;">No data yet</span>'}
+                </div>
+            </div>
+            <div class="detail-block">
+                <div class="detail-block-label">Overall Rank</div>
+                <div class="detail-block-val">
+                    <div class="rank-num ${rc}" style="width:40px;height:40px;font-size:18px;">${rank}</div>
+                </div>
+            </div>
+            ${bmiDetailBlock(bmiPreRecord, 'Pre-Assessment (BMI)')}
+            ${bmiDetailBlock(bmiPostRecord, 'Post-Assessment (BMI)')}
+        </div>
+
+        <div style="font-size:15px;font-weight:700;color:#0a1628;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;"><i class="fas fa-weight"></i></div>
+            BMI History (${bmiHistory.length} record${bmiHistory.length !== 1 ? 's' : ''})
+        </div>
+        <div class="overflow-x-auto" style="margin-bottom:24px;">
+            <table class="custom-table">
+                <thead><tr><th>BMI</th><th>Category</th><th>Date</th></tr></thead>
+                <tbody>${bmiRows}</tbody>
+            </table>
+        </div>
+
+        <div style="font-size:15px;font-weight:700;color:#0a1628;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;"><i class="fas fa-history"></i></div>
+            Recent Test Results (${dedupedTests.length} unique test${dedupedTests.length !== 1 ? 's' : ''}, ${rawTests.length} total attempt${rawTests.length !== 1 ? 's' : ''})
+        </div>
+        <div class="overflow-x-auto">
+            <table class="custom-table">
+                <thead style="background:linear-gradient(90deg,rgba(10,22,40,0.92) 0%,rgba(30,77,140,0.92) 100%);">
+                    <tr>
+                        <th style="color:white;font-weight:600;font-size:13px;padding:14px 16px;text-align:left;white-space:nowrap;">Date & Time</th>
+                        <th style="color:white;font-weight:600;font-size:13px;padding:14px 16px;text-align:left;">Test Name</th>
+                        <th style="color:white;font-weight:600;font-size:13px;padding:14px 16px;text-align:center;">Performance</th>
+                        <th style="color:white;font-weight:600;font-size:13px;padding:14px 16px;text-align:center;">Score</th>
+                        <th style="color:white;font-weight:600;font-size:13px;padding:14px 16px;text-align:center;">Attempt</th>
+                    </tr>
+                </thead>
+                <tbody>${testRows}</tbody>
+            </table>
+        </div>`;
+
+    document.getElementById('studentDetailsModal').style.display = 'flex';
+};
     window.closeStudentDetailsModal = function() { document.getElementById('studentDetailsModal').style.display='none'; };
 
     // ─── ASSESSMENTS ───
@@ -2334,6 +2796,7 @@ preAssessments = preAssessments.filter(a => {
     seenStudents.add(key);
     return true;
 });            document.getElementById('totalPreAssessments').textContent=preAssessments.length;
+populateSectionFilters();
             renderPreAssessmentsTable();
             
         } catch(e) { preAssessments=[]; renderPreAssessmentsTable(); console.error(e); }
@@ -2401,19 +2864,72 @@ preAssessments = preAssessments.filter(a => {
     window.closeAssessmentDetailModal = function() { document.getElementById('assessmentDetailModal').style.display='none'; };
 
     window.filterPreAssessments = function() {
-        const search=(document.getElementById('searchPreAssessments')?.value||'').toLowerCase();
-        const cat=document.getElementById('preAssessmentFilter')?.value||'all';
-        const filtered=preAssessments.filter(a => { const name=(a.studentName||a.name||a.displayName||'').toLowerCase(); const sec=(a.section||a.assignedSection||'').toLowerCase(); const id=(a.umakId||a.studentId||'').toLowerCase(); const ms=name.includes(search)||sec.includes(search)||id.includes(search); const mc=cat==='all'||resolveBMICat(a.category,a.bmi)===cat; return ms&&mc; });
-        renderPreAssessmentsTable(filtered);
-    };
+    const search = (document.getElementById('searchPreAssessments')?.value || '').toLowerCase().trim();
+    const cat = document.getElementById('preAssessmentFilter')?.value || 'all';
+    const sec = document.getElementById('preSectionFilter')?.value || 'all';
+ 
+    const filtered = preAssessments.filter(a => {
+        const name = (a._fullName || a.studentName || a.name || a.displayName || '').toLowerCase();
+        const asec = (a.section || a.assignedSection || '').trim();
+        const id = (a.umakId || (a.studentId || '').replace(/^student_/i, '') || '').toLowerCase();
+ 
+        const ms = !search || name.includes(search) || asec.toLowerCase().includes(search) || id.includes(search);
+        const mc = cat === 'all' || resolveBMICat(a.category, a.bmi) === cat;
+        const msc = sec === 'all' || asec === sec;
+        return ms && mc && msc;
+    });
+    renderPreAssessmentsTable(filtered);
+};
+ 
+window.filterPostAssessments = function() {
+    const search = (document.getElementById('searchPostAssessments')?.value || '').toLowerCase().trim();
+    const cat = document.getElementById('postAssessmentFilter')?.value || 'all';
+    const sec = document.getElementById('postSectionFilter')?.value || 'all';
+ 
+    const filtered = postAssessments.filter(a => {
+        const name = (a._fullName || a.studentName || a.name || a.displayName || '').toLowerCase();
+        const asec = (a.section || a.assignedSection || '').trim();
+        const id = (a.umakId || (a.studentId || '').replace(/^student_/i, '') || '').toLowerCase();
+ 
+        const ms = !search || name.includes(search) || asec.toLowerCase().includes(search) || id.includes(search);
+        const mc = cat === 'all' || resolveBMICat(a.category, a.bmi) === cat;
+        const msc = sec === 'all' || asec === sec;
+        return ms && mc && msc;
+    });
+    renderPostAssessmentsTable(filtered);
+};
 
     window.filterPostAssessments = function() {
-        const search=(document.getElementById('searchPostAssessments')?.value||'').toLowerCase();
-        const cat=document.getElementById('postAssessmentFilter')?.value||'all';
-        const filtered=postAssessments.filter(a => { const name=(a.studentName||a.name||a.displayName||'').toLowerCase(); const sec=(a.section||a.assignedSection||'').toLowerCase(); const id=(a.umakId||a.studentId||'').toLowerCase(); const ms=name.includes(search)||sec.includes(search)||id.includes(search); const mc=cat==='all'||resolveBMICat(a.category,a.bmi)===cat; return ms&&mc; });
-        renderPostAssessmentsTable(filtered);
-    };
+    const search=(document.getElementById('searchPostAssessments')?.value||'').toLowerCase();
+    const cat=document.getElementById('postAssessmentFilter')?.value||'all';
+    const sec=document.getElementById('postSectionFilter')?.value||'all';
+    const filtered=postAssessments.filter(a => {
+        const name=(a.studentName||a.name||a.displayName||'').toLowerCase();
+        const asec=(a.section||a.assignedSection||'').toLowerCase();
+        const id=(a.umakId||a.studentId||'').toLowerCase();
+        const ms=name.includes(search)||asec.includes(search)||id.includes(search);
+        const mc=cat==='all'||resolveBMICat(a.category,a.bmi)===cat;
+        const msc=sec==='all'||(a.section||a.assignedSection||'')=== sec;
+        return ms&&mc&&msc;
+    });
+    renderPostAssessmentsTable(filtered);
+};
+        function populateSectionFilters() {
+    const sectionSet = new Set();
+    preAssessments.forEach(a => { const s=a.section||a.assignedSection||''; if(s) sectionSet.add(s); });
+    postAssessments.forEach(a => { const s=a.section||a.assignedSection||''; if(s) sectionSet.add(s); });
 
+    ['preSectionFilter','postSectionFilter'].forEach(id => {
+        const el = document.getElementById(id); if(!el) return;
+        const cur = el.value;
+        el.innerHTML = '<option value="all">All Sections</option>';
+        Array.from(sectionSet).sort().forEach(s => {
+            const o = document.createElement('option');
+            o.value = s; o.textContent = s; el.appendChild(o);
+        });
+        el.value = cur;
+    });
+}
     // ─── ACCOUNT MANAGEMENT ───
     async function loadAllAccounts() {
         try {
@@ -2446,16 +2962,85 @@ preAssessments = preAssessments.filter(a => {
         el.value=cur;
     }
 
-    function renderAccountsTable() {
-        const tbody=document.getElementById('accountsTableBody'); if(!tbody) return;
-        if(!filteredAccounts.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-users"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Accounts Found</div></div></td></tr>`; return; }
-        tbody.innerHTML=filteredAccounts.map(a => {
-            const display=a.name||a.email?.split('@')[0]||'Unknown';
-            const roleDisplay=a.role?a.role.charAt(0).toUpperCase()+a.role.slice(1):'Unknown';
-            const roleCls={dean:'badge-dean',professor:'badge-professor',secretary:'badge-secretary',student:'badge-student'}[a.role]||'badge-default';
-            return `<tr><td data-label="Name"><div style="display:flex;align-items:center;gap:12px;"><div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">${display.charAt(0).toUpperCase()}</div><div><div style="font-weight:600;color:#0a1628;">${display}</div><div style="font-size:12px;color:#8a98ae;">${a.email}</div></div></div></td><td data-label="Email"><span style="font-size:13px;">${a.email}</span></td><td data-label="Role"><span class="badge-pill ${roleCls}">${roleDisplay}</span></td><td data-label="College/Section"><span style="font-size:13px;">${a.college}</span></td><td data-label="Status"><span class="badge-pill ${a.status==='active'?'badge-active':'badge-inactive'}"><i class="fas fa-circle" style="font-size:7px;margin-right:4px;"></i>${a.status}</span></td><td data-label="Actions"><div class="tbl-actions"><button class="tbl-btn tbl-btn-edit" onclick="showEditRoleModal('${a.id}','${a.docId}','${display.replace(/'/g,"\\'")}','${a.email.replace(/'/g,"\\'")}','${a.role}')"><i class="fas fa-pen"></i> Role</button>${a.status==='active'?`<button class="tbl-btn tbl-btn-deact" onclick="toggleAccountStatus('${a.docId}','inactive')"><i class="fas fa-ban"></i> Deactivate</button>`:`<button class="tbl-btn tbl-btn-act" onclick="toggleAccountStatus('${a.docId}','active')"><i class="fas fa-check"></i> Activate</button>`}</div></td></tr>`;
-        }).join('');
+   function renderAccountsTable() {
+    const tbody = document.getElementById('accountsTableBody'); if (!tbody) return;
+    if (!filteredAccounts.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-users"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Accounts Found</div></div></td></tr>`;
+        renderAccountsPagination();
+        return;
     }
+    const pageSize = 10;
+    const totalPages = Math.ceil(filteredAccounts.length / pageSize);
+    if (window.accountsCurrentPage === undefined) window.accountsCurrentPage = 1;
+    if (window.accountsCurrentPage > totalPages) window.accountsCurrentPage = 1;
+    const start = (window.accountsCurrentPage - 1) * pageSize;
+    const pageItems = filteredAccounts.slice(start, start + pageSize);
+
+    tbody.innerHTML = pageItems.map(a => {
+        const display = a.name || a.email?.split('@')[0] || 'Unknown';
+        const roleDisplay = a.role ? a.role.charAt(0).toUpperCase() + a.role.slice(1) : 'Unknown';
+        const roleCls = { dean: 'badge-dean', professor: 'badge-professor', secretary: 'badge-secretary', student: 'badge-student' }[a.role] || 'badge-default';
+        return `<tr><td data-label="Name"><div style="display:flex;align-items:center;gap:12px;"><div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">${display.charAt(0).toUpperCase()}</div><div><div style="font-weight:600;color:#0a1628;">${display}</div><div style="font-size:12px;color:#8a98ae;">${a.email}</div></div></div></td><td data-label="Email"><span style="font-size:13px;">${a.email}</span></td><td data-label="Role"><span class="badge-pill ${roleCls}">${roleDisplay}</span></td><td data-label="College/Section"><span style="font-size:13px;">${a.college}</span></td><td data-label="Status"><span class="badge-pill ${a.status === 'active' ? 'badge-active' : 'badge-inactive'}"><i class="fas fa-circle" style="font-size:7px;margin-right:4px;"></i>${a.status}</span></td><td data-label="Actions"><div class="tbl-actions"><button class="tbl-btn tbl-btn-edit" onclick="showEditRoleModal('${a.id}','${a.docId}','${display.replace(/'/g, "\\'")}','${a.email.replace(/'/g, "\\'")}','${a.role}')"><i class="fas fa-pen"></i> Role</button>${a.status === 'active' ? `<button class="tbl-btn tbl-btn-deact" onclick="toggleAccountStatus('${a.docId}','inactive')"><i class="fas fa-ban"></i> Deactivate</button>` : `<button class="tbl-btn tbl-btn-act" onclick="toggleAccountStatus('${a.docId}','active')"><i class="fas fa-check"></i> Activate</button>`}</div></td></tr>`;
+    }).join('');
+
+    renderAccountsPagination();
+}
+
+function renderAccountsPagination() {
+    let el = document.getElementById('accountsPagination');
+    if (!el) {
+        const wrapper = document.querySelector('#accountsTableBody')?.closest('.overflow-x-auto');
+        if (!wrapper) return;
+        el = document.createElement('div');
+        el.id = 'accountsPagination';
+        wrapper.parentElement.appendChild(el);
+    }
+
+    const pageSize = 10;
+    const totalPages = Math.ceil(filteredAccounts.length / pageSize);
+    const cur = window.accountsCurrentPage || 1;
+
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+    const start = (cur - 1) * pageSize + 1;
+    const end = Math.min(cur * pageSize, filteredAccounts.length);
+
+    let pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= cur - 2 && i <= cur + 2)) {
+            pages.push(i);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+        }
+    }
+
+    el.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:between;gap:8px;padding:14px 20px;border-top:1px solid #e1e6ef;background:#fafbfd;flex-wrap:wrap;">
+            <div style="font-size:13px;color:#8a98ae;flex:1;min-width:150px;">
+                Showing <strong style="color:#0a1628;">${start}–${end}</strong> of <strong style="color:#0a1628;">${filteredAccounts.length}</strong> accounts
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                <button onclick="goToAccountsPage(${cur - 1})" ${cur === 1 ? 'disabled' : ''} style="width:34px;height:34px;border-radius:8px;border:1px solid #e1e6ef;background:${cur === 1 ? '#f4f6fa' : '#fff'};color:${cur === 1 ? '#c5cfe0' : '#4a5a72'};cursor:${cur === 1 ? 'not-allowed' : 'pointer'};font-family:'DM Sans',sans-serif;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                ${pages.map(p => p === '...'
+                    ? `<span style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#8a98ae;font-size:13px;">…</span>`
+                    : `<button onclick="goToAccountsPage(${p})" style="width:34px;height:34px;border-radius:8px;border:1px solid ${p === cur ? '#2d6fc4' : '#e1e6ef'};background:${p === cur ? '#2d6fc4' : '#fff'};color:${p === cur ? '#fff' : '#4a5a72'};cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:${p === cur ? '700' : '500'};display:flex;align-items:center;justify-content:center;transition:all 0.15s;">${p}</button>`
+                ).join('')}
+                <button onclick="goToAccountsPage(${cur + 1})" ${cur === totalPages ? 'disabled' : ''} style="width:34px;height:34px;border-radius:8px;border:1px solid #e1e6ef;background:${cur === totalPages ? '#f4f6fa' : '#fff'};color:${cur === totalPages ? '#c5cfe0' : '#4a5a72'};cursor:${cur === totalPages ? 'not-allowed' : 'pointer'};font-family:'DM Sans',sans-serif;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>`;
+}
+
+window.goToAccountsPage = function(page) {
+    const pageSize = 10;
+    const totalPages = Math.ceil(filteredAccounts.length / pageSize);
+    if (page < 1 || page > totalPages) return;
+    window.accountsCurrentPage = page;
+    renderAccountsTable();
+};
 
     function updateTotalAccountsCount() { document.getElementById('totalAccountsCount').textContent=allAccounts.length; }
     window.refreshAccounts = function() { loadAllAccounts(); };
@@ -2464,6 +3049,7 @@ preAssessments = preAssessments.filter(a => {
         const search=(document.getElementById('searchAccounts')?.value||'').toLowerCase();
         const role=document.getElementById('roleFilter')?.value||'all';
         filteredAccounts=allAccounts.filter(a => { const ms=a.name.toLowerCase().includes(search)||a.email.toLowerCase().includes(search)||a.college.toLowerCase().includes(search); return ms&&(role==='all'||a.role===role); });
+        window.accountsCurrentPage = 1;
         renderAccountsTable();
     };
     window.filterAccountsByRole = function() { filterAccounts(); };

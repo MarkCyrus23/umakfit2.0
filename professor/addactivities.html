@@ -1199,20 +1199,28 @@ onAuthStateChanged(auth, async user => {
     try {
         window.currentUser = user;
         window.updateProfileUI(user.photoURL, user.displayName||user.email, user.email);
-        // Run both loads in parallel
+
+        // Show page immediately — don't wait for data
+        clearTimeout(_loadingTimeout);
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('mainContent').classList.remove('hidden');
+
+        // Load data in background
         await Promise.all([
             loadScheduledTests(user.email, user.uid),
             loadTestResults(user.email, user.uid),
         ]);
     } catch(err) {
         console.error('Dashboard init error:', err);
-        showErrorModal('Error loading data: '+err.message);
-    } finally {
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainContent').classList.remove('hidden');
+        showErrorModal('Error loading data: '+err.message);
     }
 });
-
+        const _loadingTimeout = setTimeout(() => {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('mainContent').classList.remove('hidden');
+}, 600);
 // ── Resolve professor's assigned sections ─────────────────────────
 // OPTIMIZED: direct email query first, full scan only if no results
 async function resolveAssignedSections(userEmail) {

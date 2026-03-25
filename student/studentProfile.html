@@ -928,21 +928,45 @@
                 const studentRef = doc(db, 'students', window.currentStudentId);
                 await updateDoc(studentRef, updatedData);
 
-                const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height>0 && weight>0;
+               const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height>0 && weight>0;
                 if (bmiChanged) {
                     const bmi = calculateBMI(weight, height);
                     const category = getBMICategory(bmi);
+
+                    // Check if student already has a pre-BMI record
+                    const existingBMI = await getDocs(
+                        query(collection(db,'BMI'),
+                            where('email','==', email),
+                            where('testType','==','pre')
+                        )
+                    );
+
+                    let testType = 'pre';
+                    if (!existingBMI.empty) {
+                        // Already has a pre-BMI — check if 5 minutes have passed since first pre-BMI
+                        const firstPre = existingBMI.docs
+                            .map(d => new Date(d.data().recordedAt))
+                            .sort((a,b) => a - b)[0];
+                        const minutesPassed = (Date.now() - firstPre.getTime()) / 1000 / 60;
+                        if (minutesPassed >= 5) {
+                            testType = 'post';
+                        }
+                    }
+
                     await addDoc(collection(db,'BMI'), {
                         studentId: window.currentStudentId,
                         studentName: `${ni.firstName} ${ni.lastName}`.trim(),
                         umakId: extractedId,
                         section: window.currentStudentData?.section || 'Not Assigned',
                         email, height, weight,
-                        bmi: parseFloat(bmi), category, testType: 'pre',
+                        bmi: parseFloat(bmi), category, testType,
                         recordedAt: new Date().toISOString(), recordedBy: 'student',
                         updatedAt: new Date().toISOString()
                     });
-                    showProfileSavePopup('success','Profile and BMI record updated successfully!');
+
+                    showProfileSavePopup('success', testType === 'post'
+                        ? 'Profile updated! BMI saved as Post-Assessment.'
+                        : 'Profile updated! BMI saved as Pre-Assessment.');
                 } else {
                     showProfileSavePopup('success','Profile updated successfully!');
                 }
