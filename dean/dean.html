@@ -2955,6 +2955,16 @@ populateSectionFilters();
             allSnap.forEach(d => { const data=d.data(); const tt=(data.testType||data.type||'').toLowerCase(); if(tt==='post') postAssessments.push({id:d.id,...data}); });
             postAssessments.forEach(a => { const umakId=(a.umakId||'').toUpperCase(); const email=(a.email||'').toLowerCase(); const matchedPre=preAssessments.find(p=>(p.umakId&&p.umakId.toUpperCase()===umakId)||(p.email&&p.email.toLowerCase()===email)); if(matchedPre&&matchedPre._fullName) a._fullName=matchedPre._fullName; if(a.bmi&&!a.category) a.category=getBMICategory(parseFloat(a.bmi)); });
             postAssessments.sort((a,b)=>new Date(b.recordedAt||b.updatedAt||b.assessmentDate||0)-new Date(a.recordedAt||a.updatedAt||a.assessmentDate||0));
+
+            // Keep only the latest post-assessment per student (no duplicates)
+            const seenPostStudents = new Set();
+            postAssessments = postAssessments.filter(a => {
+                const key = (a.umakId||'').toUpperCase() || (a.email||'').toLowerCase() || (a.studentName||a.name||'').toLowerCase();
+                if (!key || seenPostStudents.has(key)) return false;
+                seenPostStudents.add(key);
+                return true;
+            });
+
             postAssessments.forEach(post => { const pre=preAssessments.find(p=>(p.studentId&&p.studentId===post.studentId)||(p.email&&p.email===post.email)||(p.umakId&&p.umakId===post.umakId)); if(pre&&pre.bmi&&post.bmi) post._bmiChange=parseFloat(post.bmi)-parseFloat(pre.bmi); });
             document.getElementById('totalPostAssessments').textContent=postAssessments.length;
             renderPostAssessmentsTable();
