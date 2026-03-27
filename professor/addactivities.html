@@ -1031,8 +1031,8 @@ function clearNormInputError(input) {
     input.style.borderColor = '';
     input.style.boxShadow = '';
 }
-    window.addEventListener('pagehide', () => { clearInterval(window._headerDateInterval); clearInterval(window._statusInterval); });
-    window.addEventListener('beforeunload', () => { clearInterval(window._statusInterval); });
+window.addEventListener('pagehide', () => { clearInterval(window._headerDateInterval); clearInterval(window._statusInterval); if(window._scheduledTestsUnsub) window._scheduledTestsUnsub(); });
+window.addEventListener('beforeunload', () => { clearInterval(window._statusInterval); if(window._scheduledTestsUnsub) window._scheduledTestsUnsub(); });
 </script>
 
 <!-- ── MAIN FIREBASE MODULE ── -->
@@ -1041,7 +1041,7 @@ import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.7.1/fireb
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import {
     getFirestore, collection, query, where, getDocs, orderBy,
-    doc, getDoc, addDoc, serverTimestamp, deleteDoc, updateDoc, setDoc
+    doc, getDoc, addDoc, serverTimestamp, deleteDoc, updateDoc, setDoc, onSnapshot
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
     resolveTestKey, resolveAgeGroup, resolveGender, extractNumericResult,
@@ -1349,11 +1349,45 @@ async function loadScheduledTests(userEmail, userId) {
         window.assignedSections = await resolveAssignedSections(userEmail);
 
         // Query scheduled tests by email (indexed)
-        let testsSnap = await getDocs(query(collection(db,'scheduledTests'), where('professorEmail','==',userEmail)));
-        // Fallback to uid if no results
-        if (testsSnap.empty) {
-            testsSnap = await getDocs(query(collection(db,'scheduledTests'), where('professorId','==',userId)));
-        }
+        // Real-time listener for scheduled tests
+        if (window._scheduledTestsUnsub) window._scheduledTestsUnsub();
+
+        window._scheduledTestsUnsub = onSnapshot(
+            query(collection(db,'scheduledTests'), where('professorEmail','==',userEmail)),
+            async (testsSnap) => {
+                // Permissions
+                const permSnap = await getDocs(query(collection(db,'testPermissions'), where('grantedBy','==',userEmail)));
+                const enabledTestsMap = new Map();
+                permSnap.forEach(d => { const p=d.data(); if(!enabledTestsMap.has(p.testId)) enabledTestsMap.set(p.testId,[]); enabledTestsMap.get(p.testId).push(p.studentEmail); });
+
+                window.allScheduledTests = [];
+                testsSnap.forEach(d => window.allScheduledTests.push({ id:d.id, ...d.data() }));
+                window.allScheduledTests.sort((a,b) => {
+                    const ta = a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
+                    const tb2 = b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);
+                    return tb2-ta;
+                });
+
+                _lastStatusSnapshot = new Map();
+                const now = new Date();
+                window.allScheduledTests.forEach(t => {
+                    const tdt = new Date(t.dateTime||`${t.date}T${t.time||'00:00'}`);
+                    const ddt = new Date(t.deadlineDateTime);
+                    t.status = tdt<=now&&ddt>=now?'active':ddt<now?'completed':'scheduled';
+                    _lastStatusSnapshot.set(t.id, t.status);
+                });
+
+                window._enabledTestsMap = enabledTestsMap;
+                populateSectionSortDropdown();
+                renderScheduleTable(window.allScheduledTests, enabledTestsMap);
+            },
+            (err) => console.error('scheduledTests listener error:', err)
+        );
+
+        // Early return — listener handles everything
+        window.loadScheduledTests = loadScheduledTests;
+        window.renderScheduleTable = renderScheduleTable;
+        return;
 
         // Permissions
         const permSnap = await getDocs(query(collection(db,'testPermissions'), where('grantedBy','==',userEmail)));

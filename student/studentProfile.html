@@ -928,47 +928,83 @@
                 const studentRef = doc(db, 'students', window.currentStudentId);
                 await updateDoc(studentRef, updatedData);
 
-               const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height>0 && weight>0;
+                const bmiChanged = (height !== oldHeight || weight !== oldWeight) && height > 0 && weight > 0;
                 if (bmiChanged) {
                     const bmi = calculateBMI(weight, height);
                     const category = getBMICategory(bmi);
 
-                    // Check if student already has a pre-BMI record
-                    const existingBMI = await getDocs(
-                        query(collection(db,'BMI'),
-                            where('email','==', email),
-                            where('testType','==','pre')
+                    // Check existing pre-BMI record
+                    const existingPreSnap = await getDocs(
+                        query(collection(db, 'BMI'),
+                            where('email', '==', email),
+                            where('testType', '==', 'pre')
                         )
                     );
 
-                    let testType = 'pre';
-                    if (!existingBMI.empty) {
-                        // Already has a pre-BMI — check if 5 minutes have passed since first pre-BMI
-                        const firstPre = existingBMI.docs
+                    if (existingPreSnap.empty) {
+                        // Walang pre pa → save as pre
+                        await addDoc(collection(db, 'BMI'), {
+                            studentId: window.currentStudentId,
+                            studentName: `${ni.firstName} ${ni.lastName}`.trim(),
+                            umakId: extractedId,
+                            section: window.currentStudentData?.section || 'Not Assigned',
+                            email, height, weight,
+                            bmi: parseFloat(bmi), category,
+                            testType: 'pre',
+                            recordedAt: new Date().toISOString(),
+                            recordedBy: 'student',
+                            updatedAt: new Date().toISOString()
+                        });
+                        showProfileSavePopup('success', 'Profile updated! BMI saved as Pre-Assessment.');
+                    } else {
+                        // May pre na → check 5 minutes
+                        const firstPre = existingPreSnap.docs
                             .map(d => new Date(d.data().recordedAt))
-                            .sort((a,b) => a - b)[0];
+                            .sort((a, b) => a - b)[0];
                         const minutesPassed = (Date.now() - firstPre.getTime()) / 1000 / 60;
-                        if (minutesPassed >= 5) {
-                            testType = 'post';
+
+                        if (minutesPassed < 5) {
+                            // Hindi pa 5 mins → skip BMI save
+                            showProfileSavePopup('success', 'Profile updated! (BMI will save as Post-Assessment after 5 minutes.)');
+                        } else {
+                            // Check if may post na
+                            const existingPostSnap = await getDocs(
+                                query(collection(db, 'BMI'),
+                                    where('email', '==', email),
+                                    where('testType', '==', 'post')
+                                )
+                            );
+
+                            if (existingPostSnap.empty) {
+                                // Walang post pa → save as post (bago)
+                                await addDoc(collection(db, 'BMI'), {
+                                    studentId: window.currentStudentId,
+                                    studentName: `${ni.firstName} ${ni.lastName}`.trim(),
+                                    umakId: extractedId,
+                                    section: window.currentStudentData?.section || 'Not Assigned',
+                                    email, height, weight,
+                                    bmi: parseFloat(bmi), category,
+                                    testType: 'post',
+                                    recordedAt: new Date().toISOString(),
+                                    recordedBy: 'student',
+                                    updatedAt: new Date().toISOString()
+                                });
+                                showProfileSavePopup('success', 'Profile updated! BMI saved as Post-Assessment.');
+                            } else {
+                                // May post na → UPDATE lang, huwag mag-add ng bago
+                                const postDocRef = existingPostSnap.docs
+                                    .sort((a, b) => new Date(a.data().recordedAt) - new Date(b.data().recordedAt))[0].ref;
+                                await updateDoc(postDocRef, {
+                                    height, weight,
+                                    bmi: parseFloat(bmi), category,
+                                    updatedAt: new Date().toISOString()
+                                });
+                                showProfileSavePopup('success', 'Profile updated! Post-Assessment BMI updated.');
+                            }
                         }
                     }
-
-                    await addDoc(collection(db,'BMI'), {
-                        studentId: window.currentStudentId,
-                        studentName: `${ni.firstName} ${ni.lastName}`.trim(),
-                        umakId: extractedId,
-                        section: window.currentStudentData?.section || 'Not Assigned',
-                        email, height, weight,
-                        bmi: parseFloat(bmi), category, testType,
-                        recordedAt: new Date().toISOString(), recordedBy: 'student',
-                        updatedAt: new Date().toISOString()
-                    });
-
-                    showProfileSavePopup('success', testType === 'post'
-                        ? 'Profile updated! BMI saved as Post-Assessment.'
-                        : 'Profile updated! BMI saved as Pre-Assessment.');
                 } else {
-                    showProfileSavePopup('success','Profile updated successfully!');
+                    showProfileSavePopup('success', 'Profile updated successfully!');
                 }
 
                 bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
