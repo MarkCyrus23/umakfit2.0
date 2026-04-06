@@ -64,6 +64,24 @@
     }
 
     /* Notification Styles */
+    .notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: .15rem .4rem;
+    border-radius: 10px;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,.3);
+    animation: pulse 2s infinite;
+}
     .notification-bell-btn {
         background: rgba(255, 255, 255, 0.2);
         border: 2px solid rgba(255, 255, 255, 0.3);
@@ -897,7 +915,7 @@
                         <div class="relative">
                           <button id="notificationBellBtn" class="w-9 h-9 xl:w-10 xl:h-10 bg-white/20 border-2 border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 hover:scale-110 transition-all">
                                 <i class="bi bi-bell-fill text-base xl:text-lg"></i>
-                                <span id="navNotificationCount" class="notification-badge hidden">0</span>
+<span id="navNotificationCount" class="notification-badge hidden">0</span>
                             </button>
                             <div id="notificationDropdown" class="notification-dropdown hidden">
                                 <div class="notification-dropdown-header"><h6 class="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2"><i class="bi bi-bell-fill text-blue-500"></i> Notifications</h6><button id="closeNotificationBtn" class="text-gray-400 hover:text-gray-600 p-1 transition-colors"><i class="bi bi-x-lg"></i></button></div>
@@ -938,7 +956,7 @@
                         <div class="relative">
                             <button id="notificationBellBtnMobile" class="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 border-2 border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 hover:scale-110 transition-all">
                                 <i class="bi bi-bell-fill text-base sm:text-lg"></i>
-                                <span id="navNotificationCountMobile" class="notification-badge hidden">0</span>
+<span id="navNotificationCountMobile" class="notification-badge hidden">0</span>
                             </button>
                             <div id="notificationDropdownMobile" class="notification-dropdown hidden fixed right-2 left-2 top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
                                 <div class="notification-dropdown-header"><h6 class="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2"><i class="bi bi-bell-fill text-blue-500"></i> Notifications</h6><button id="closeNotificationBtnMobile" class="text-gray-400 hover:text-gray-600 p-1 transition-colors"><i class="bi bi-x-lg"></i></button></div>
@@ -1113,44 +1131,88 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer style="background: linear-gradient(135deg, #0D1B2A 0%, #1A2B3C 50%, #2C4A5E 100%); border-top: 1px solid rgba(255,255,255,0.07); padding: clamp(3rem,6vw,5rem) clamp(1.5rem,5vw,4rem) 2rem; margin-top: 3rem;">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 text-center lg:text-left">
-                <div>
-                    <div class="flex items-center justify-center lg:justify-start gap-3 mb-4">
-                        <img src="UMakfit Logo (2).png" alt="UMak Logo" class="h-12 w-auto object-contain" onerror="this.style.display='none'">
-                        <div>
-                            <h6 class="text-yellow-400 font-bold text-lg lg:text-xl mb-1">UMakFit</h6>
-                            <p class="text-xs lg:text-sm text-blue-200 font-medium">College of Human Kinetics</p>
+ 
+        <!-- Footer -->
+        <footer style="background: linear-gradient(135deg, #0D1B2A 0%, #1A2B3C 50%, #2C4A5E 100%); border-top: 1px solid rgba(255,255,255,0.07);"
+                class="mt-12 px-6 sm:px-10 lg:px-16 pt-12 pb-8">
+            <div class="container mx-auto max-w-7xl">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 text-center lg:text-left">
+                    <div>
+                        <div class="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                            <img src="UMakfit Logo (2).png" alt="UMak Logo" class="h-12 w-auto object-contain">
+                            <div>
+                                <h6 class="text-yellow-400 font-bold text-lg lg:text-xl mb-1">UMakFit</h6>
+                                <p class="text-xs lg:text-sm text-blue-200 font-medium">College of Human Kinetics</p>
+                            </div>
+                        </div>
+                        <p class="text-sm lg:text-base leading-relaxed text-blue-100">
+                            UMakFit is the official fitness assessment and tracking platform of the College of Human Kinetics at University of Makati.
+                        </p>
+                        <div class="mt-4 flex flex-wrap gap-2 justify-center lg:justify-start">
+                            <span class="bg-white/[0.06] border border-white/[0.08] text-white/50 text-[0.7rem] px-2.5 py-1 rounded-full font-medium">Fitness Tracking</span>
+                            <span class="bg-white/[0.06] border border-white/[0.08] text-white/50 text-[0.7rem] px-2.5 py-1 rounded-full font-medium">Performance Assessment</span>
+                            <span class="bg-white/[0.06] border border-white/[0.08] text-white/50 text-[0.7rem] px-2.5 py-1 rounded-full font-medium">Health &amp; Wellness</span>
                         </div>
                     </div>
-                    <p class="text-sm lg:text-base leading-relaxed text-blue-100">UMakFit is the official fitness assessment and tracking platform of the College of Human Kinetics at University of Makati.</p>
-                </div>
-                <div>
-                    <h6 class="text-yellow-400 font-semibold text-xs uppercase tracking-wider mb-3">Quick Links</h6>
-                    <div class="space-y-2">
-                        <a href="./studentDashboard.html" class="block text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base"><i class="bi bi-speedometer2 mr-2 w-4 opacity-80"></i>Dashboard</a>
-                        <a href="./test.html" class="block text-yellow-300 font-semibold text-sm lg:text-base"><i class="bi bi-clipboard-check mr-2 w-4 opacity-80"></i>Tests</a>
-                        <a href="./studentlesson.html" class="block text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base"><i class="bi bi-book mr-2 w-4 opacity-80"></i>Lessons</a>
-                        <a href="./progress.html" class="block text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base"><i class="bi bi-graph-up mr-2 w-4 opacity-80"></i>Progress</a>
-                        <a href="./studentgrades.html" class="block text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base"><i class="bi bi-award mr-2 w-4 opacity-80"></i>Grades</a>
-                        <a href="./studentProfile.html" class="block text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base"><i class="bi bi-person-circle mr-2 w-4 opacity-80"></i>Profile</a>
-                        <a href="./achievements.html" class="block text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base"><i class="bi bi-trophy mr-2 w-4 opacity-80"></i>Achievements</a>
+                    <div>
+                        <h6 class="text-yellow-400 font-bold text-lg lg:text-xl mb-4 lg:mb-6">Quick Links</h6>
+                        <div class="grid grid-cols-2 gap-4 lg:gap-6">
+                            <div class="space-y-3">
+                                <a href="./studentlesson.html" class="block text-blue-100 hover:text-yellow-300 hover:translate-x-1 transition-all duration-200 text-sm lg:text-base"><i class="bi bi-book mr-2"></i>Lessons</a>
+                                <a href="./test.html" class="block text-blue-100 hover:text-yellow-300 hover:translate-x-1 transition-all duration-200 text-sm lg:text-base"><i class="bi bi-clipboard-check mr-2"></i>Tests</a>
+                                <a href="./progress.html" class="block text-blue-100 hover:text-yellow-300 hover:translate-x-1 transition-all duration-200 text-sm lg:text-base"><i class="bi bi-graph-up mr-2"></i>Progress</a>
+                            </div>
+                            <div class="space-y-3">
+                                <a href="./studentgrades.html" class="block text-blue-100 hover:text-yellow-300 hover:translate-x-1 transition-all duration-200 text-sm lg:text-base"><i class="bi bi-award mr-2"></i>Grades</a>
+                                <a href="./studentProfile.html" class="block text-blue-100 hover:text-yellow-300 hover:translate-x-1 transition-all duration-200 text-sm lg:text-base"><i class="bi bi-person-circle mr-2"></i>Profile</a>
+                                <a href="./achievements.html" class="block text-blue-100 hover:text-yellow-300 hover:translate-x-1 transition-all duration-200 text-sm lg:text-base"><i class="bi bi-trophy mr-2"></i>Achievements</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h6 class="text-yellow-400 font-bold text-lg lg:text-xl mb-4 lg:mb-6">Get In Touch</h6>
+                        <div class="space-y-4 lg:space-y-5">
+                            <div class="flex items-start gap-3">
+                                <i class="bi bi-geo-alt-fill text-yellow-400 text-lg lg:text-xl mt-1"></i>
+                                <p class="text-sm lg:text-base text-blue-100">
+                                    College of Human Kinetics<br>University of Makati<br>
+                                    3rd floor, Administration Building,<br>JP Rizal Ext., West Rembo, Taguig City
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="bi bi-envelope-fill text-yellow-400 text-lg lg:text-xl"></i>
+                                <a href="mailto:chk@umak.edu.ph" class="text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base">chk@umak.edu.ph</a>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="bi bi-telephone-fill text-yellow-400 text-lg lg:text-xl"></i>
+                                <span class="text-blue-100 text-sm lg:text-base">+63 933 189 7230</span>
+                            </div>
+<div class="flex items-center gap-3">
+    <i class="bi bi-facebook text-yellow-400 text-lg lg:text-xl"></i>
+    <a href="https://www.facebook.com/profile.php?id=61577064971920" target="_blank"
+       class="text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base">
+        UMakFit Facebook
+    </a>
+</div>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <h6 class="text-yellow-400 font-bold text-lg lg:text-xl mb-4 lg:mb-6">Get In Touch</h6>
-                    <p class="text-sm lg:text-base text-blue-100"><i class="bi bi-geo-alt-fill text-yellow-400 mr-2"></i>College of Human Kinetics, University of Makati, JP Rizal Ext., West Rembo, Taguig City</p>
-                    <a href="mailto:chk@umak.edu.ph" class="block text-blue-100 hover:text-yellow-300 text-sm lg:text-base mt-2"><i class="bi bi-envelope-fill text-yellow-400 mr-2"></i>chk@umak.edu.ph</a>
-                    <p class="text-sm lg:text-base text-blue-100 mt-2"><i class="bi bi-telephone-fill text-yellow-400 mr-2"></i>+63 933 189 7230</p>
+                <div class="border-t border-blue-600/50 mt-8 lg:mt-12 pt-6 lg:pt-8">
+                    <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                        <p class="text-xs lg:text-sm text-blue-200 text-center lg:text-left">
+                            © 2025 University of Makati - College of Human Kinetics. All Rights Reserved.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-3 lg:gap-4">
+                            <a href="https://umak.edu.ph" target="_blank" class="text-xs lg:text-sm text-blue-200 hover:text-yellow-300 transition-colors">University of Makati</a>
+                            <span class="text-blue-400">•</span>
+                            <a href="https://library.umak.edu.ph" target="_blank" class="text-xs lg:text-sm text-blue-200 hover:text-yellow-300 transition-colors">UMak Online Library</a>
+                            <span class="text-blue-400">•</span>
+                            <a href="https://tbl.umak.edu.ph" target="_blank" class="text-xs lg:text-sm text-blue-200 hover:text-yellow-300 transition-colors">TBL Hub</a>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="border-t border-blue-600/50 mt-8 pt-6 text-center">
-                <p class="text-xs lg:text-sm text-blue-200">© 2025 University of Makati — College of Human Kinetics. All Rights Reserved.</p>
-            </div>
-        </div>
-    </footer>
+        </footer>
  </div> 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -1180,11 +1242,12 @@
             try {
                 if (!studentData || !studentData.section) return;
 
-                const notificationsQuery = query(
-                    collection(db, 'notifications'),
-                    where('section', '==', studentData.section)
-                );
-                
+// checkUnreadNotifications — may email filter na
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email) // ← ito yung kulang dati
+);
                 const notificationsSnapshot = await getDocs(notificationsQuery);
                 
                 const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
@@ -1233,11 +1296,12 @@
                     `;
                     return;
                 }
-
-                const notificationsQuery = query(
-                    collection(db, 'notifications'),
-                    where('section', '==', studentData.section)
-                );
+// setupNotificationListener — may email filter na rin
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email) // ← ito rin
+);
                 
                 const notificationsSnapshot = await getDocs(notificationsQuery);
                 const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
@@ -1322,11 +1386,12 @@
         async function updateNotificationBadgeAfterRead(markedAsReadIds) {
             try {
                 if (!studentData || !studentData.section) return;
-                
-                const notificationsQuery = query(
-                    collection(db, 'notifications'),
-                    where('section', '==', studentData.section)
-                );
+// setupNotificationListener — may email filter na rin
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email) // ← ito rin
+);
                 
                 const notificationsSnapshot = await getDocs(notificationsQuery);
                 const uniqueNotificationIds = new Set();
@@ -1396,10 +1461,12 @@
             try {
                 if (!studentData || !studentData.section) return;
 
-                const notificationsQuery = query(
-                    collection(db, 'notifications'),
-                    where('section', '==', studentData.section)
-                );
+// setupNotificationListener — may email filter na rin
+const notificationsQuery = query(
+    collection(db, 'notifications'),
+    where('section', '==', studentData.section),
+    where('studentEmail', '==', studentData.email) // ← ito rin
+);
                 
                 onSnapshot(notificationsQuery, (snapshot) => {
                     console.log('🔔 Notification update detected!');
@@ -1626,30 +1693,18 @@
                     videoId = test.videoURL.split('embed/')[1].split('?')[0];
                 }
                 
-                if (videoId) {
-                    videoPlaceholder.innerHTML = `
-                        <div style="position: relative; width: 100%; height: 100%; cursor: pointer; border-radius: 8px; overflow: hidden;" onclick="window.open('${test.videoURL}', '_blank')">
-                            <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" 
-                                 alt="Video Thumbnail" 
-                                 style="width: 100%; height: 100%; object-fit: cover;"
-                                 onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'">
-                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                                        background: rgba(255, 0, 0, 0.9); width: 80px; height: 80px; 
-                                        border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                                <div style="width: 0; height: 0; border-left: 25px solid white; 
-                                            border-top: 15px solid transparent; border-bottom: 15px solid transparent;
-                                            margin-left: 5px;"></div>
-                            </div>
-                            <div style="position: absolute; bottom: 0; left: 0; right: 0; 
-                                        background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); 
-                                        padding: 20px; color: white; font-weight: 600;">
-                                🎥 Click to Watch on YouTube
-                            </div>
-                        </div>
-                    `;
-                    document.getElementById('videoDescription').textContent = '📺 Click the video to watch the instruction from your professor';
-                } else {
+if (videoId) {
+    videoPlaceholder.innerHTML = `
+        <iframe 
+            src="https://www.youtube.com/embed/${videoId}"
+            title="Test Demonstration"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            style="width: 100%; height: 100%; border-radius: 12px;">
+        </iframe>
+    `;
+    document.getElementById('videoDescription').textContent = '📺 Watch the instruction video from your professor above';                } else {
                     videoPlaceholder.innerHTML = `
                         <div style="padding: 40px; text-align: center; background: #fee2e2; border-radius: 8px;">
                             <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>

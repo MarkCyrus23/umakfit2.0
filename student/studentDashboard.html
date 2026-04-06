@@ -135,8 +135,8 @@
     <div id="mainContent" class="hidden">
 
         <!-- Navigation -->
-        <nav class="shadow-lg" style="background: linear-gradient(135deg, #0D1B2A 0%, #1A2B3C 50%, #2C4A5E 100%);">
-            <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-5">
+<nav class="shadow-lg" style="background: linear-gradient(135deg, #0D1B2A 0%, #1A2B3C 50%, #2C4A5E 100%); position: sticky; top: 0; z-index: 50;">
+                <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-5">
                 <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
                     <a href="./studentDashboard.html" class="flex items-center gap-2 sm:gap-3">
                         <img src="UMakfit Logo (2).png" alt="UMak Logo" class="h-12 sm:h-14 md:h-16 w-auto object-contain">
@@ -591,12 +591,13 @@
                                 <i class="bi bi-telephone-fill text-yellow-400 text-lg lg:text-xl"></i>
                                 <span class="text-blue-100 text-sm lg:text-base">+63 933 189 7230</span>
                             </div>
-                            <div class="flex gap-2 pt-2 justify-center lg:justify-start">
-                                <a href="https://www.facebook.com/profile.php?id=61577064971920" target="_blank"
-                                   class="w-9 h-9 bg-white/[0.06] border border-white/10 rounded-lg flex items-center justify-center text-white/50 text-sm hover:bg-amber-500/15 hover:border-amber-500/30 hover:text-amber-400 transition-all">f</a>
-                                <a href="#"
-                                   class="w-9 h-9 bg-white/[0.06] border border-white/10 rounded-lg flex items-center justify-center text-white/50 text-sm hover:bg-amber-500/15 hover:border-amber-500/30 hover:text-amber-400 transition-all">▶</a>
-                            </div>
+<div class="flex items-center gap-3">
+    <i class="bi bi-facebook text-yellow-400 text-lg lg:text-xl"></i>
+    <a href="https://www.facebook.com/profile.php?id=61577064971920" target="_blank"
+       class="text-blue-100 hover:text-yellow-300 transition-colors text-sm lg:text-base">
+        UMakFit Facebook
+    </a>
+</div>
                         </div>
                     </div>
                 </div>
@@ -1752,23 +1753,7 @@ async function processAndUpdateStats(testResults) {
             });
         }
 
-        // ========== DEADLINE WATCHER ==========
-
-        function setupDashboardDeadlineWatcher() {
-            setInterval(async () => {
-                if (!studentData?.section) return;
-                try {
-                    const tests = await fetchScheduledTests(studentData.section);
-                    const results = await fetchAllTestResults(studentData.email);
-                    const now = new Date();
-                    const hasExpired = tests.some(t => {
-                        const dl = t.deadlineDateTime ? new Date(t.deadlineDateTime) : (() => { const dt = new Date(t.deadline); dt.setHours(23,59,59,999); return dt; })();
-                        return dl < now;
-                    });
-                    if (hasExpired) processAndUpdateUpcomingTests(tests, results);
-                } catch (_) {}
-            }, 10000);
-        }
+  
 
         // ========== CALENDAR ==========
 
@@ -2137,6 +2122,64 @@ async function processAndUpdateStats(testResults) {
             overlay.appendChild(card);
             document.body.appendChild(overlay);
         }
+        // Hide on scroll down, show on scroll up
+const navbar = document.querySelector('nav');
+let lastScrollY = window.scrollY;
+
+window.addEventListener('scroll', () => {
+    const currentScrollY = window.scrollY;
+    
+    if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        // Scrolling DOWN — hide navbar
+        navbar.style.transform = 'translateY(-100%)';
+        navbar.style.transition = 'transform 0.3s ease';
+    } else {
+        // Scrolling UP — show navbar
+        navbar.style.transform = 'translateY(0)';
+        navbar.style.transition = 'transform 0.3s ease';
+    }
+    
+    lastScrollY = currentScrollY;
+});
+// ========== DEADLINE WATCHER (polls every 10s) ==========
+function setupDashboardDeadlineWatcher() {
+    let lastFingerprint = null;
+
+    async function pollUpcomingTests() {
+        if (!studentData?.section) return;
+        try {
+            const [tests, results] = await Promise.all([
+                fetchScheduledTests(studentData.section),
+                fetchAllTestResults(studentData.email)
+            ]);
+
+            const now = new Date();
+            const fingerprint = tests
+                .filter(t => {
+                    const dl = t.deadlineDateTime
+                        ? new Date(t.deadlineDateTime)
+                        : (() => { const d = new Date(t.deadline); d.setHours(23,59,59,999); return d; })();
+                    return dl >= now;
+                })
+                .map(t => `${t.id}:${t.deadline || ''}:${t.deadlineDateTime || ''}:${t.isVisible}`)
+                .sort()
+                .join('|');
+
+            if (lastFingerprint === null) {
+                lastFingerprint = fingerprint;
+                return;
+            }
+
+            if (fingerprint !== lastFingerprint) {
+                lastFingerprint = fingerprint;
+                await processAndUpdateUpcomingTests(tests, results);
+                generateMiniCalendar(tests); // update calendar din kapag may bagong test
+            }
+        } catch (_) {}
+    }
+
+    setInterval(pollUpcomingTests, 10000);
+}
     </script>
 </body>
 </html>
