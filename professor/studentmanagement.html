@@ -610,7 +610,7 @@
             <div class="table-responsive" style="display:block !important; overflow-x:hidden !important; overflow-y:auto !important;">
                 <table class="custom-table" style="min-width:100%;">
                     <thead style="position:sticky; top:0; z-index:10;">
-                        <tr><th>Test Name</th><th>Status</th><th>Deadline</th><th>Result</th><th>Actions</th></tr>
+<tr><th>Test Name</th><th>Status</th><th>Deadline</th><th>Performance</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="studentTestsTableBody"></tbody>
                 </table>
@@ -1995,12 +1995,13 @@ window.loadOverdueStudents = async function() {
                     const data = d.data();
                     const key = `${data.studentEmail}_${data.testId}`;
                     if (!completedMap.has(key)) {
-                        completedMap.set(key, {
-                            resultId: d.id,
-                            result: data.result,
-                            status: data.status,
-                            category: data.category || data.score
-                        });
+                      completedMap.set(key, {
+    resultId: d.id,
+    result: data.result ?? null,
+    repetitions: data.repetitions ?? null,
+    status: data.status,
+    category: data.score || data.category
+});
                     }
                 });
             }
@@ -2042,6 +2043,8 @@ window.loadOverdueStudents = async function() {
                         currentCategory: completed?.category || null,
                         resultId: completed?.resultId || null,
                         status: completed?.status || 'not-started',
+                        result: completed?.result ?? null,
+repetitions: completed?.repetitions ?? null,
                     });
                 });
             });
@@ -2571,56 +2574,76 @@ if (att.submittedAt) {
         if(n.includes('bmi')) return 'fas fa-weight-scale';
         return 'fas fa-clipboard-check';
     }
-
-    function filterStudentTests() {
-        if (!currentStudentTests.length) return;
-        let filtered = currentFilter==='all-tests' ? [...currentStudentTests] : currentStudentTests.filter(t => {
-            const n=(t.testName||'').toLowerCase();
-            switch(currentFilter) {
-                case 'curl-up':       return n.includes('curl');
-                case 'sit-up':        return n.includes('sit-up')&&!n.includes('reach');
-                case 'push-up':       return n.includes('push-up');
-                case 'plank':         return n.includes('plank');
-                case 'sit-and-reach': return n.includes('sit-and-reach')||n.includes('reach');
-                case 'step-test':     return n.includes('step')||n.includes('3-minute');
-                case 'grip-strength': return n.includes('grip');
-                case 'mile-run':      return n.includes('mile')||n.includes('run');
-                case 'bmi':           return n.includes('bmi');
-                case 'flexibility':   return n.includes('flexibility');
-                default:              return true;
-            }
-        });
-        currentStudentTestsFiltered = filtered;
-        sortStudentTests();
-    }
-
-    function sortStudentTests() {
-        if (!currentStudentTestsFiltered.length) currentStudentTestsFiltered=[...currentStudentTests];
-        const sorted = [...currentStudentTestsFiltered];
-        switch(currentSort) {
-            case 'newest-first':  sorted.sort((a,b)=>b.deadline-a.deadline); break;
-            case 'oldest-first':  sorted.sort((a,b)=>a.deadline-b.deadline); break;
-            case 'test-name-a-z': sorted.sort((a,b)=>a.testName.localeCompare(b.testName)); break;
-            case 'test-name-z-a': sorted.sort((a,b)=>b.testName.localeCompare(a.testName)); break;
-            case 'status':        sorted.sort((a,b)=>{ if(!a.hasCompleted&&b.hasCompleted) return -1; if(a.hasCompleted&&!b.hasCompleted) return 1; return b.deadline-a.deadline; }); break;
+async function filterStudentTests() {
+    if (!currentStudentTests.length) return;
+    let filtered = currentFilter==='all-tests' ? [...currentStudentTests] : currentStudentTests.filter(t => {
+        const n=(t.testName||'').toLowerCase();
+        switch(currentFilter) {
+            case 'curl-up':       return n.includes('curl');
+            case 'sit-up':        return n.includes('sit-up')&&!n.includes('reach');
+            case 'push-up':       return n.includes('push-up');
+            case 'plank':         return n.includes('plank');
+            case 'sit-and-reach': return n.includes('sit-and-reach')||n.includes('reach');
+            case 'step-test':     return n.includes('step')||n.includes('3-minute');
+            case 'grip-strength': return n.includes('grip');
+            case 'mile-run':      return n.includes('mile')||n.includes('run');
+            case 'bmi':           return n.includes('bmi');
+            case 'flexibility':   return n.includes('flexibility');
+            default:              return true;
         }
-        renderStudentTestsTable(sorted);
+    });
+    currentStudentTestsFiltered = filtered;
+    await sortStudentTests();
+}
+async function sortStudentTests() {
+    if (!currentStudentTestsFiltered.length) currentStudentTestsFiltered=[...currentStudentTests];
+    const sorted = [...currentStudentTestsFiltered];
+    switch(currentSort) {
+        case 'newest-first':  sorted.sort((a,b)=>b.deadline-a.deadline); break;
+        case 'oldest-first':  sorted.sort((a,b)=>a.deadline-b.deadline); break;
+        case 'test-name-a-z': sorted.sort((a,b)=>a.testName.localeCompare(b.testName)); break;
+        case 'test-name-z-a': sorted.sort((a,b)=>b.testName.localeCompare(a.testName)); break;
+        case 'status':        sorted.sort((a,b)=>{ if(!a.hasCompleted&&b.hasCompleted) return -1; if(a.hasCompleted&&!b.hasCompleted) return 1; return b.deadline-a.deadline; }); break;
     }
-
-    function renderStudentTestsTable(tests) {
-        document.getElementById('studentTestsTableBody').innerHTML = !tests.length
-            ? `<tr><td colspan="5" style="text-align:center;padding:40px;color:#64748b;"><div style="font-size:48px;opacity:.3;margin-bottom:10px;">📋</div>No tests found</td></tr>`
-            : tests.map(item => `<tr style="${item.hasCompleted?'background-color:#f0fdf4;':''}">
-                <td data-label="Test Name"><strong style="color:${item.hasCompleted?'#10b981':'#ef4444'};">${esc(item.testName)}</strong>${item.isEnabled?'<br><small style="color:#2d6fc4;">✓ Enabled by you</small>':''}</td>
-                <td data-label="Status">${item.hasCompleted?'<span class="status-badge status-active">Completed</span>':'<span class="status-badge" style="background:#fee2e2;color:#991b1b;">Pending</span>'}</td>
-                <td data-label="Deadline"><small style="color:#64748b;">${esc(item.deadlineString)}</small></td>
-                <td data-label="Category">${item.hasCompleted&&item.currentCategory?renderCategoryBadge(item.currentCategory):'<span style="color:#64748b;">—</span>'}</td>
-                <td data-label="Actions"><div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    ${!item.hasCompleted&&!item.isEnabled?`<button class="btn-action btn-view" onclick="event.stopPropagation();enableOverdueTest('${item.studentEmail}','${item.testId}','${esc(item.testName)}')"><i class="fas fa-unlock"></i> Enable</button>`:''}
-                    ${!item.hasCompleted&&item.isEnabled?`<button class="btn-action" style="background:#ef4444;color:white;" onclick="event.stopPropagation();disableOverdueTest('${item.studentEmail}','${item.testId}','${esc(item.testName)}')"><i class="fas fa-lock"></i> Disable</button>`:''}
-                </div></td>
-            </tr>`).join('');
+    await renderStudentTestsTable(sorted);
+}
+ async function renderStudentTestsTable(tests) {
+    const tbody = document.getElementById('studentTestsTableBody');
+    if (!tests.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#64748b;"><div style="font-size:48px;opacity:.3;margin-bottom:10px;">📋</div>No tests found</td></tr>`;
+        return;
     }
+    const student = students.find(s => s.email === tests[0]?.studentEmail);
+    const rows = await Promise.all(tests.map(async item => {
+        let perfBadge = '<span style="color:#64748b;">—</span>';
+        if (item.hasCompleted) {
+            const rawVal = item.result ?? item.repetitions ?? null;
+            const cat = await getNormCategoryWithPriority(
+                item.testName, rawVal, item.testId,
+                item.studentEmail,
+                student?.gender || 'male',
+                _studentAge({ birthday: student?.birthday, age: student?.age })
+            );
+            perfBadge = renderCategoryBadge(cat);
+        }
+        let actionCell = '';
+        if (item.hasCompleted) {
+            actionCell = `<span style="display:inline-flex;align-items:center;gap:5px;background:#d1fae5;border:1px solid #a7f3d0;color:#065f46;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;">✓ Done</span>`;
+        } else if (!item.isEnabled) {
+            actionCell = `<button class="btn-action btn-view" onclick="event.stopPropagation();enableOverdueTest('${item.studentEmail}','${item.testId}','${(item.testName||'').replace(/'/g,"\\'")}')"><i class="fas fa-unlock"></i> Enable</button>`;
+        } else {
+            actionCell = `<button class="btn-action" style="background:#ef4444;color:white;" onclick="event.stopPropagation();disableOverdueTest('${item.studentEmail}','${item.testId}','${(item.testName||'').replace(/'/g,"\\'")}')"><i class="fas fa-lock"></i> Disable</button>`;
+        }
+        return `<tr style="${item.hasCompleted ? 'background-color:#f0fdf4;' : ''}">
+            <td data-label="Test Name"><strong style="color:${item.hasCompleted ? '#10b981' : '#ef4444'};">${item.testName||''}</strong>${item.isEnabled ? '<br><small style="color:#2d6fc4;">✓ Enabled by you</small>' : ''}</td>
+            <td data-label="Status">${item.hasCompleted ? '<span class="status-badge status-active">Completed</span>' : '<span class="status-badge" style="background:#fee2e2;color:#991b1b;">Pending</span>'}</td>
+            <td data-label="Deadline"><small style="color:#64748b;">${item.deadlineString||''}</small></td>
+            <td data-label="Performance">${perfBadge}</td>
+            <td data-label="Actions">${actionCell}</td>
+        </tr>`;
+    }));
+    tbody.innerHTML = rows.join('');
+}
 
     // Filter/sort dropdown toggles
     window.toggleFilterDropdown = e => { e.stopPropagation(); document.getElementById('filterDropdown').classList.toggle('show'); };
