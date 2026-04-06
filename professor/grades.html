@@ -90,21 +90,21 @@
             .grades-table tbody td:last-child{border-bottom:none}
             .grades-table tbody td::before{content:attr(data-label);font-weight:600;color:#4a5a72;font-size:12px;min-width:85px;flex-shrink:0}
             .grades-table tbody td>span,.grades-table tbody td>div,.grades-table tbody td>button{max-width:calc(100% - 95px);text-align:right;word-break:break-word}
-            .grid-cols-4{grid-template-columns:repeat(2,1fr)}
-            #studentDetailModal .grid.grid-cols-3{grid-template-columns:repeat(3,1fr) !important;gap:8px !important}
-            #studentDetailModal .grid.grid-cols-3>div{padding:10px 6px !important;border-radius:10px !important}
-            #studentDetailModal .grid.grid-cols-3 .text-2xl{font-size:16px !important}
-            #studentDetailModal .grid.grid-cols-3 .text-\[11px\]{font-size:9px !important}
+           .grid-cols-4{grid-template-columns:repeat(2,1fr)}
+    #studentDetailModal .grid.grid-cols-2{grid-template-columns:repeat(2,1fr) !important;gap:8px !important}
+    #studentDetailModal .grid.grid-cols-2>div{padding:10px 6px !important;border-radius:10px !important}
+    #studentDetailModal .grid.grid-cols-2 .text-2xl{font-size:16px !important}
+    #studentDetailModal .grid.grid-cols-2 .text-\[11px\]{font-size:9px !important}
         }
         .sidebar-scroll::-webkit-scrollbar{width:4px}
         .sidebar-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1)}
         @media(max-width:420px){
             .grades-table tbody td::before{min-width:75px;font-size:11px}
             .grades-table tbody td>span,.grades-table tbody td>div,.grades-table tbody td>button{max-width:calc(100% - 83px);font-size:13px}
-            #studentDetailModal .grid.grid-cols-3{grid-template-columns:repeat(3,1fr) !important;gap:6px !important}
-            #studentDetailModal .grid.grid-cols-3>div{padding:8px 4px !important}
-            #studentDetailModal .grid.grid-cols-3 .text-2xl{font-size:14px !important}
-            #studentDetailModal .grid.grid-cols-3 .text-\[11px\]{font-size:8px !important}
+            #studentDetailModal .grid.grid-cols-2{grid-template-columns:repeat(2,1fr) !important;gap:6px !important}
+            #studentDetailModal .grid.grid-cols-2>div{padding:8px 4px !important}
+            #studentDetailModal .grid.grid-cols-2 .text-2xl{font-size:14px !important}
+            #studentDetailModal .grid.grid-cols-2 .text-\[11px\]{font-size:8px !important}
             #studentDetailModal .p-6{padding:1rem !important}
             .detail-table th,.detail-table td{font-size:11px !important;padding:10px 8px !important}
         }
@@ -172,20 +172,16 @@
             <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-surface border-0 flex items-center justify-center cursor-pointer text-text-muted hover:bg-danger-bg hover:text-danger transition-all text-sm"><i class="fas fa-times"></i></button>
         </div>
         <div class="flex-1 overflow-y-auto p-6">
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="bg-gradient-to-br from-navy to-navy-light rounded-xl p-4 text-center text-white">
-                    <div class="text-2xl font-bold font-mono" id="detailTotalAct">0</div>
-                    <div class="text-[11px] text-white/55 mt-1 uppercase tracking-wide">Activities</div>
-                </div>
-                <div class="bg-gradient-to-br from-royal to-blue rounded-xl p-4 text-center text-white">
-                    <div class="text-2xl font-bold" id="detailAvgCategory">—</div>
-                    <div class="text-[11px] text-white/55 mt-1 uppercase tracking-wide">Overall</div>
-                </div>
-                <div class="rounded-xl p-4 text-center text-white" id="detailStatusCard">
-                    <div class="text-2xl font-bold" id="detailStatusText">—</div>
-                    <div class="text-[11px] text-white/55 mt-1 uppercase tracking-wide">Status</div>
-                </div>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-navy to-navy-light rounded-xl p-4 text-center text-white">
+                <div class="text-2xl font-bold font-mono" id="detailTotalAct">0</div>
+                <div class="text-[11px] text-white/55 mt-1 uppercase tracking-wide">Activities</div>
             </div>
+            <div class="bg-gradient-to-br from-royal to-blue rounded-xl p-4 text-center text-white">
+                <div class="text-2xl font-bold" id="detailAvgCategory">—</div>
+                <div class="text-[11px] text-white/55 mt-1 uppercase tracking-wide">Overall Performance</div>
+            </div>
+        </div>
             <h4 class="text-navy font-display font-bold text-lg mb-4 flex items-center gap-2">
                 <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-content:center text-white text-[11px] flex items-center justify-center"><i class="fas fa-history"></i></div>
                 Activity History
@@ -308,7 +304,6 @@
                         </div>
                     </div>
                     <div class="flex gap-2 flex-wrap">
-                        <button onclick="recalculateGrades()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-royal to-blue hover:from-navy-light hover:to-royal text-white rounded-xl text-sm font-semibold transition-all hover:-translate-y-px hover:shadow-lg"><i class="fas fa-calculator"></i> Recalculate</button>
                         <button onclick="exportGrades()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl text-sm font-semibold border border-white/20 transition-all hover:-translate-y-px"><i class="fas fa-download"></i> Export CSV</button>
                     </div>
                 </div>
@@ -644,14 +639,17 @@
         if(profUid)fq.push(getDocs(query(collection(db,'sections'),where('professorId','==',profUid))));
         fq.push(getDocs(query(collection(db,'sections'),where('professorEmail','==',profEmail))));
         const results=await Promise.all(fq);
-        results.forEach(snap=>snap.forEach(d=>{const data=d.data();const n=data.name;if(!n||addedNames.has(n)||data.archived)return;addedNames.add(n);assignedSections.push({id:d.id,section:n});}));
+        results.forEach(snap=>snap.forEach(d=>{const data=d.data();const n=data.name;if(!n||addedNames.has(n)||data.archived)return;const removedByMe=data.removedByProfessor&&(data.removedByProfessorEmail||'').toLowerCase()===profEmail;const pe=(data.professorEmail||'').toLowerCase();if(removedByMe||pe.startsWith('removed_'))return;addedNames.add(n);assignedSections.push({id:d.id,section:n});}));
         if(!assignedSections.length){
             const nv=new Set();['fullName','name','displayName'].forEach(f=>{if(currentProfessor[f])nv.add(currentProfessor[f].toUpperCase().trim());});
             if(currentUser.displayName)nv.add(currentUser.displayName.toUpperCase().trim());
             nv.add(profEmail.split('@')[0].toUpperCase().trim());nv.delete('');
             const nt=new Set();nv.forEach(n=>n.split(/[\s,\.]+/).forEach(w=>{if(w.length>=3)nt.add(w);}));
             const secSnap=await getDocs(collection(db,'sections'));
-            secSnap.forEach(d=>{const data=d.data();const dbProf=(data.professor||'').toString().trim().toUpperCase();if(!data.name||addedNames.has(data.name))return;let m=false;for(const v of nv){if(v.length>=3&&(dbProf===v||dbProf.includes(v)||v.includes(dbProf))){m=true;break;}}if(!m){const dw=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3);for(const w of dw){if(nt.has(w)){m=true;break;}}}if(m&&!data.archived){addedNames.add(data.name);assignedSections.push({id:d.id,section:data.name});}});
+            secSnap.forEach(d=>{const data=d.data();const dbProf=(data.professor||'').toString().trim().toUpperCase();if(!data.name||addedNames.has(data.name))return;let m=false;for(const v of nv){if(v.length>=3&&(dbProf===v||dbProf.includes(v)||v.includes(dbProf))){m=true;break;}}if(!m){const dw=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3);for(const w of dw){if(nt.has(w)){m=true;break;}}}
+           const removedByMe = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+        const pe = (data.professorEmail || '').toLowerCase();
+        if(m&&!data.archived&&!removedByMe&&!pe.startsWith('removed_')){addedNames.add(data.name);assignedSections.push({id:d.id,section:data.name});}});
         }
         const sel=document.getElementById('filterSection');sel.innerHTML='<option value="">All Sections</option>';
         assignedSections.forEach(s=>{const o=document.createElement('option');o.value=s.section;o.textContent=s.section;sel.appendChild(o);});
@@ -815,16 +813,7 @@
         document.getElementById('detailStudentSection').textContent = `Section: ${g.section} • ${g.email || ''}`;
         document.getElementById('detailTotalAct').textContent = g.totalActivities;
         document.getElementById('detailAvgCategory').innerHTML = renderCategoryBadge(g.overallCategory);
-        const cc = {
-            Excellent: 'linear-gradient(135deg,#0e8a5f,#0a6646)',
-            Good: 'linear-gradient(135deg,#2d6fc4,#1e4d8c)',
-            Average: 'linear-gradient(135deg,#b07e16,#8a6010)',
-            'Below Average': 'linear-gradient(135deg,#ea580c,#c2410c)',
-            Poor: 'linear-gradient(135deg,#c0392b,#922b21)',
-            'No Grades': 'linear-gradient(135deg,#64748b,#475569)'
-        };
-        document.getElementById('detailStatusCard').style.background = cc[g.overallCategory] || cc.Average;
-        document.getElementById('detailStatusText').textContent = g.overallCategory;
+        
 
         const instancesByTestId = {};
         g.instances.forEach(act => {
@@ -949,14 +938,7 @@
         filteredFinalGrades=filtered;window._filteredGradesRef=filtered;_currentPage=1;renderTable(filtered,1);updateStats(filtered);
     };
 
-    window.recalculateGrades=async function(){
-        document.getElementById('tableLoading').style.display='flex';
-        document.getElementById('tableWrapper').classList.add('hidden');
-        document.getElementById('tableEmpty').classList.add('hidden');
-        _classifyCache.clear();_defaultNormCache.clear();_studentNormCache.clear();
-        await loadGrades();buildFinalGrades();
-        window.showAlert(`Recalculated grades for ${currentFinalGrades.length} students.`,'success','Done');
-    };
+   
 
     window.exportGrades=function(){
         if(!filteredFinalGrades.length){window.showAlert('No grades to export.','warning');return;}

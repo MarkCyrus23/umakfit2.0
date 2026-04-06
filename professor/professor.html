@@ -710,17 +710,23 @@
 
     // ── UI setup ───────────────────────────────────────────────────────────────
     function setupUI() {
-        const displayName = currentProfessor.fullName;
-        const email       = currentProfessor.email || currentUser.email || '';
-        const initial     = displayName.charAt(0).toUpperCase();
-        const photoURL    = currentUser.photoURL || null;
+    const rawName     = currentProfessor.fullName || '';
+    const email       = currentProfessor.email || currentUser.email || '';
+    const photoURL    = currentUser.photoURL || null;
 
-        document.getElementById('dashWelcomeName').textContent = `Welcome, ${displayName}`;
-        document.getElementById('headerName').textContent      = displayName;
-        document.getElementById('dropdownName').textContent    = displayName;
-        document.getElementById('dropdownEmail').textContent   = email;
-        document.getElementById('profFullName').textContent    = displayName;
-        document.getElementById('profEmail').textContent       = email;
+    // If name is "Last, First" format, rearrange to "First Last"
+    const parts = rawName.split(',');
+    const displayName = parts.length >= 2
+        ? `${parts.slice(1).join(' ').trim()} ${parts[0].trim()}`
+        : rawName;
+    const initial = displayName.charAt(0).toUpperCase();
+
+    document.getElementById('dashWelcomeName').textContent = `Welcome, ${displayName}`;
+    document.getElementById('headerName').textContent      = displayName;
+    document.getElementById('dropdownName').textContent    = displayName;
+    document.getElementById('dropdownEmail').textContent   = email;
+    document.getElementById('profFullName').textContent    = displayName;
+    document.getElementById('profEmail').textContent       = email;
 
         const avatarHTML = photoURL
             ? `<img src="${photoURL}" alt="Profile" class="w-full h-full object-cover rounded-full">`

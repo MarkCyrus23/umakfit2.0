@@ -99,7 +99,7 @@
             #headerDate, #headerDivider, #headerNameBlock { display: none; }
         }
 
-        .live-dot { animation: pulse 2s infinite; }
+        
 
         .tab-btn { transition: all 0.2s; white-space: nowrap; }
         .tab-btn.active { background: white; color: #2d6fc4; box-shadow: 0 2px 8px rgba(45,111,196,0.15); }
@@ -487,9 +487,7 @@
                             <div class="text-xs text-white/50 uppercase tracking-[2px] mb-1">Real-time Dashboard</div>
                             <div class="font-display text-2xl font-bold text-white mb-1">Monitoring Dashboard</div>
                             <div class="flex items-center gap-2 mt-1.5">
-                                <span class="inline-flex items-center gap-1.5 bg-success/20 text-white border border-success/30 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-success live-dot"></span> LIVE
-                                </span>
+                                
                                 <span class="text-[12px] text-white/40" id="lastUpdateTime">Connecting...</span>
                             </div>
                         </div>
@@ -1149,7 +1147,10 @@ if (isActivity && window.loadActivityTab) window.loadActivityTab();};
         fastResults.forEach(snap => snap.forEach(d => {
         if (addedIds.has(d.id)) return;
         const data = d.data();
-        if (data.archived) return; // skip archived
+        if (data.archived) return;
+        const removedByMe2 = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+        const pe2 = (data.professorEmail || '').toLowerCase();
+        if (removedByMe2 || pe2.startsWith('removed_')) return;
         addedIds.add(d.id);
         assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data });
             }));
@@ -1172,7 +1173,9 @@ if (isActivity && window.loadActivityTab) window.loadActivityTab();};
                 let isMatch  = false;
                 for (const v of nameVariations) { if (v.length >= 3 && (dbProf === v || dbProf.includes(v) || v.includes(dbProf))) { isMatch = true; break; } }
                 if (!isMatch) { const dbW = dbProf.split(/[\s,\.]+/).filter(w => w.length >= 3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch = true; break; } } }
-                if (isMatch && !data.archived) { addedIds.add(d.id); assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data }); }
+                const removedByMe = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+        const pe = (data.professorEmail || '').toLowerCase();
+        if (isMatch && !data.archived && !removedByMe && !pe.startsWith('removed_')) { addedIds.add(d.id); assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, ...data }); }
             });
         }
 
@@ -1662,6 +1665,7 @@ window.loadActivityTab = async function loadActivityTab() {
 }
 
 window.applyActivityFilters = function() {
+    window._activityPage = 1;
     const sec    = document.getElementById('activitySectionFilter')?.value || '';
     const sort   = document.getElementById('activitySortBy')?.value || 'recent';
     const search = (document.getElementById('activitySearch')?.value || '').toLowerCase();
@@ -1746,20 +1750,92 @@ function renderActivityTable() {
         </tr>`;
     }).join('');
 
-    document.getElementById('activityTableWrap').innerHTML = `
-        <div class="overflow-x-auto rounded-xl border border-border">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-surface border-b border-border">
-                   <th class="py-2.5 px-4 text-[12px] font-semibold text-text-secondary">Student</th>
-                    <th class="py-2.5 px-4 text-[12px] font-semibold text-text-secondary">Section</th>
-                    <th class="py-2.5 px-4 text-[12px] font-semibold text-text-secondary">Last Login</th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-        </table></div>`;
-}
+    // Pagination state
+    if (typeof window._activityPage === 'undefined') window._activityPage = 1;
+    const PAGE_SIZE = 10;
+    const totalPages = Math.max(1, Math.ceil(_activityFiltered.length / PAGE_SIZE));
+    if (window._activityPage > totalPages) window._activityPage = 1;
 
+    const start = (window._activityPage - 1) * PAGE_SIZE;
+    const pageRows = _activityFiltered.slice(start, start + PAGE_SIZE).map(s => {
+        let badge, dateStr = '—';
+        if (!s.lastLogin) {
+            badge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#fce8e6;color:#c0392b;
+                       font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid rgba(192,57,43,0.2);">
+                       <i class="fas fa-times" style="font-size:9px;"></i> Never</span>`;
+        } else {
+            const diff = now - s.lastLogin;
+            const mins  = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days  = Math.floor(diff / 86400000);
+            dateStr = s.lastLogin.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) +
+                      ' ' + s.lastLogin.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+            if (diff < 300000)          badge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#d4f0e6;color:#0e8a5f;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid rgba(14,138,95,0.2);"><i class="fas fa-circle" style="font-size:7px;"></i> Online</span>`;
+            else if (diff < 3600000)   badge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#d4f0e6;color:#0e8a5f;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;">${mins}m ago</span>`;
+            else if (diff < 86400000)  badge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#d6eaf8;color:#1a6fa8;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;">${hours}h ago</span>`;
+            else if (diff < 604800000) badge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#fef3d4;color:#b07e16;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;">${days}d ago</span>`;
+            else                        badge = `<span style="display:inline-flex;align-items:center;gap:3px;background:#fce8e6;color:#c0392b;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;">${days}d ago</span>`;
+        }
+        const init = esc(s.name).charAt(0).toUpperCase();
+        return `
+        <div style="background:white;border:1px solid #e1e6ef;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <!-- Avatar + Name -->
+            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1e4d8c,#2d6fc4);
+                    display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0;">${init}</div>
+                <div style="min-width:0;flex:1;">
+                    <div style="font-size:13px;font-weight:700;color:#0a1628;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.name)}</div>
+                    <div style="font-size:10px;color:#8a98ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.email)}</div>
+                </div>
+            </div>
+            <!-- Section badge -->
+            <span style="display:inline-block;background:#d6eaf8;color:#1a6fa8;font-size:10px;font-weight:700;
+                padding:3px 9px;border-radius:6px;flex-shrink:0;">${esc(s.section)}</span>
+            <!-- Status badge -->
+            <div style="flex-shrink:0;">${badge}</div>
+            <!-- Date row — full width on small screens -->
+            <div style="width:100%;display:flex;align-items:center;gap:5px;margin-top:2px;">
+                <i class="fas fa-clock" style="font-size:9px;color:#8a98ae;"></i>
+                <span style="font-size:11px;color:#8a98ae;font-family:'DM Mono',monospace;">${dateStr}</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Build pagination buttons
+    const maxVisible = 5;
+    let paginationBtns = '';
+    let startPage = Math.max(1, window._activityPage - Math.floor(maxVisible / 2));
+    let endPage   = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+    const btnBase = `style="min-width:32px;height:32px;border-radius:8px;border:1.5px solid #e1e6ef;background:white;font-size:12px;font-weight:600;cursor:pointer;padding:0 8px;transition:all 0.18s;"`;
+    const btnActive = `style="min-width:32px;height:32px;border-radius:8px;border:1.5px solid #2d6fc4;background:#2d6fc4;color:white;font-size:12px;font-weight:700;cursor:pointer;padding:0 8px;"`;
+
+    if (startPage > 1) paginationBtns += `<button ${btnBase} onclick="window._goActivityPage(1)">1</button>${startPage > 2 ? '<span style="color:#8a98ae;font-size:12px;padding:0 2px;">…</span>' : ''}`;
+    for (let p = startPage; p <= endPage; p++) {
+        paginationBtns += `<button ${p === window._activityPage ? btnActive : btnBase} onclick="window._goActivityPage(${p})">${p}</button>`;
+    }
+    if (endPage < totalPages) paginationBtns += `${endPage < totalPages - 1 ? '<span style="color:#8a98ae;font-size:12px;padding:0 2px;">…</span>' : ''}<button ${btnBase} onclick="window._goActivityPage(${totalPages})">${totalPages}</button>`;
+
+    document.getElementById('activityTableWrap').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            ${pageRows}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:12px;color:#8a98ae;">Showing ${start + 1}–${Math.min(start + PAGE_SIZE, _activityFiltered.length)} of ${_activityFiltered.length} students</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button ${btnBase} onclick="window._goActivityPage(${window._activityPage - 1})" ${window._activityPage === 1 ? 'disabled style="min-width:32px;height:32px;border-radius:8px;border:1.5px solid #e1e6ef;background:#f4f6fa;color:#c5cfe0;font-size:12px;font-weight:600;cursor:not-allowed;padding:0 8px;"' : ''}>‹</button>
+                ${paginationBtns}
+                <button ${btnBase} onclick="window._goActivityPage(${window._activityPage + 1})" ${window._activityPage === totalPages ? 'disabled style="min-width:32px;height:32px;border-radius:8px;border:1.5px solid #e1e6ef;background:#f4f6fa;color:#c5cfe0;font-size:12px;font-weight:600;cursor:not-allowed;padding:0 8px;"' : ''}>›</button>
+            </div>
+        </div>`;
+}
+        window._goActivityPage = function(page) {
+    const totalPages = Math.max(1, Math.ceil(_activityFiltered.length / 10));
+    if (page < 1 || page > totalPages) return;
+    window._activityPage = page;
+    renderActivityTable();
+};
 window.refreshActivity = async function() {
     _activityData = []; _activityFiltered = [];
     await loadActivityTab();

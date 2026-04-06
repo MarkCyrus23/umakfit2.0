@@ -492,9 +492,7 @@
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-success to-[#059669] flex items-center justify-center text-white text-[13px]"><i class="fas fa-chart-line"></i></div>
                         Recent Test Results
                     </h3>
-                    <button class="inline-flex items-center gap-2 bg-surface hover:bg-border text-text-secondary font-semibold py-2 px-4 rounded-xl transition-all border border-border text-sm" onclick="generateReports()">
-                        <i class="fas fa-file-alt"></i> Generate Reports
-                    </button>
+                    
                 </div>
                 <div id="resultsSummary" class="summary-card" style="display: none;">
                     <div class="grid grid-cols-3 gap-4">
@@ -1312,7 +1310,12 @@ async function resolveAssignedSections(userEmail) {
         let match  = spel === profEmail;
         if (!match) for (const v of nameVariants) { if(v.length>=3&&(spl===v||spl.includes(v)||v.includes(spl))){match=true;break;} }
         if (!match) { const dbWords=spl.split(/[\s,\.]+/).filter(w=>w.length>=3); match=dbWords.some(w=>nameTokens.has(w)); }
-        if (match && !data.archived) { seen.add(d.id); filtered.docs.push(d); }
+        const removedByMe = data.removedByProfessor && 
+    (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+        const pe = (data.professorEmail || '').toLowerCase();
+        if (match && !data.archived && !removedByMe && !pe.startsWith('removed_')) { 
+            seen.add(d.id); filtered.docs.push(d); 
+        }
     });
     return _buildSectionsArray(filtered);
 }
@@ -1320,10 +1323,18 @@ async function resolveAssignedSections(userEmail) {
 function _buildSectionsArray(snap) {
     const seen = new Set();
     const result = [];
+    const profEmail = (window.currentUser?.email || '').toLowerCase();
     snap.docs.forEach(d => {
         const sd = d.data();
         if (!sd.name || seen.has(sd.name)) return;
-        if (sd.archived) return; // skip archived sections
+        if (sd.archived) return;
+        // Skip sections removed by this professor
+        const removedByMe = sd.removedByProfessor && 
+            (sd.removedByProfessorEmail || '').toLowerCase() === profEmail;
+        if (removedByMe) return;
+        // Skip sections where professorEmail was blanked out by remove action
+        const pe = (sd.professorEmail || '').toLowerCase();
+        if (pe.startsWith('removed_')) return;
         seen.add(sd.name);
         result.push({
             section: sd.name,
@@ -1342,7 +1353,11 @@ function populateSectionSortDropdown() {
     const select = document.getElementById('sortBySection'); if(!select) return;
     const counts = new Map();
     window.allScheduledTests.forEach(t => { if(t.section) counts.set(t.section,(counts.get(t.section)||0)+1); });
-    const sectionsSet = new Set([...window.assignedSections.map(s=>s.section), ...window.allScheduledTests.map(t=>t.section).filter(Boolean)]);
+   const removedNames = window._removedSectionNames || new Set();
+const sectionsSet = new Set([
+    ...window.assignedSections.map(s => s.section),
+    ...window.allScheduledTests.map(t => t.section).filter(Boolean)
+].filter(s => !removedNames.has(s)));
     let opts = '<option value="">All Sections (sorted by section)</option>';
     Array.from(sectionsSet).sort().forEach(sec => { const c=counts.get(sec)||0; opts+=`<option value="${sec}">${sec} (${c} test${c!==1?'s':''})</option>`; });
     select.innerHTML = opts;
@@ -1366,8 +1381,10 @@ function renderScheduleTable(tests, enabledTestsMap) {
     const type    = (document.getElementById('filterTestType')?.value||'').toUpperCase();
     const section = document.getElementById('sortBySection')?.value||'';
 
-    const filtered = tests.filter(t => {
-        if (search && !(t.testName||'').toUpperCase().includes(search) && !(t.section||'').toUpperCase().includes(search)) return false;
+    const removedNames = window._removedSectionNames || new Set();
+const filtered = tests.filter(t => {
+    if (removedNames.has(t.section)) return false;  // ← NEW
+    if (search && !(t.testName||'').toUpperCase().includes(search) && !(t.section||'').toUpperCase().includes(search)) return false;
         if (type && !(t.testName||'').toUpperCase().includes(type)) return false;
         if (section && t.section !== section) return false;
         return true;
@@ -1392,8 +1409,8 @@ function renderScheduleTable(tests, enabledTestsMap) {
         return `<tr style="${isEnabled&&isOverdue?'background-color:#f0f9ff;':''}">
             <td data-label="Test Name">${esc(test.testName||'Unnamed')}${normBadge}${isEnabled&&isOverdue?`<br><small style="color:#2d6fc4;font-weight:600;">✓ Enabled for ${enabledCount}</small>`:''}</td>
             <td data-label="Section">${esc(test.section||'N/A')}<br><small style="color:#8a98ae;font-size:12px;">${esc(schedInfo)}</small></td>
-            <td data-label="Date">${esc(test.date||'N/A')}</td>
-            <td data-label="Deadline">${esc(test.deadline||'N/A')} ${esc(test.deadlineTime||'')}</td>
+            <td data-label="Date">${test.date ? new Date(test.date+'T00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}</td>
+            <td data-label="Deadline">${test.deadline ? new Date(test.deadline+'T00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}${test.deadlineTime ? ' ' + new Date('1970-01-01T'+test.deadlineTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) : ''}</td>
             <td data-label="Progress">${prog}</td>
             <td data-label="Attempts">${test.attemptsAllowed||'1'}</td>
             <td data-label="Status"><span class="status-badge ${statusClass}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>${isOverdue?'<br><small style="color:#c0392b;">⚠️ Overdue</small>':''}</td>
@@ -1413,21 +1430,48 @@ async function loadScheduledTests(userEmail, userId) {
         // Start sections resolution in parallel — don't await before starting snapshot
         const sectionsPromise = resolveAssignedSections(userEmail);
 
-        window._scheduledTestsUnsub = onSnapshot(
-            query(collection(db,'scheduledTests'), where('professorEmail','==',userEmail)),
-            async (testsSnap) => {
-                // Wait for sections only when snapshot first fires (already running in parallel)
-                if (!window.assignedSections?.length) {
-                    window.assignedSections = await sectionsPromise;
-                }
+       window._scheduledTestsUnsub = onSnapshot(
+        query(collection(db,'scheduledTests'), where('professorEmail','==',userEmail)),
+        async (testsSnap) => {
+            // Wait for sections only when snapshot first fires (already running in parallel)
+            if (!window.assignedSections?.length) {
+                window.assignedSections = await sectionsPromise;
+            }
+                    window._removedSectionNames = new Set();
+            try {
+                const profEmail = (window.currentUser?.email || '').toLowerCase();
+                const allSecSnap = await getDocs(collection(db, 'sections'));
+                allSecSnap.forEach(d => {
+                    const sd = d.data();
+                    const removedByMe = sd.removedByProfessor &&
+                        (sd.removedByProfessorEmail || '').toLowerCase() === profEmail;
+                    const pe = (sd.professorEmail || '').toLowerCase();
+                    if ((removedByMe || pe.startsWith('removed_')) && sd.name) {
+                        window._removedSectionNames.add(sd.name);
+                    }
+                });
+            } catch(_) {}
                 // Permissions
                 const permSnap = await getDocs(query(collection(db,'testPermissions'), where('grantedBy','==',userEmail)));
                 const enabledTestsMap = new Map();
                 permSnap.forEach(d => { const p=d.data(); if(!enabledTestsMap.has(p.testId)) enabledTestsMap.set(p.testId,[]); enabledTestsMap.get(p.testId).push(p.studentEmail); });
 
                 window._sectionsResolved = true;
+
+                // Get archived section names to filter them out
+                const archivedSectionNames = new Set();
+                try {
+                    const archivedSnap = await getDocs(query(collection(db,'sections'), where('archived','==',true)));
+                    archivedSnap.forEach(d => { if(d.data().name) archivedSectionNames.add(d.data().name); });
+                } catch(_) {}
+
                 window.allScheduledTests = [];
-                testsSnap.forEach(d => window.allScheduledTests.push({ id:d.id, ...d.data() }));
+                testsSnap.forEach(d => {
+                    const data = d.data();
+                    // Skip tests belonging to archived sections
+                    if (archivedSectionNames.has(data.section)) return;
+                    window.allScheduledTests.push({ id:d.id, ...data });
+                });
                 window.allScheduledTests.sort((a,b) => {
                     const ta = a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
                     const tb2 = b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);
@@ -1483,8 +1527,20 @@ async function loadScheduledTests(userEmail, userId) {
         const enabledTestsMap = new Map();
         permSnap.forEach(d => { const p=d.data(); if(!enabledTestsMap.has(p.testId)) enabledTestsMap.set(p.testId,[]); enabledTestsMap.get(p.testId).push(p.studentEmail); });
 
-        window.allScheduledTests = [];
-        testsSnap.forEach(d => window.allScheduledTests.push({ id:d.id, ...d.data() }));
+            // Get archived section names
+            const archivedSectionNames = new Set();
+            try {
+                const archivedSnap = await getDocs(query(collection(db,'sections'), where('archived','==',true)));
+                archivedSnap.forEach(d => { if(d.data().name) archivedSectionNames.add(d.data().name); });
+            } catch(_) {}
+
+            window.allScheduledTests = [];
+            testsSnap.forEach(d => {
+                const data = d.data();
+                // Skip tests belonging to archived sections
+                if (archivedSectionNames.has(data.section)) return;
+                window.allScheduledTests.push({ id:d.id, ...data });
+            });
         window.allScheduledTests.sort((a,b) => {
             const ta = a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
             const tb2 = b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);

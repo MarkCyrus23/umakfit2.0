@@ -457,20 +457,11 @@
 
                 <!-- All Students View -->
                 <div id="allStudentsView">
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-5">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
                         <input type="text" id="searchStudents" placeholder="Search students by name or ID..."
                             class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm transition-all w-full"
                             onkeyup="filterStudents()">
                         <select id="filterSection" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents(); onTestFilterChange()"></select>
-                        <select id="filterCategory" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="filterStudents()">
-                            <option value="">All Categories</option>
-                            <option value="Excellent">Excellent</option>
-                            <option value="Good">Good</option>
-                            <option value="Average">Average</option>
-                            <option value="Below Average">Below Average</option>
-                            <option value="Poor">Poor</option>
-                            <option value="no-attempts">No Attempts Yet</option>
-                        </select>
                         <select id="filterTest" class="px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm w-full" onchange="onTestFilterChange()">
                             <option value="">Select Test</option>
                         </select>
@@ -758,10 +749,15 @@
     });
 
     function updateProfileUI(photoURL, displayName, email) {
-        const name = displayName || 'Professor';
-        const initial = name.charAt(0).toUpperCase();
-        document.getElementById('headerName').textContent = name;
-        document.getElementById('dropdownName').textContent = name;
+    const name = displayName || 'Professor';
+    const initial = name.charAt(0).toUpperCase();
+    // If name is "Last, First" format, rearrange to "First Last"
+    const parts = name.split(',');
+    const displayFormatted = parts.length >= 2 
+        ? `${parts.slice(1).join(' ').trim()} ${parts[0].trim()}`
+        : name;
+    document.getElementById('headerName').textContent = displayFormatted;
+    document.getElementById('dropdownName').textContent = displayFormatted;
         document.getElementById('dropdownEmail').textContent = email || '';
         ['profileAvatarSmall', 'profileDropdownAvatar'].forEach(id => {
             const el = document.getElementById(id);
@@ -874,10 +870,10 @@
     import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
     import {
-        getFirestore, collection, query, where, getDocs, getDoc,
-        addDoc, updateDoc, deleteDoc, doc, orderBy, serverTimestamp,
-        limit, Timestamp, onSnapshot
-    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    getFirestore, collection, query, where, getDocs, getDoc,
+    addDoc, updateDoc, deleteDoc, setDoc, doc, orderBy, serverTimestamp,
+    limit, Timestamp, onSnapshot
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
     import { getNormCategory, getNormDoc, resolveTestKey, resolveAgeGroup, resolveGender, extractNumericResult } from './normLookup.js';
 
     const firebaseConfig = {
@@ -990,9 +986,9 @@
     async function resolveProfessor(user) {
         const email = user.email.toLowerCase();
         const snap1 = await getDocs(query(collection(db,'professors'), where('email','==',email)));
-        if (!snap1.empty) { const d = snap1.docs[0]; return { id:d.id, ...d.data(), fullName: d.data().fullName||d.data().name||user.displayName||'Professor', email }; }
+        if (!snap1.empty) { const d = snap1.docs[0]; return { id:d.id, ...d.data(), fullName: d.data().fullName||d.data().name||d.data().displayName||user.displayName||'Professor', email }; }
         const snap2 = await getDocs(query(collection(db,'users'), where('email','==',email), where('role','==','professor')));
-        if (!snap2.empty) { const d = snap2.docs[0]; return { id:d.id, ...d.data(), fullName: d.data().fullName||d.data().name||user.displayName||'Professor', email }; }
+        if (!snap2.empty) { const d = snap2.docs[0]; return { id:d.id, ...d.data(), fullName: d.data().fullName||d.data().name||d.data().displayName||user.displayName||'Professor', email }; }
         return { id: user.uid, email, fullName: user.displayName || 'Professor' };
     }
 
@@ -1008,7 +1004,12 @@
             // ── Primary: indexed email query ────────────────────────
             let sectionDocs = [];
             const directSnap = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
-            directSnap.forEach(d => { if (!d.data().removedByProfessor) sectionDocs.push({ id:d.id, ...d.data() }); });
+           directSnap.forEach(d => {
+    const data = d.data();
+    const removedByMe = data.removedByProfessor && 
+        (data.removedByProfessorEmail || '').toLowerCase() === profEmail.toLowerCase();
+    if (!removedByMe) sectionDocs.push({ id:d.id, ...data });
+});
 
             // ── Fallback: name-based scan (legacy records) ──────────
             if (sectionDocs.length === 0) {
@@ -1082,7 +1083,9 @@
             let match = dbEmail && dbEmail === profEmail;
             if (!match) { for (const v of nameVariations) { if (v.length >= 3 && (dbProf === v || dbProf.includes(v) || v.includes(dbProf))) { match=true; break; } } }
             if (!match) { const words = dbProf.split(/[\s,\.]+/).filter(w => w.length >= 3); match = words.some(w => nameTokens.has(w)); }
-            if (match && !data.removedByProfessor) matched.push({ id:d.id, ...data });
+            const removedByMe = data.removedByProfessor && 
+            (data.removedByProfessorEmail || '').toLowerCase() === profEmail.toLowerCase();
+        if (match && !removedByMe) matched.push({ id:d.id, ...data });
         });
         return matched;
     }
@@ -1445,10 +1448,10 @@ window.archiveSection = function(sectionId, sectionName) {
         async () => {
             try {
                 await updateDoc(doc(db, 'sections', sectionId), {
-                    archived: true,
-                    archivedAt: serverTimestamp(),
-                    archivedBy: currentUser.email
-                });
+                archived: true,
+                archivedAt: serverTimestamp(),
+                archivedBy: currentUser.email
+            });
                 window.showSuccessModal(`"${sectionName}" has been archived.`);
                 await loadSections();
                 await window.loadStudents();
@@ -1466,28 +1469,63 @@ window.unarchiveSection = function(sectionId, sectionName) {
                 await updateDoc(doc(db, 'sections', sectionId), {
                     archived: false,
                     archivedAt: null,
-                    archivedBy: null
+                    archivedBy: null,
+                    removedByProfessor: false,
+                    removedByProfessorEmail: null,
+                    removedByProfessorAt: null,
+                    professorEmail: currentUser.email
                 });
+
+                // Also remove from the cross-page hidden list
+                try {
+                    const hiddenRef = doc(db, 'professorHiddenSections', currentUser.email.replace(/\./g, '_'));
+                    const hiddenSnap = await getDoc(hiddenRef);
+                    if (hiddenSnap.exists()) {
+                        const filtered = (hiddenSnap.data().sectionIds || []).filter(id => id !== sectionId);
+                        await setDoc(hiddenRef, {
+                            professorEmail: currentUser.email,
+                            sectionIds: filtered,
+                            updatedAt: serverTimestamp()
+                        }, { merge: true });
+                    }
+                } catch(_) {}
+
                 await loadSections();
                 await window.loadStudents();
                 await window.loadOverdueStudents();
-                // Switch back to active tab so the restored section is immediately visible
                 window.switchSectionsTab('active');
                 window.showSuccessModal(`"${sectionName}" has been restored successfully.`);
             } catch(err) { window.showErrorModal('Error: ' + err.message); }
         }
     );
 };
-                window.removeSection = function(sectionId, sectionName) {
+               window.removeSection = function(sectionId, sectionName) {
     window.showConfirmModal(
         `⚠️ Remove "${sectionName}" from your portal? The section stays in the system — the secretary can still see it. This cannot be undone by you.`,
         async () => {
             try {
                 await updateDoc(doc(db, 'sections', sectionId), {
-                    removedByProfessor: true,
-                    removedByProfessorEmail: currentUser.email,
-                    removedByProfessorAt: serverTimestamp()
-                });
+                removedByProfessor: true,
+                removedByProfessorEmail: currentUser.email,
+                removedByProfessorAt: serverTimestamp(),
+                professorEmail: `removed_${currentUser.email}`
+            });
+
+                // Write to a cross-page lookup so other professor portals
+                // (grades, monitoring, sectionranklist) can filter this section out
+                try {
+                    const hiddenRef = doc(db, 'professorHiddenSections', currentUser.email.replace(/\./g, '_'));
+                    const hiddenSnap = await getDoc(hiddenRef);
+                    const existing = hiddenSnap.exists() ? (hiddenSnap.data().sectionIds || []) : [];
+                    if (!existing.includes(sectionId)) {
+                        await setDoc(hiddenRef, {
+                            professorEmail: currentUser.email,
+                            sectionIds: [...existing, sectionId],
+                            updatedAt: serverTimestamp()
+                        }, { merge: true });
+                    }
+                } catch(_) {}
+
                 window.showSuccessModal(`"${sectionName}" has been removed from your portal.`);
                 await loadSections();
                 await window.loadStudents();
@@ -1554,67 +1592,113 @@ function renderArchivedSections() {
     //  RENDER — STUDENTS TABLE
     // ═══════════════════════════════════════════════════════════════
     function updateStudentsTable(list) {
-        const isMobile   = window.innerWidth <= 768;
-        const totalPages = Math.ceil(list.length / ITEMS_PER_PAGE);
-        document.getElementById('totalPages').textContent  = totalPages || 1;
-        document.getElementById('currentPage').textContent = currentPage;
-        document.getElementById('studentCount').textContent = list.length;
+    const isMobile   = window.innerWidth <= 768;
+    const totalPages = Math.ceil(list.length / ITEMS_PER_PAGE);
+    document.getElementById('totalPages').textContent  = totalPages || 1;
+    document.getElementById('currentPage').textContent = currentPage;
+    document.getElementById('studentCount').textContent = list.length;
 
-        const display = isMobile ? list : list.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE);
+    const display = isMobile ? list : list.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE);
 
-        const activeTest = document.getElementById('filterTest')?.value || '';
-        const thead = document.querySelector('#studentsTable thead tr');
-        if (thead) {
-            thead.innerHTML = activeTest
-                ? `<th>ID</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Health Condition</th><th>Test Result</th><th>Submitted At</th><th>Overall Performance</th><th>Actions</th>`
-                : `<th>ID</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Health Condition</th><th>Overall Performance</th><th>Actions</th>`;
-        }
+    const activeTest = document.getElementById('filterTest')?.value || '';
+    const activeDateFilter = document.getElementById('filterTestDate')?.value || '';
 
-        const tbody = document.getElementById('studentsTableBody');
-        if (!display.length) {
-            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">No Students Found</div><div class="text-gray-500 text-sm">Try adjusting your search or filters.</div></div></td></tr>`;
-            updateResponsiveViews();
-            return;
-        }
+    const thead = document.querySelector('#studentsTable thead tr');
+    if (thead) {
+       thead.innerHTML = activeTest
+    ? `<th>ID</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Health Condition</th><th>Test Result</th><th>Submitted At</th><th>Performance</th><th>Actions</th>`
+    : `<th>ID</th><th>Student Name</th><th>Section</th><th>Activities</th><th>Health Condition</th><th>Performance</th><th>Actions</th>`;
+    }
 
-        const activeDateFilter = document.getElementById('filterTestDate')?.value || '';
+    const tbody = document.getElementById('studentsTableBody');
+    if (!display.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="font-semibold text-gray-700 mb-1">No Students Found</div><div class="text-gray-500 text-sm">Try adjusting your search or filters.</div></div></td></tr>`;
+        updateResponsiveViews();
+        return;
+    }
 
+    // If no test selected, render immediately with overall category
+    if (!activeTest) {
         tbody.innerHTML = display.map(student => {
-            const badge  = renderCategoryBadge(student.overallCategory);
+            const health = student.medicalCondition
+                ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;color:#92400e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">🏥 ${esc(student.medicalCondition)}</span>`
+                : `<span style="color:#94a3b8;font-size:13px;">—</span>`;
+            return `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
+                <td data-label="ID"><strong>${esc(student.umakId||'N/A')}</strong></td>
+                <td data-label="Student Name">${esc(student.firstName)} ${esc(student.lastName)}</td>
+                <td data-label="Section">${esc(student.section||'N/A')}</td>
+                <td data-label="Activities"><strong>${student.uniqueTestCount}</strong></td>
+                <td data-label="Health Condition">${health}</td>
+                <td data-label="Performance">${renderCategoryBadge(student.overallCategory)}</td>
+                <td data-label="Actions"><button class="btn-action btn-view" onclick="event.stopPropagation();viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i> View</button></td>
+            </tr>`;
+        }).join('');
+        updateResponsiveViews();
+        return;
+    }
+
+    // Test is selected — resolve categories async then render
+    (async () => {
+        const rows = await Promise.all(display.map(async student => {
             const health = student.medicalCondition
                 ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;color:#92400e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">🏥 ${esc(student.medicalCondition)}</span>`
                 : `<span style="color:#94a3b8;font-size:13px;">—</span>`;
 
-            let testDisplay = '', dateDisplay = '';
-            if (activeTest && student.testResultsRaw) {
-                let rows = student.testResultsRaw.filter(r => r.testName === activeTest);
-                if (activeDateFilter) {
-                    rows = rows.filter(r => {
-                        const tid = r.testId || r.scheduledTestId;
-                        if (!tid) return false;
-                        for (const tests of scheduledTestsMap.values()) {
-                            const m = tests.find(t => t.id === tid);
-                            if (m) return m.deadline === activeDateFilter;
-                        }
-                        return false;
-                    });
-                }
-                if (rows.length > 0) {
-                    const latest = rows[rows.length-1];
-                    let rv = '—';
-                    if (latest.result !== undefined) rv = typeof latest.result === 'object' ? (latest.result.value||latest.result.repetitions||latest.result.time||'—') : latest.result;
-                    else if (latest.repetitions !== undefined) rv = latest.repetitions;
-                    testDisplay = `<strong>${esc(activeTest)}</strong><br><small style="color:#64748b;">${rv} ${esc(latest.testUnit||'')}</small>`;
-                    if (latest.submittedAt) {
-                        const d = latest.submittedAt.toDate ? latest.submittedAt.toDate()
-                            : latest.submittedAt.seconds ? new Date(latest.submittedAt.seconds*1000)
-                            : new Date(latest.submittedAt);
-                        dateDisplay = `${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}<br><small style="color:#64748b;">${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small>`;
+            let testDisplay = '';
+            let dateDisplay = '';
+            let performanceBadge = renderCategoryBadge(null);
+
+            let matchedRows = (student.testResultsRaw || []).filter(r => r.testName === activeTest);
+
+            if (activeDateFilter) {
+                matchedRows = matchedRows.filter(r => {
+                    const tid = r.testId || r.scheduledTestId;
+                    if (!tid) return false;
+                    for (const tests of scheduledTestsMap.values()) {
+                        const m = tests.find(t => t.id === tid);
+                        if (m) return m.deadline === activeDateFilter;
                     }
-                } else {
-                    testDisplay = `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">❌ Not Submitted</span>`;
-                    dateDisplay = `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef9c3;border:1px solid #fde047;color:#854d0e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">⏳ Pending</span>`;
+                    return false;
+                });
+            }
+
+            if (matchedRows.length > 0) {
+                const latest = matchedRows[matchedRows.length - 1];
+
+                let rv = '—';
+                if (latest.result !== undefined) {
+                    rv = typeof latest.result === 'object'
+                        ? (latest.result.value || latest.result.repetitions || latest.result.time || '—')
+                        : latest.result;
+                } else if (latest.repetitions !== undefined) {
+                    rv = latest.repetitions;
                 }
+
+                testDisplay = `<strong>${esc(activeTest)}</strong><br><small style="color:#64748b;">${rv} ${esc(latest.testUnit||'')}</small>`;
+
+                if (latest.submittedAt) {
+                    const d = latest.submittedAt.toDate ? latest.submittedAt.toDate()
+                        : latest.submittedAt.seconds ? new Date(latest.submittedAt.seconds * 1000)
+                        : new Date(latest.submittedAt);
+                    dateDisplay = `${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}<br><small style="color:#64748b;">${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small>`;
+                }
+
+                // Properly classify from raw result value
+                const rawVal = latest.result ?? latest.repetitions ?? latest.resultData ?? null;
+                const cat = await getNormCategoryWithPriority(
+                    activeTest,
+                    rawVal,
+                    latest.testId,
+                    student.email,
+                    student.gender || 'male',
+                    _studentAge({ birthday: student.birthday, age: student.age })
+                );
+                performanceBadge = renderCategoryBadge(cat);
+
+            } else {
+                testDisplay = `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">❌ Not Submitted</span>`;
+                dateDisplay  = `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef9c3;border:1px solid #fde047;color:#854d0e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">⏳ Pending</span>`;
+                performanceBadge = renderCategoryBadge(null);
             }
 
             return `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
@@ -1623,14 +1707,17 @@ function renderArchivedSections() {
                 <td data-label="Section">${esc(student.section||'N/A')}</td>
                 <td data-label="Activities"><strong>${student.uniqueTestCount}</strong></td>
                 <td data-label="Health Condition">${health}</td>
-                ${activeTest ? `<td data-label="Test">${testDisplay}</td><td data-label="Date">${dateDisplay}</td>` : ''}
-                <td data-label="Overall">${badge}</td>
+                <td data-label="Test">${testDisplay}</td>
+                <td data-label="Date">${dateDisplay}</td>
+                <td data-label="Performance">${performanceBadge}</td>
                 <td data-label="Actions"><button class="btn-action btn-view" onclick="event.stopPropagation();viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i> View</button></td>
             </tr>`;
-        }).join('');
+        }));
 
+        tbody.innerHTML = rows.join('');
         updateResponsiveViews();
-    }
+    })();
+}
 
     // ═══════════════════════════════════════════════════════════════
     //  MOBILE VIEWS
@@ -1790,39 +1877,37 @@ function renderArchivedSections() {
     };
 
     window.filterStudents = function() {
-        if (isTabSwitching) return;
-        const term       = (document.getElementById('searchStudents').value||'').toLowerCase().trim();
-        const secFilter  = document.getElementById('filterSection').value;
-        const catFilter  = document.getElementById('filterCategory').value;
-        const testFilter = document.getElementById('filterTest')?.value || '';
-        const dateFilter = document.getElementById('filterTestDate')?.value || '';
+    if (isTabSwitching) return;
+    const term       = (document.getElementById('searchStudents').value||'').toLowerCase().trim();
+    const secFilter  = document.getElementById('filterSection').value;
+    const testFilter = document.getElementById('filterTest')?.value || '';
+    const dateFilter = document.getElementById('filterTestDate')?.value || '';
 
-        filteredStudents = students.filter(s => {
-            if (term) { const fn = `${s.firstName} ${s.lastName}`.toLowerCase(); const id = (s.umakId||'').toLowerCase(); if (!fn.includes(term) && !id.includes(term)) return false; }
-            if (secFilter && s.section !== secFilter) return false;
-            if (catFilter) { if (catFilter==='no-attempts' && s.uniqueTestCount>0) return false; if (catFilter!=='no-attempts' && s.overallCategory!==catFilter) return false; }
-            if (testFilter) {
-                const hasTaken = s.testNames?.includes(testFilter);
-                if (!hasTaken) return false;
-                if (dateFilter && s.testResultsRaw) {
-                    const dl = new Date(dateFilter+'T23:59:59');
-                    const opt = document.getElementById('filterTestDate').querySelector(`option[value="${dateFilter}"]`);
-                    const startMs = new Date((opt?.getAttribute('data-start')||dateFilter)+'T00:00:00').getTime();
-                    const has = s.testResultsRaw.some(r => {
-                        if (r.testName!==testFilter||!r.submittedAt) return false;
-                        const d = r.submittedAt.toDate ? r.submittedAt.toDate() : r.submittedAt.seconds ? new Date(r.submittedAt.seconds*1000) : new Date(r.submittedAt);
-                        return d.getTime()>=startMs && d<=dl;
-                    });
-                    if (!has) return false;
-                }
+    filteredStudents = students.filter(s => {
+        if (term) { const fn = `${s.firstName} ${s.lastName}`.toLowerCase(); const id = (s.umakId||'').toLowerCase(); if (!fn.includes(term) && !id.includes(term)) return false; }
+        if (secFilter && s.section !== secFilter) return false;
+        if (testFilter) {
+            const hasTaken = s.testNames?.includes(testFilter);
+            if (!hasTaken) return false;
+            if (dateFilter && s.testResultsRaw) {
+                const dl = new Date(dateFilter+'T23:59:59');
+                const opt = document.getElementById('filterTestDate').querySelector(`option[value="${dateFilter}"]`);
+                const startMs = new Date((opt?.getAttribute('data-start')||dateFilter)+'T00:00:00').getTime();
+                const has = s.testResultsRaw.some(r => {
+                    if (r.testName!==testFilter||!r.submittedAt) return false;
+                    const d = r.submittedAt.toDate ? r.submittedAt.toDate() : r.submittedAt.seconds ? new Date(r.submittedAt.seconds*1000) : new Date(r.submittedAt);
+                    return d.getTime()>=startMs && d<=dl;
+                });
+                if (!has) return false;
             }
-            return true;
-        });
+        }
+        return true;
+    });
 
-        currentPage = 1;
-        if (window.innerWidth <= 768) populateMobileStudents(filteredStudents);
-        else updateStudentsTable(filteredStudents);
-    };
+    currentPage = 1;
+    if (window.innerWidth <= 768) populateMobileStudents(filteredStudents);
+    else updateStudentsTable(filteredStudents);
+};
 
     window.previousPage = () => { if (currentPage>1) { currentPage--; updateStudentsTable(filteredStudents); } };
     window.nextPage     = () => { const tp=Math.ceil(filteredStudents.length/ITEMS_PER_PAGE); if (currentPage<tp) { currentPage++; updateStudentsTable(filteredStudents); } };
@@ -2336,64 +2421,64 @@ if (att.submittedAt) {
     //  OVERDUE TABLE RENDERING
     // ═══════════════════════════════════════════════════════════════
     function renderOverdueTable() {
-        const tbody    = document.getElementById('overdueTableBody');
-        const isMobile = window.innerWidth <= 768;
-        let mobCont    = document.getElementById('overdueStudentsMobileContainer');
-        if (!mobCont) {
-            mobCont = document.createElement('div');
-            mobCont.id = 'overdueStudentsMobileContainer';
-            mobCont.style.cssText = 'width:100%;overflow-x:hidden;display:none;';
-            const tableDiv = document.querySelector('#overdueView .table-responsive');
-            tableDiv.parentNode.insertBefore(mobCont, tableDiv.nextSibling);
-        }
+    const tbody    = document.getElementById('overdueTableBody');
+    const isMobile = window.innerWidth <= 768;
+    let mobCont    = document.getElementById('overdueStudentsMobileContainer');
+    if (!mobCont) {
+        mobCont = document.createElement('div');
+        mobCont.id = 'overdueStudentsMobileContainer';
+        mobCont.style.cssText = 'width:100%;overflow-x:hidden;display:none;';
         const tableDiv = document.querySelector('#overdueView .table-responsive');
-
-        if (!filteredOverdueStudents.length) {
-            const empty = `<div style="padding:60px 40px;text-align:center;background:#f8fafc;border-radius:8px;margin:20px 0;"><div style="font-size:64px;margin-bottom:20px;opacity:.4;color:#64748b;">✅</div><div style="font-weight:600;color:#374151;margin-bottom:4px;">No Overdue Tests</div><div style="color:#6b7280;font-size:14px;">All students are up to date!</div></div>`;
-            if (isMobile) { tableDiv.style.display='none'; mobCont.style.display='block'; mobCont.innerHTML=empty; }
-            else { mobCont.style.display='none'; tableDiv.style.display='block'; tbody.innerHTML=`<tr><td colspan="5">${empty}</td></tr>`; }
-            return;
-        }
-
-        // Group by student email
-        const groups = {};
-        filteredOverdueStudents.forEach(item => {
-            if (!groups[item.studentEmail]) groups[item.studentEmail] = { studentName:item.studentName, studentId:item.studentId, studentEmail:item.studentEmail, section:item.section, tests:[] };
-            groups[item.studentEmail].tests.push(item);
-        });
-
-        if (isMobile) {
-            tableDiv.style.display='none'; mobCont.style.display='block';
-            mobCont.innerHTML = Object.values(groups).map(g => {
-                const comp = g.tests.filter(t=>t.hasCompleted).length;
-                const pend = g.tests.length - comp;
-                return `<div style="background:#fef2f2;border:2px solid #fee2e2;border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;" onclick="showStudentTests('${g.studentEmail}')">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid #fecaca;flex-wrap:wrap;gap:10px;">
-                        <div style="flex:1;"><div style="font-weight:700;color:#991b1b;font-size:15px;margin-bottom:4px;">${esc(g.studentName)}</div><div style="color:#64748b;font-size:12px;">ID: ${esc(g.studentId)}</div><div style="color:#475569;font-size:12px;margin-top:4px;"><i class="fas fa-layer-group" style="margin-right:4px;"></i>${esc(g.section)}</div></div>
-                        <span style="background:#ef4444;color:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;">${g.tests.length} test${g.tests.length>1?'s':''}</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-                        <div style="text-align:center;padding:10px;background:#fee2e2;border-radius:8px;"><div style="font-size:10px;color:#7f1d1d;font-weight:700;margin-bottom:4px;text-transform:uppercase;">Pending</div><div style="font-size:22px;font-weight:700;color:#dc2626;">${pend}</div></div>
-                        <div style="text-align:center;padding:10px;background:#d1fae5;border-radius:8px;"><div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px;text-transform:uppercase;">Completed</div><div style="font-size:22px;font-weight:700;color:#10b981;">${comp}</div></div>
-                    </div>
-                    <button style="width:100%;padding:10px;background:linear-gradient(135deg,#4a5a72,#2d3d52);color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;" onclick="event.stopPropagation();showStudentTests('${g.studentEmail}')"><i class="fas fa-eye"></i> View All Tests</button>
-                </div>`;
-            }).join('');
-        } else {
-            mobCont.style.display='none'; tableDiv.style.display='block';
-            tbody.innerHTML = Object.values(groups).map(g => {
-                const comp = g.tests.filter(t=>t.hasCompleted).length;
-                const pend = g.tests.length-comp;
-                return `<tr onclick="showStudentTests('${g.studentEmail}')" style="cursor:pointer;">
-                    <td><strong>${esc(g.studentName)}</strong><span class="test-count-badge">${g.tests.length}</span><br><small style="color:#64748b;">${esc(g.studentId)}</small></td>
-                    <td>${esc(g.section)}</td>
-                    <td><span style="color:#ef4444;font-weight:600;">${pend} Pending</span>${comp>0?`<br><small style="color:#10b981;">✓ ${comp} Completed</small>`:''}</td>
-                    <td><small style="color:#64748b;">Multiple deadlines</small></td>
-                    <td><button class="btn-action btn-view" onclick="event.stopPropagation();showStudentTests('${g.studentEmail}')"><i class="fas fa-eye"></i> View Tests</button></td>
-                </tr>`;
-            }).join('');
-        }
+        tableDiv.parentNode.insertBefore(mobCont, tableDiv.nextSibling);
     }
+    const tableDiv = document.querySelector('#overdueView .table-responsive');
+
+    if (!filteredOverdueStudents.length) {
+        const empty = `<div style="padding:60px 40px;text-align:center;background:#f8fafc;border-radius:8px;margin:20px 0;"><div style="font-size:64px;margin-bottom:20px;opacity:.4;color:#64748b;">✅</div><div style="font-weight:600;color:#374151;margin-bottom:4px;">No Overdue Tests</div><div style="color:#6b7280;font-size:14px;">All students are up to date!</div></div>`;
+        if (isMobile) { tableDiv.style.display='none'; mobCont.style.display='block'; mobCont.innerHTML=empty; }
+        else { mobCont.style.display='none'; tableDiv.style.display='block'; tbody.innerHTML=`<tr><td colspan="5">${empty}</td>`; }
+        return;
+    }
+
+    // Group by student email
+    const groups = {};
+    filteredOverdueStudents.forEach(item => {
+        if (!groups[item.studentEmail]) groups[item.studentEmail] = { studentName:item.studentName, studentId:item.studentId, studentEmail:item.studentEmail, section:item.section, tests:[] };
+        groups[item.studentEmail].tests.push(item);
+    });
+
+    if (isMobile) {
+        tableDiv.style.display='none'; mobCont.style.display='block';
+        mobCont.innerHTML = Object.values(groups).map(g => {
+            const comp = g.tests.filter(t=>t.hasCompleted).length;
+            const pend = g.tests.length - comp;
+            return `<div style="background:#fef2f2;border:2px solid #fee2e2;border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;" onclick="showStudentTests('${g.studentEmail}')">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid #fecaca;flex-wrap:wrap;gap:10px;">
+                    <div style="flex:1;"><div style="font-weight:700;color:#991b1b;font-size:15px;margin-bottom:4px;">${esc(g.studentName)}</div><div style="color:#64748b;font-size:12px;">ID: ${esc(g.studentId)}</div><div style="color:#475569;font-size:12px;margin-top:4px;"><i class="fas fa-layer-group" style="margin-right:4px;"></i>${esc(g.section)}</div></div>
+                    <span style="background:#ef4444;color:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;">${g.tests.length} test${g.tests.length>1?'s':''}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <div style="text-align:center;padding:10px;background:#fee2e2;border-radius:8px;"><div style="font-size:10px;color:#7f1d1d;font-weight:700;margin-bottom:4px;text-transform:uppercase;">Pending</div><div style="font-size:22px;font-weight:700;color:#dc2626;">${pend}</div></div>
+                    <div style="text-align:center;padding:10px;background:#d1fae5;border-radius:8px;"><div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px;text-transform:uppercase;">Completed</div><div style="font-size:22px;font-weight:700;color:#10b981;">${comp}</div></div>
+                </div>
+                <button style="width:100%;padding:10px;background:linear-gradient(135deg,#4a5a72,#2d3d52);color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;" onclick="event.stopPropagation();showStudentTests('${g.studentEmail}')"><i class="fas fa-eye"></i> View All Tests</button>
+            </div>`;
+        }).join('');
+    } else {
+        mobCont.style.display='none'; tableDiv.style.display='block';
+        tbody.innerHTML = Object.values(groups).map(g => {
+            const comp = g.tests.filter(t=>t.hasCompleted).length;
+            const pend = g.tests.length-comp;
+            return `<tr onclick="showStudentTests('${g.studentEmail}')" style="cursor:pointer;">
+                <td><strong>${esc(g.studentName)}</strong><br><small style="color:#64748b;">${esc(g.studentId)}</small></td>
+                <td>${esc(g.section)}</td>
+                <td><span style="color:#ef4444;font-weight:600;">${pend} Pending</span>${comp>0?`<br><small style="color:#10b981;">✓ ${comp} Completed</small>`:''}</td>
+                <td><small style="color:#64748b;">Multiple deadlines</small></td>
+                <td><button class="btn-action btn-view" onclick="event.stopPropagation();showStudentTests('${g.studentEmail}')"><i class="fas fa-eye"></i> View Tests</button></td>
+            </tr>`;
+        }).join('');
+    }
+}
 
     window.filterOverdueStudents = function() {
         const term = document.getElementById('searchOverdue').value.toLowerCase();
@@ -2627,58 +2712,137 @@ if (att.submittedAt) {
     //  EXPORT
     // ═══════════════════════════════════════════════════════════════
     window.exportStudents = function() {
-        if (!filteredStudents.length) { window.showWarningModal('No students to export.',()=>{},()=>{}); return; }
-        const testFilter = document.getElementById('filterTest')?.value||'';
-        const dateFilter = document.getElementById('filterTestDate')?.value||'';
-        const secFilter  = document.getElementById('filterSection')?.value||'';
-        const catFilter  = document.getElementById('filterCategory')?.value||'';
+    if (!filteredStudents.length) { window.showWarningModal('No students to export.',()=>{},()=>{}); return; }
+    const testFilter = document.getElementById('filterTest')?.value || '';
+    const dateFilter = document.getElementById('filterTestDate')?.value || '';
+    const secFilter  = document.getElementById('filterSection')?.value || '';
 
-        let rows = [
-            ['# Export Date:', new Date().toLocaleString()],
-            ['# Filters Applied:', `Test: ${testFilter||'All'}`, `Date: ${dateFilter||'All'}`, `Section: ${secFilter||'All'}`, `Category: ${catFilter||'All'}`],
-            [],
-        ];
+    let rows = [
+        ['# Export Date:', new Date().toLocaleString()],
+        ['# Filters Applied:', `Test: ${testFilter||'All'}`, `Date: ${dateFilter||'All'}`, `Section: ${secFilter||'All'}`],
+        [],
+    ];
 
-        if (testFilter) {
-            rows.push(['ID','Student Name','Section','Year Level','Activities','Health Condition','Test Name','Attempt Number','Category','Overall Performance']);
-            filteredStudents.forEach(s => {
-                const res = (s.testResultsRaw||[]).filter(r => (r.testName||'').toLowerCase().includes(testFilter.toLowerCase())).sort((a,b) => {
-                    const t = r => r.submittedAt?.toDate?r.submittedAt.toDate().getTime():r.submittedAt?.seconds?r.submittedAt.seconds*1000:r.submittedAt instanceof Date?r.submittedAt.getTime():new Date(r.submittedAt||0).getTime();
-                    return t(a)-t(b);
+    if (testFilter) {
+        // With test selected — match what's shown in the table (Image 2)
+        rows.push(['ID', 'Student Name', 'Section', 'Activities', 'Health Condition', 'Test Result', 'Submitted At', 'Performance']);
+
+        filteredStudents.forEach(s => {
+            let matchedRows = (s.testResultsRaw || []).filter(r => r.testName === testFilter);
+
+            if (dateFilter && matchedRows.length) {
+                matchedRows = matchedRows.filter(r => {
+                    const tid = r.testId || r.scheduledTestId;
+                    if (!tid) return false;
+                    for (const tests of scheduledTestsMap.values()) {
+                        const m = tests.find(t => t.id === tid);
+                        if (m) return m.deadline === dateFilter;
+                    }
+                    return false;
                 });
-                let toExp = [...res];
-                if (dateFilter) {
-                    const opt = document.getElementById('filterTestDate').querySelector(`option[value="${dateFilter}"]`);
-                    const sm  = new Date((opt?.getAttribute('data-start')||dateFilter)+'T00:00:00').getTime();
-                    const em  = new Date(dateFilter+'T23:59:59').getTime();
-                    toExp = toExp.filter(r => { if(!r.submittedAt) return false; const d=r.submittedAt.toDate?r.submittedAt.toDate():r.submittedAt.seconds?new Date(r.submittedAt.seconds*1000):new Date(r.submittedAt); const ms=d.getTime(); return ms>=sm&&ms<=em; });
+            }
+
+            if (matchedRows.length > 0) {
+                const latest = matchedRows[matchedRows.length - 1];
+
+                // Result value
+                let rv = '—';
+                if (latest.result !== undefined) {
+                    rv = typeof latest.result === 'object'
+                        ? (latest.result.value || latest.result.repetitions || latest.result.time || '—')
+                        : latest.result;
+                } else if (latest.repetitions !== undefined) {
+                    rv = latest.repetitions;
                 }
-                if (!toExp.length) { rows.push([s.umakId||'N/A',`${s.firstName} ${s.lastName}`.trim(),s.section||'N/A',s.yearLevel||'N/A',s.uniqueTestCount,s.medicalCondition||'—',testFilter,'—','No submission',s.overallCategory||'N/A']); return; }
-                toExp.forEach((r, i) => {
-                    const anum = res.findIndex(x=>x.id===r.id)+1||i+1;
-                    rows.push([s.umakId||'N/A',`${s.firstName} ${s.lastName}`.trim(),s.section||'N/A',s.yearLevel||'N/A',s.uniqueTestCount,s.medicalCondition||'—',r.testName||testFilter,`Attempt ${anum}`,r.savedScore||'—',s.overallCategory||'N/A']);
+                const resultStr = `${rv}${latest.testUnit ? ' ' + latest.testUnit : ''}`;
+
+                // Submitted at
+                let dateStr = '—';
+                if (latest.submittedAt) {
+                    const d = latest.submittedAt.toDate ? latest.submittedAt.toDate()
+                        : latest.submittedAt.seconds ? new Date(latest.submittedAt.seconds * 1000)
+                        : new Date(latest.submittedAt);
+                    dateStr = `${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+                }
+
+                // Performance — re-classify from raw result
+                const rawVal = latest.result ?? latest.repetitions ?? latest.resultData ?? null;
+                getNormCategoryWithPriority(
+                    testFilter, rawVal, latest.testId,
+                    s.email, s.gender || 'male',
+                    _studentAge({ birthday: s.birthday, age: s.age })
+                ).then(cat => {
+                    rows.push([
+                        s.umakId || 'N/A',
+                        `${s.firstName} ${s.lastName}`.trim(),
+                        s.section || 'N/A',
+                        s.uniqueTestCount,
+                        s.medicalCondition || '—',
+                        resultStr,
+                        dateStr,
+                        cat || '—'
+                    ]);
                 });
-            });
-        } else {
-            rows.push(['ID','Student Name','Section','Year Level','Activities','Health Condition','Overall Performance']);
-            filteredStudents.forEach(s => rows.push([s.umakId||'N/A',`${s.firstName} ${s.lastName}`.trim(),s.section||'N/A',s.yearLevel||'N/A',s.uniqueTestCount,s.medicalCondition||'—',s.overallCategory||'N/A']));
-        }
 
-        let fname = `students_${new Date().toISOString().split('T')[0]}`;
-        if (testFilter) fname += `_${testFilter.replace(/\s+/g,'_')}`;
-        if (secFilter)  fname += `_${secFilter.replace(/\s+/g,'_')}`;
-        if (dateFilter) fname += `_${dateFilter}`;
-        fname += '.csv';
+            } else {
+                rows.push([
+                    s.umakId || 'N/A',
+                    `${s.firstName} ${s.lastName}`.trim(),
+                    s.section || 'N/A',
+                    s.uniqueTestCount,
+                    s.medicalCondition || '—',
+                    'Not Submitted',
+                    'Pending',
+                    '—'
+                ]);
+            }
+        });
 
-        const csv = rows.map(row => row.map(c => { const s=String(c||''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\n');
-        const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-        const a    = document.createElement('a');
-        a.href     = URL.createObjectURL(blob);
-        a.download = fname;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-        window.showSuccessModal(`Exported ${filteredStudents.length} students successfully!`);
-    };
+        // Wait for async category lookups then export
+        setTimeout(() => {
+            _doExport(rows, testFilter, secFilter, dateFilter);
+        }, 1500);
+
+    } else {
+        // No test selected — match what's shown in the table (Image 1)
+        rows.push(['ID', 'Student Name', 'Section', 'Activities', 'Health Condition', 'Performance']);
+        filteredStudents.forEach(s => {
+            rows.push([
+                s.umakId || 'N/A',
+                `${s.firstName} ${s.lastName}`.trim(),
+                s.section || 'N/A',
+                s.uniqueTestCount,
+                s.medicalCondition || '—',
+                s.overallCategory || 'No Data Yet'
+            ]);
+        });
+        _doExport(rows, testFilter, secFilter, dateFilter);
+    }
+};
+
+function _doExport(rows, testFilter, secFilter, dateFilter) {
+    let fname = `students_${new Date().toISOString().split('T')[0]}`;
+    if (testFilter) fname += `_${testFilter.replace(/\s+/g,'_')}`;
+    if (secFilter)  fname += `_${secFilter.replace(/\s+/g,'_')}`;
+    if (dateFilter) fname += `_${dateFilter}`;
+    fname += '.csv';
+
+    const csv = rows.map(row =>
+        row.map(c => {
+            const s = String(c || '');
+            return (s.includes(',') || s.includes('"') || s.includes('\n'))
+                ? `"${s.replace(/"/g,'""')}"` : s;
+        }).join(',')
+    ).join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    window.showSuccessModal(`Exported ${filteredStudents.length} students successfully!`);
+}
 
     // ═══════════════════════════════════════════════════════════════
     //  REFRESH

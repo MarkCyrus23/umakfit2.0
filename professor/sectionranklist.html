@@ -420,7 +420,7 @@
                 <div class="stat-card bg-gradient-to-br from-purple to-purple-900 rounded-2xl text-white p-5">
                     <div class="flex items-center gap-2 mb-3">
                         <i class="fas fa-star text-xl"></i>
-                        <span class="font-semibold text-sm">Overall Category</span>
+                        <span class="font-semibold text-sm">Overall Performance</span>
                     </div>
                     <div class="font-mono font-bold text-lg" id="statOverallCategory">—</div>
                 </div>
@@ -494,10 +494,7 @@
                             <option value="name-asc">Name A→Z</option>
                             <option value="name-desc">Name Z→A</option>
                         </select>
-                        <button onclick="refreshData()" class="inline-flex items-center gap-2 px-3.5 py-2 border border-border rounded-xl text-[13px] font-medium text-text-secondary hover:bg-surface transition-all">
-                            <i class="fas fa-sync-alt text-xs"></i>
-                            <span class="hidden sm:inline">Refresh</span>
-                        </button>
+                       
                     </div>
                 </div>
 
@@ -510,7 +507,7 @@
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Students</th>
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">With Grades</th>
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Completion</th>
-                                <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Overall Category</th>
+                                <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Overall Performance</th>
                                 <th class="text-left px-4 py-3.5 text-[13px] font-semibold tracking-wide">Actions</th>
                             </tr>
                         </thead>
@@ -697,7 +694,7 @@
             <div class="flex items-center gap-3 p-3 rounded-xl bg-surface mb-3">
                 <div class="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center text-accent text-sm flex-shrink-0"><i class="fas fa-star"></i></div>
                 <div>
-                    <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Overall Category</div>
+                    <div class="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Overall Performance</div>
                     <div class="mt-0.5">${categoryBadge}</div>
                 </div>
             </div>
@@ -1049,6 +1046,9 @@ window.addEventListener('pagehide', () => {
             if (addedIds.has(d.id)) return;
             const data = d.data();
             if (data.archived) return;
+            const removedByMe = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+            const pe = (data.professorEmail || '').toLowerCase();
+            if (removedByMe || pe.startsWith('removed_')) return;
             addedIds.add(d.id);
             assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
             });
@@ -1056,15 +1056,18 @@ window.addEventListener('pagehide', () => {
         }
 
         try {
-            const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
-            q2.forEach(d => {
-                 if (addedIds.has(d.id)) return;
-                    const data = d.data();
-                    if (data.archived) return;
-                    addedIds.add(d.id);
-                assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
-            });
-        } catch(e) {}
+    const q2 = await getDocs(query(collection(db,'sections'), where('professorEmail','==',profEmail)));
+    q2.forEach(d => {
+        if (addedIds.has(d.id)) return;
+        const data = d.data();
+        if (data.archived) return;
+        const removedByMe = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+        const pe = (data.professorEmail || '').toLowerCase();
+        if (removedByMe || pe.startsWith('removed_')) return;
+        addedIds.add(d.id);
+        assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
+    });
+} catch(e) {}
 
         const secSnap = await getDocs(collection(db,'sections'));
         secSnap.forEach(d => {
@@ -1079,8 +1082,10 @@ window.addEventListener('pagehide', () => {
             if (!isMatch && dbProf.length>=3) { const dbW=dbProf.split(/[\s,\.]+/).filter(w=>w.length>=3); for (const w of dbW) { if (nameTokens.has(w)) { isMatch=true; break; } } }
             if (!isMatch) { const eu=profEmail.split('@')[0].toUpperCase(); if (eu.length>3 && dbProf.includes(eu)) isMatch=true; }
 
-                if (isMatch && !data.archived) {
-        addedIds.add(d.id);
+                const removedByMe = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+            const pe = (data.professorEmail || '').toLowerCase();
+            if (isMatch && !data.archived && !removedByMe && !pe.startsWith('removed_')) {
+                addedIds.add(d.id);
                 assignedSections.push({ id:d.id, name:data.name||'Unnamed', courseCode:data.courseCode||'PE', students:data.students||[], studentCount:(data.students||[]).length, yearLevel:data.yearLevel||'', professor:data.professor||'', ...data });
             }
         });
@@ -1653,7 +1658,7 @@ window.addEventListener('pagehide', () => {
                     <div class="text-[11px] text-text-muted mt-0.5">of ${sectionRankings.length}</div>
                 </div>
                 <div class="bg-surface rounded-xl p-4 border border-border text-center">
-                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Overall Category</div>
+                    <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Overall Performance</div>
                     <div class="font-mono font-bold text-navy text-lg mt-1">${categoryBadge}</div>
                 </div>
             </div>
@@ -1708,14 +1713,7 @@ window.addEventListener('pagehide', () => {
         updateStats(display.length ? display : sorted);
     };
 
-    window.refreshData = async function() {
-        try {
-            await loadAssignedSections();
-            await loadTestResults();
-            await calculateRankings();
-            showAlert('Rankings refreshed successfully!', 'success');
-        } catch(e) { showAlert('Error refreshing: ' + e.message, 'error'); }
-    };
+    
 
     function showLogoutConfirmPopup() {
         const existing = document.getElementById('logoutOverlay');

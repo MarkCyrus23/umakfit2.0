@@ -1086,7 +1086,9 @@
                 if (eu.length > 3 && dbProf.includes(eu)) isMatch = true;
             }
 
-            if (isMatch && !data.archived) {
+           const removedByMe = data.removedByProfessor && (data.removedByProfessorEmail || '').toLowerCase() === profEmail;
+            const pe = (data.professorEmail || '').toLowerCase();
+            if (isMatch && !data.archived && !removedByMe && !pe.startsWith('removed_')) {
             const sData = data.students || [];
             sections.push({
                     id:           d.id,
