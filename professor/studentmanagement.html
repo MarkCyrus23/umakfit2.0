@@ -1991,19 +1991,22 @@ window.loadOverdueStudents = async function() {
                     where('studentEmail', 'in', batch),
                     where('status', '==', 'completed')
                 ));
-                snap.forEach(d => {
-                    const data = d.data();
-                    const key = `${data.studentEmail}_${data.testId}`;
-                    if (!completedMap.has(key)) {
-                      completedMap.set(key, {
-    resultId: d.id,
-    result: data.result ?? null,
-    repetitions: data.repetitions ?? null,
-    status: data.status,
-    category: data.score || data.category
+snap.forEach(d => {
+    const data = d.data();
+    const key = `${data.studentEmail}_${data.testId}`;
+    if (!completedMap.has(key)) {
+        completedMap.set(key, {
+            resultId: d.id,
+            result: data.result ?? null,
+            repetitions: data.repetitions ?? null,
+            status: data.status,
+            category: data.score || data.category,
+            attemptCount: 1
+        });
+    } else {
+        completedMap.get(key).attemptCount++;
+    }
 });
-                    }
-                });
             }
 
             // Check each student against each test in this section
@@ -2021,13 +2024,19 @@ window.loadOverdueStudents = async function() {
                         dl.setHours(23, 59, 59, 999);
                     }
 
-                    // Only include if deadline has passed
-                    if (dl >= now) return;
+ // Only include if deadline has passed
+if (dl >= now) return;
 
-                    const key = `${email}_${test.id}`;
-                    const completed = completedMap.get(key);
+const key = `${email}_${test.id}`;
+const completed = completedMap.get(key);
 
-                    overdueStudents.push({
+const attemptCount = completed?.attemptCount ?? 0;
+const isProfessorEnabled = enabledMap.has(key);
+
+// Mirror student-side exactly: skip if student has ANY attempt (unless professor re-enabled)
+if (attemptCount > 0 && !isProfessorEnabled) return;
+
+overdueStudents.push({
                         studentName: stu.name || 'Unknown',
                         studentEmail: email,
                         studentId: stu.student_id || stu.studentId || 'N/A',

@@ -635,6 +635,7 @@
             // Setup real-time listeners AFTER initial load (so they don't duplicate work)
             setupLiveListeners(testResults);
             setupDeadlineWatcher();
+            setupOverduePollFallback();
         }
 
         // ========== PROCESS: TESTS (available + overdue) ==========
@@ -678,8 +679,16 @@
                     else deadline.setHours(23, 59, 59, 999);
                 }
 
-                if (deadline < now) overdueTests.push(test);
-                else availableTests.push(test);
+if (deadline < now) {
+    const attemptData = attemptsMap.get(test.id) || { attempts: 0, hasExcellent: false };
+    const isProfessorEnabled = cachedTestPermissions.has(test.id);
+
+    if (attemptData.attempts === 0 || isProfessorEnabled) {
+        overdueTests.push(test);
+    }
+} else {
+    availableTests.push(test);
+}
             }
 
             renderCategoryCards(attemptsMap);
@@ -1008,71 +1017,86 @@
 
         // ========== LIVE LISTENERS (minimal scope, no re-fetching all data) ==========
 
-        function setupLiveListeners(initialTestResults) {
-            if (!studentData?.section) return;
+ function setupLiveListeners(initialTestResults) {
+    if (!studentData?.section) return;
 
-            // Listen for new/changed scheduled tests
-            const testsQuery = query(collection(db, 'scheduledTests'), where('section', '==', studentData.section));
-            registerListener(onSnapshot(testsQuery, async (snap) => {
-                const updatedTests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                // Re-fetch only testResults (lightweight, needed to rebuild attemptsMap)
-                const updatedResults = await fetchAllTestResults(studentData.email);
-                allTestHistory = updatedResults;
-                processTestHistory(updatedResults);
-                processPerformanceDashboard(updatedResults);
-                await processTests(updatedTests, updatedResults);
-            }, (_) => {}));
+    // Listen for new/changed scheduled tests
+    const testsQuery = query(collection(db, 'scheduledTests'), where('section', '==', studentData.section));
+    registerListener(onSnapshot(testsQuery, async (snap) => {
+        const updatedTests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const updatedResults = await fetchAllTestResults(studentData.email);
+        allTestHistory = updatedResults;
+        processTestHistory(updatedResults);
+        processPerformanceDashboard(updatedResults);
+        await processTests(updatedTests, updatedResults);
+    }, (_) => {}));
 
-            // Listen for new test results (student submits a test)
-            const resultsQuery = query(collection(db, 'testResults'), where('studentEmail', '==', studentData.email));
-            registerListener(onSnapshot(resultsQuery, async (snap) => {
-                const updatedResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                processTestHistory(updatedResults);
-                processPerformanceDashboard(updatedResults);
-                // Re-fetch scheduledTests to rebuild available/overdue
-                const updatedTests = await fetchScheduledTests(studentData.section);
-                await processTests(updatedTests, updatedResults);
-            }, (_) => {}));
+    // Listen for new test results
+    const resultsQuery = query(collection(db, 'testResults'), where('studentEmail', '==', studentData.email));
+    registerListener(onSnapshot(resultsQuery, async (snap) => {
+        const updatedResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        allTestHistory = updatedResults;
+        processTestHistory(updatedResults);
+        processPerformanceDashboard(updatedResults);
+        const updatedTests = await fetchScheduledTests(studentData.section);
+        await processTests(updatedTests, updatedResults);
+    }, (_) => {}));
 
-            // Listen for testPermissions changes
-            const permQuery = query(collection(db, 'testPermissions'), where('studentEmail', '==', studentData.email));
-            registerListener(onSnapshot(permQuery, (snap) => {
-                const ids = new Set();
-                snap.forEach(d => { if (d.data().testId) ids.add(d.data().testId); });
-                cachedTestPermissions = ids;
-                renderOverdueTests(overdueTests, allTestHistory);
-            }, (_) => {}));
+    // Listen for testPermissions — re-render overdue immediately
+    const permQuery = query(collection(db, 'testPermissions'), where('studentEmail', '==', studentData.email));
+    registerListener(onSnapshot(permQuery, (snap) => {
+        const ids = new Set();
+        snap.forEach(d => { if (d.data().testId) ids.add(d.data().testId); });
+        cachedTestPermissions = ids;
+        // Immediately re-render overdue with updated permissions
+        renderOverdueTests(overdueTests, allTestHistory);
+        // Also re-render category cards in case an overdue test was unlocked
+        buildAttemptsMapFromHistory().then(map => renderCategoryCards(map));
+    }, (_) => {}));
 
-            // Listen for notifications
-            if (studentData.section !== 'Not Assigned') {
-                const notifQuery = query(collection(db, 'notifications'), where('section', '==', studentData.section), where('studentEmail', '==', studentData.email));
-                registerListener(onSnapshot(notifQuery, (snap) => {
-                    cachedNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    processNotifications(cachedNotifications);
-                }, (_) => {}));
-            }
-        }
+    // Listen for notifications
+    if (studentData.section !== 'Not Assigned') {
+        const notifQuery = query(collection(db, 'notifications'), where('section', '==', studentData.section), where('studentEmail', '==', studentData.email));
+        registerListener(onSnapshot(notifQuery, (snap) => {
+            cachedNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            processNotifications(cachedNotifications);
+        }, (_) => {}));
+    }
+}
 
         // ========== DEADLINE WATCHER ==========
+function setupDeadlineWatcher() {
+    // Check every 10 seconds if any available test deadline has passed
+    setInterval(async () => {
+        const now = new Date();
+        let anyExpired = false;
 
-        function setupDeadlineWatcher() {
-            setInterval(async () => {
-                const now = new Date();
-                let anyExpired = false;
-                availableTests = availableTests.filter(test => {
-                    let dl;
-                    if (test.deadlineDateTime) dl = new Date(test.deadlineDateTime);
-                    else { dl = new Date(test.deadline); if (test.deadlineTime) { const [h, m] = test.deadlineTime.split(':').map(Number); dl.setHours(h, m, 0, 0); } else dl.setHours(23, 59, 59, 999); }
-                    if (dl < now) { if (!overdueTests.find(o => o.id === test.id)) overdueTests.push(test); anyExpired = true; return false; }
-                    return true;
-                });
-                if (anyExpired) {
-                const attemptsMap = await buildAttemptsMapFromHistory();
-                renderCategoryCards(attemptsMap);
-                renderOverdueTests(overdueTests, allTestHistory);
+        availableTests = availableTests.filter(test => {
+            let dl;
+            if (test.deadlineDateTime) dl = new Date(test.deadlineDateTime);
+            else {
+                dl = new Date(test.deadline);
+                if (test.deadlineTime) { const [h, m] = test.deadlineTime.split(':').map(Number); dl.setHours(h, m, 0, 0); }
+                else dl.setHours(23, 59, 59, 999);
             }
-            }, 10000);
+            if (dl < now) {
+                if (!overdueTests.find(o => o.id === test.id)) {
+                    overdueTests.push(test);
+                }
+                anyExpired = true;
+                return false;
+            }
+            return true;
+        });
+
+        if (anyExpired) {
+            const attemptsMap = await buildAttemptsMapFromHistory();
+            renderCategoryCards(attemptsMap);
+            // Re-render overdue with the latest test results and permissions
+            renderOverdueTests(overdueTests, allTestHistory);
         }
+    }, 10000);
+}
 
         async function buildAttemptsMapFromHistory() {
     const attemptsMap = new Map();
@@ -1086,7 +1110,21 @@
     }));
     return attemptsMap;
 }
-
+function setupOverduePollFallback() {
+    setInterval(async () => {
+        if (!studentData?.email) return;
+        try {
+            const freshPermissions = await fetchTestPermissions(studentData.email);
+            const oldSize = cachedTestPermissions.size;
+            const newSize = freshPermissions.size;
+            const changed = oldSize !== newSize || [...freshPermissions].some(id => !cachedTestPermissions.has(id));
+            if (changed) {
+                cachedTestPermissions = freshPermissions;
+                renderOverdueTests(overdueTests, allTestHistory);
+            }
+        } catch (_) {}
+    }, 10000);
+}
         // ========== HELPERS ==========
 
         function getCategoryForTest(testName) {
