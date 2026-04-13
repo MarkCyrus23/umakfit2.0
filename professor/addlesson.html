@@ -881,7 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function applyFilters(){
         const sf=document.getElementById('sectionFilter').value,tf=document.getElementById('lessonTypeFilter').value;
-        filteredLessons=allLessons.filter(l=>{if(sf&&l.section!==sf)return false;if(tf!=='all'&&l.type!==tf)return false;return true;});
+        filteredLessons=allLessons.filter(l=>{if(sf){const lessonSections=l.sections&&l.sections.length>0?l.sections:[l.section];if(!lessonSections.includes(sf))return false;}if(tf!=='all'&&l.type!==tf)return false;return true;});
         displayLessons(filteredLessons);document.getElementById('lessonsCount').textContent=filteredLessons.length;
         if(filteredLessons.length===0)document.getElementById('noLessonsMsgText').textContent=(sf||tf!=='all')?'No lessons match your current filters. Try adjusting your filters.':'Click "Create New Lesson" above to get started!';
     }
@@ -1180,7 +1180,7 @@ async function saveLessonAction(title, sections, type, desc, ytLink, pubDate, st
             <div class="lesson-modal-header"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-success to-[#0a6b47] flex items-center justify-center text-white text-[15px]"><i class="fas fa-book-open"></i></div><h3 class="font-display text-[18px] font-bold text-navy">${lesson.title}</h3></div><button onclick="this.closest('.lesson-modal-overlay').remove()" style="background:none;border:none;cursor:pointer;" class="w-9 h-9 rounded-xl bg-surface flex items-center justify-center text-text-muted hover:bg-danger-bg hover:text-danger transition-all"><i class="fas fa-times"></i></button></div>
             <div class="lesson-modal-body">
                 <div class="grid grid-cols-2 gap-3 mb-5 max-[500px]:grid-cols-1">
-                    <div class="bg-surface rounded-xl p-3 border border-border"><div class="text-[10px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Section</div><div class="text-[13px] font-semibold text-navy">${lesson.section}</div></div>
+                    <div class="bg-surface rounded-xl p-3 border border-border"><div class="text-[10px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Section${lesson.sections && lesson.sections.length > 1 ? 's' : ''}</div><div class="text-[13px] font-semibold text-navy">${lesson.sections && lesson.sections.length > 0 ? lesson.sections.join(', ') : (lesson.section || 'No Section')}</div></div>
                     <div class="bg-surface rounded-xl p-3 border border-border"><div class="text-[10px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Type</div><div class="text-[13px] font-semibold text-navy capitalize">${lesson.type}</div></div>
                     <div class="bg-surface rounded-xl p-3 border border-border"><div class="text-[10px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Date</div><div class="text-[12px] font-semibold text-navy">${date}</div></div>
                     <div class="bg-surface rounded-xl p-3 border border-border"><div class="text-[10px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Status</div><span class="badge badge-published">Published</span></div>
