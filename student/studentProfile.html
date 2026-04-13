@@ -613,54 +613,93 @@
         window.calculateAge = calculateAge; // expose for modal onchange
 
         // ========== NOTIFICATIONS ==========
-        async function checkUnreadNotifications() {
-            try {
-                if (!studentData?.section) return;
-                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
-                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-                let unread=0; snap.forEach(d=>{ if(!read.includes(d.id)) unread++; });
-                ['navNotificationCount','navNotificationCountMobile'].forEach(id=>{
-                    const el=document.getElementById(id); if(!el) return;
-                    if(unread>0){ el.textContent=unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
-                });
-            } catch(e){ console.error(e); }
+async function checkUnreadNotifications() {
+    try {
+        if (!studentData?.section) return;
+        const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
+        const readKey = `readNotifications_${studentData.email}`;
+        const deletedKey = `deletedNotifications_${studentData.email}`;
+        const read = JSON.parse(localStorage.getItem(readKey) || '[]');
+        const deleted = JSON.parse(localStorage.getItem(deletedKey) || '[]');
+        let unread = 0;
+        snap.forEach(d => {
+            if (!deleted.includes(d.id) && !read.includes(d.id)) unread++;
+        });
+        ['navNotificationCount','navNotificationCountMobile'].forEach(id => {
+            const el = document.getElementById(id); if (!el) return;
+            if (unread > 0) { el.textContent = unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
+        });
+    } catch(e) { console.error(e); }
+}
+async function loadNotificationDropdown(isMobile = false) {
+    try {
+        const bodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
+        const body = document.getElementById(bodyId); if (!body) return;
+        if (!studentData?.section) {
+            body.innerHTML = `<div class="py-6 px-8 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl block mb-3"></i><p class="text-gray-600 text-sm">No section assigned</p></div>`;
+            return;
+        }
+        const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
+        const readKey = `readNotifications_${studentData.email}`;
+        const deletedKey = `deletedNotifications_${studentData.email}`;
+        const read = JSON.parse(localStorage.getItem(readKey) || '[]');
+        const deleted = JSON.parse(localStorage.getItem(deletedKey) || '[]');
+
+        const allNotifs = [];
+        snap.forEach(d => allNotifs.push({ id: d.id, ...d.data() }));
+        const active = allNotifs.filter(n => !deleted.includes(n.id));
+
+        if (active.length === 0) {
+            body.innerHTML = `<div class="py-6 px-8 text-center text-gray-400"><i class="bi bi-bell-slash text-5xl block mb-3"></i><p class="text-gray-600 text-sm">No notifications yet</p></div>`;
+            return;
         }
 
-        async function loadNotificationDropdown(isMobile=false) {
-            try {
-                const bodyId = isMobile ? 'notificationDropdownBodyMobile' : 'notificationDropdownBody';
-                const body = document.getElementById(bodyId);
-                if (!body) return;
-                if (!studentData || !studentData.section) {
-                    body.innerHTML = `<div class="notification-dropdown-empty"><i class="bi bi-bell-slash"></i><p>No section assigned</p></div>`;
-                    return;
-                }
-                const q = query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email));
-                const snap = await getDocs(q);
-                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-                if (!snap.empty) {
-                    const seen = new Set(); const unique = [];
-                    snap.forEach(d=>{ const n=d.data(); const k=`${n.title}|${n.message}|${n.createdAt?.toDate?.().getTime()||''}`; if(!seen.has(k)){ seen.add(k); unique.push({id:d.id, ...n}); } });
-                    unique.sort((a,b)=> (b.createdAt?.toDate?.()||new Date(0)) - (a.createdAt?.toDate?.()||new Date(0)) );
-                    const unreadIds = unique.filter(n=>!read.includes(n.id)).map(n=>n.id);
-                    let html = '';
-                    unique.slice(0,5).forEach(n=>{
-                        const d = n.createdAt?.toDate?.();
-                        const ds = d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Recently';
-                        const isRead = read.includes(n.id);
-                        html += `<div class="notification-dropdown-item ${isRead?'bg-gray-50':'bg-white'}" data-notification-id="${n.id}">
-                            <strong>${n.title||'Notification'}</strong>
-                            <p>${n.message||''}</p>
-                            <small>${ds}</small>
-                        </div>`;
-                    });
-                    body.innerHTML = html;
-                    if (unreadIds.length>0) markNotificationsAsRead(unreadIds);
-                } else {
-                    body.innerHTML = `<div class="notification-dropdown-empty"><i class="bi bi-bell-slash"></i><p>No notifications yet</p></div>`;
-                }
-            } catch(e){ console.error(e); }
+        const seen = new Set(), unique = [];
+        active.forEach(n => {
+            const k = `${n.title}|${n.message}|${n.createdAt?.toDate?.().getTime() || ''}`;
+            if (!seen.has(k)) { seen.add(k); unique.push(n); }
+        });
+        unique.sort((a,b) => (b.createdAt?.toDate?.() || new Date(0)) - (a.createdAt?.toDate?.() || new Date(0)));
+
+        let html = '';
+        unique.slice(0, 5).forEach(n => {
+            const d = n.createdAt?.toDate?.();
+            const ds = d ? d.toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Recently';
+            const isRead = read.includes(n.id);
+            html += `
+                <div class="notification-item px-4 py-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${isRead ? 'bg-gray-50' : 'bg-white'}" data-notification-id="${n.id}">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="flex-1 cursor-pointer" onclick="window.markNotificationAsRead('${n.id}')">
+                            <strong class="text-gray-900 text-sm font-semibold block mb-1">${n.title || 'Notification'}</strong>
+                            <p class="text-gray-600 text-xs leading-relaxed mb-1">${n.message || ''}</p>
+                            <small class="text-gray-400 text-[11px] block">${ds}</small>
+                        </div>
+                        <button onclick="event.stopPropagation(); window.deleteSingleNotification('${n.id}')"
+                            class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 flex-shrink-0"
+                            title="Delete notification">
+                            <i class="bi bi-trash3 text-sm"></i>
+                        </button>
+                    </div>
+                </div>`;
+        });
+
+        html += `
+            <div class="px-3 py-2 border-t border-gray-200 bg-gray-50">
+                <button onclick="window.deleteAllNotifications()"
+                    class="w-full py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2">
+                    <i class="bi bi-trash3"></i> Delete All Notifications
+                </button>
+            </div>`;
+
+        body.innerHTML = html;
+
+        const unreadIds = unique.filter(n => !read.includes(n.id)).map(n => n.id);
+        if (unreadIds.length > 0) {
+            localStorage.setItem(readKey, JSON.stringify([...new Set([...read, ...unreadIds])]));
+            updateNotificationBadgeAfterRead();
         }
+    } catch(e) { console.error(e); }
+}
 
         function markNotificationsAsRead(ids) {
             if (!studentData?.email || !ids.length) return;
@@ -668,20 +707,69 @@
             localStorage.setItem(`readNotifications_${studentData.email}`, JSON.stringify([...new Set([...read, ...ids])]));
             updateNotificationBadgeAfterRead();
         }
-        async function updateNotificationBadgeAfterRead() {
-            try {
-                if (!studentData?.section) return;
-                const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
-                const ids = new Set(); snap.forEach(d=> ids.add(d.id));
-                const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`)||'[]');
-                let unread=0; ids.forEach(id=>{ if(!read.includes(id)) unread++; });
-                ['navNotificationCount','navNotificationCountMobile'].forEach(id=>{
-                    const el=document.getElementById(id); if(!el) return;
-                    if(unread>0){ el.textContent=unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
-                });
-            } catch(e){ console.error(e); }
-        }
+async function updateNotificationBadgeAfterRead() {
+    try {
+        if (!studentData?.section) return;
+        const snap = await getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)));
+        const read = JSON.parse(localStorage.getItem(`readNotifications_${studentData.email}`) || '[]');
+        const deleted = JSON.parse(localStorage.getItem(`deletedNotifications_${studentData.email}`) || '[]');
+        let unread = 0;
+        snap.forEach(d => { if (!deleted.includes(d.id) && !read.includes(d.id)) unread++; });
+        ['navNotificationCount','navNotificationCountMobile'].forEach(id => {
+            const el = document.getElementById(id); if (!el) return;
+            if (unread > 0) { el.textContent = unread; el.classList.remove('hidden'); } else el.classList.add('hidden');
+        });
+    } catch(e) { console.error(e); }
+}
+window.markNotificationAsRead = function(id) {
+    const readKey = `readNotifications_${studentData?.email}`;
+    const read = JSON.parse(localStorage.getItem(readKey) || '[]');
+    if (!read.includes(id)) localStorage.setItem(readKey, JSON.stringify([...read, id]));
+};
 
+window.deleteSingleNotification = function(id) {
+    if (!confirm('Delete this notification permanently?')) return;
+    const deletedKey = `deletedNotifications_${studentData?.email}`;
+    const readKey = `readNotifications_${studentData?.email}`;
+    let deleted = JSON.parse(localStorage.getItem(deletedKey) || '[]');
+    if (!deleted.includes(id)) { deleted.push(id); localStorage.setItem(deletedKey, JSON.stringify(deleted)); }
+    let read = JSON.parse(localStorage.getItem(readKey) || '[]');
+    localStorage.setItem(readKey, JSON.stringify(read.filter(r => r !== id)));
+    const isMobile = window.innerWidth < 1024;
+    loadNotificationDropdown(isMobile);
+    checkUnreadNotifications();
+    showToast('Notification deleted', 'success');
+};
+
+window.deleteAllNotifications = function() {
+    if (!confirm('Delete ALL notifications permanently? This cannot be undone.')) return;
+    const deletedKey = `deletedNotifications_${studentData?.email}`;
+    const readKey = `readNotifications_${studentData?.email}`;
+    // We need the cached list — re-fetch and delete all
+    getDocs(query(collection(db,'notifications'), where('section','==',studentData.section), where('studentEmail','==',studentData.email)))
+        .then(snap => {
+            const deleted = JSON.parse(localStorage.getItem(deletedKey) || '[]');
+            snap.forEach(d => { if (!deleted.includes(d.id)) deleted.push(d.id); });
+            localStorage.setItem(deletedKey, JSON.stringify(deleted));
+            localStorage.setItem(readKey, JSON.stringify([]));
+            const isMobile = window.innerWidth < 1024;
+            loadNotificationDropdown(isMobile);
+            checkUnreadNotifications();
+            showToast('All notifications deleted', 'success');
+        });
+};
+
+function showToast(message, type = 'info') {
+    document.querySelector('.custom-toast')?.remove();
+    const toast = document.createElement('div');
+    const bg = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info-circle';
+    toast.className = `custom-toast fixed bottom-4 right-4 ${bg} text-white px-4 py-3 rounded-lg shadow-lg z-50 text-sm flex items-center gap-2`;
+    toast.style.animation = 'fadeIn 0.3s ease';
+    toast.innerHTML = `<i class="bi bi-${icon} text-base"></i> ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 2500);
+}
         function toggleNotificationDropdown(event) {
             event?.stopPropagation();
             const isMobile = window.innerWidth < 1024;
