@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 };
 
-    async function loadLessons(){
+  async function loadLessons(){
     allLessons=[];
     // Get archived section names to filter them out
     const archivedSectionNames = new Set();
@@ -848,7 +848,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const data=d.data();
             // Hide lessons belonging to archived sections
             if(archivedSectionNames.has(data.section)) return;
-            allLessons.push({id:d.id,...data,createdAt:data.createdAt?.toDate()||new Date(),publishDate:data.publishDate?.toDate()||null});
+            
+            // Ensure sections is always an array
+            let sectionsArray = data.sections;
+            if (!sectionsArray || !Array.isArray(sectionsArray)) {
+                sectionsArray = data.section ? [data.section] : [];
+            }
+            
+            allLessons.push({
+                id:d.id,
+                ...data,
+                sections: sectionsArray,
+                createdAt:data.createdAt?.toDate()||new Date(),
+                publishDate:data.publishDate?.toDate()||null
+            });
         });
     }
     catch(e){
@@ -856,7 +869,19 @@ document.addEventListener('DOMContentLoaded', function() {
         snap.forEach(d=>{
             const data=d.data();
             if(archivedSectionNames.has(data.section)) return;
-            allLessons.push({id:d.id,...data,createdAt:data.createdAt?.toDate()||new Date(),publishDate:data.publishDate?.toDate()||null});
+            
+            let sectionsArray = data.sections;
+            if (!sectionsArray || !Array.isArray(sectionsArray)) {
+                sectionsArray = data.section ? [data.section] : [];
+            }
+            
+            allLessons.push({
+                id:d.id,
+                ...data,
+                sections: sectionsArray,
+                createdAt:data.createdAt?.toDate()||new Date(),
+                publishDate:data.publishDate?.toDate()||null
+            });
         });
         allLessons.sort((a,b)=>b.createdAt-a.createdAt);
     }
@@ -1028,37 +1053,44 @@ async function saveLessonAction(title, sections, type, desc, ytLink, pubDate, st
         
         const ytId = type === 'video' ? extractYouTubeId(ytLink) : '';
         const profName = currentProfessor.fullName || currentProfessor.name || currentUser.displayName || 'Professor';
-        
-        
-        let resolvedStatus = status;
-        
-        // Store sections as an array
         const sectionsArray = Array.isArray(sections) ? sections : [sections];
         
-      const data = {
-        title,
-        section: sectionsArray[0] || '',
-        sections: sectionsArray, 
-        type, 
-        description: desc, 
-        youtubeLink: ytLink || '', 
-        youtubeVideoId: ytId || '', 
-        publishDate: pubDate ? new Date(pubDate) : new Date(), 
-        status: resolvedStatus, 
-        professorEmail: currentProfessor.email, 
-        professorName: profName, 
-        professorId: currentProfessor.id, 
-        updatedAt: serverTimestamp()
-    };
+        const data = {
+            title,
+            section: sectionsArray[0] || '',
+            sections: sectionsArray,
+            type, 
+            description: desc, 
+            youtubeLink: ytLink || '', 
+            youtubeVideoId: ytId || '', 
+            publishDate: pubDate ? new Date(pubDate) : new Date(), 
+            status, 
+            professorEmail: currentProfessor.email, 
+            professorName: profName, 
+            professorId: currentProfessor.id, 
+            updatedAt: serverTimestamp()
+        };
         
         if(editingLessonId){
             const ref = doc(db, 'lessons', editingLessonId);
             const existing = await getDoc(ref);
+            const existingData = existing.exists() ? existing.data() : {};
+            
+            // Find sections that are NEW (not in the previous version)
+            const previousSections = existingData.sections || 
+                (existingData.section ? [existingData.section] : []);
+            const newlyAddedSections = sectionsArray.filter(s => !previousSections.includes(s));
+            
             data.materials = type === 'reading'
-                ? [...(existing.exists() ? (existing.data().materials || []) : []), ...newFiles]
+                ? [...(existingData.materials || []), ...newFiles]
                 : [];
-            data.createdAt = existing.data()?.createdAt || serverTimestamp();
+            data.createdAt = existingData.createdAt || serverTimestamp();
             await updateDoc(ref, data);
+            
+            // Only notify newly-added sections (not ones that already had this lesson)
+            if(status === 'published' && newlyAddedSections.length > 0){
+                await createNotification({...data, sections: newlyAddedSections}, editingLessonId);
+            }
         } else {
             data.createdAt = serverTimestamp();
             data.materials = newFiles;
@@ -1079,7 +1111,6 @@ async function saveLessonAction(title, sections, type, desc, ytLink, pubDate, st
     }
 }
 
-    
         async function checkAndPublishScheduled(){
             const today=new Date();
             today.setHours(0,0,0,0);
@@ -1100,25 +1131,34 @@ async function saveLessonAction(title, sections, type, desc, ytLink, pubDate, st
             }
             await loadLessons();
         }
-    async function createNotification(lessonData, lessonId){
+async function createNotification(lessonData, lessonId){
     try{
-        const sectionsList = lessonData.sections ? lessonData.sections.join(', ') : lessonData.section;
-        await addDoc(collection(db,'notifications'),{
-            type:'new_lesson',
-            title:`New Lesson: ${lessonData.title}`,
-            message:`A new ${lessonData.type} lesson "${lessonData.title}" has been published for ${sectionsList}.`,
-            sections: lessonData.sections || [lessonData.section],
-            lessonId,
-            lessonTitle:lessonData.title,
-            professorEmail:currentProfessor.email,
-            isRead:false,
-            createdAt:serverTimestamp()
-        });
+        const sectionsList = lessonData.sections && lessonData.sections.length > 0 
+            ? lessonData.sections 
+            : (lessonData.section ? [lessonData.section] : []);
+        
+        if (sectionsList.length === 0) return;
+        
+        // Create ONE notification PER section so where('section','==') queries work
+        for (const sec of sectionsList) {
+            await addDoc(collection(db, 'notifications'), {
+                type: 'new_lesson',
+                title: `New Lesson: ${lessonData.title}`,
+                message: `A new ${lessonData.type === 'video' ? 'Video Lesson' : 'Reading Material'} "${lessonData.title}" has been published for your section.`,
+                section: sec,           // single string — matches student query
+                sections: sectionsList, // keep array for reference
+                lessonId: lessonId,
+                lessonTitle: lessonData.title,
+                professorEmail: currentProfessor.email,
+                professorName: currentProfessor.fullName || currentProfessor.name || currentUser.displayName || 'Professor',
+                createdAt: serverTimestamp(),
+                isRead: false
+            });
+        }
     } catch(e){
-        console.error('Notification error:',e);
+        console.error('Notification error:', e);
     }
 }
-
     // CHANGED: editLesson now correctly shows the right section based on saved type
     window.editLesson=async function(id){
         const lesson=allLessons.find(l=>l.id===id);
