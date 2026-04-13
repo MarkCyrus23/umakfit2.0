@@ -640,30 +640,23 @@ async function fetchNotificationsOnce() {
         const seen = new Set();
         const result = [];
         
-        // ALSO fetch notifications that have 'sections' array containing student's section
-        const sectionsSnap = await getDocs(query(collection(db,'notifications'), where('sections','array-contains',studentData.section)));
+        // Get deleted notification IDs from localStorage
+        const deletedIds = JSON.parse(localStorage.getItem(`deletedNotifications_${studentData?.email}`) || '[]');
+        const deletedSet = new Set(deletedIds);
         
-        // Combine both queries
-        const allDocs = [...snap.docs, ...sectionsSnap.docs];
-        const uniqueIds = new Set();
-        
-        for (const doc of allDocs) {
-            if (uniqueIds.has(doc.id)) continue;
-            uniqueIds.add(doc.id);
+        snap.forEach(d => {
+            const data = d.data();
+            // Skip if notification is deleted
+            if (deletedSet.has(d.id)) return;
             
-            const data = doc.data();
             const key = `${data.title}|${data.message}|${data.createdAt?.toDate?.().getTime()||''}`;
             if (!seen.has(key)) { 
                 seen.add(key); 
-                result.push({ id:doc.id, ...data }); 
+                result.push({ id:d.id, ...data }); 
             }
-        }
-        
+        });
         return result.sort((a,b) => (b.createdAt?.toDate?.() || new Date(0)) - (a.createdAt?.toDate?.() || new Date(0)));
-    } catch(e) { 
-        console.error(e); 
-        return []; 
-    }
+    } catch(e) { console.error(e); return []; }
 }
         async function loadAllNotifications() {
             document.getElementById('loadingNotifs').style.display = 'flex';
