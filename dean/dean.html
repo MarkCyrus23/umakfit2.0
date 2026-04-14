@@ -205,7 +205,7 @@
                     <div class="bg-gradient-to-br from-navy to-navy-light p-6 text-center">
                         <div id="profileDropdownAvatar" class="w-[58px] h-[58px] rounded-full bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white font-bold text-[22px] mx-auto mb-3 overflow-hidden">D</div>
                         <div class="text-[17px] font-bold text-white" id="dropdownName">Dean</div>
-                        <div class="text-xs text-white/55 mt-1 break-all" id="dropdownEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bcd8d9ddd2fcc9d1ddd792d9d8c992ccd4">[email&#160;protected]</a></div>
+                        <div class="text-xs text-white/55 mt-1 break-all" id="dropdownEmail">dean@umak.edu.ph</div>
                         <div class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/20 border border-accent/40 text-accent-light text-[10px] font-semibold tracking-[1.5px] uppercase">
                             <i class="fas fa-user-tie mr-1"></i> Dean
                         </div>
@@ -484,13 +484,27 @@
                 </div>
             </div>
 
-            <div class="flex gap-2.5 flex-wrap mb-5">
+            <!-- Filters Section -->
+            <div class="flex gap-2.5 flex-wrap mb-5 items-center">
                 <button onclick="refreshSectionRanking()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-transparent text-text-secondary border border-border rounded-xl text-[13px] font-medium cursor-pointer transition-all hover:border-blue hover:text-blue hover:bg-info-bg/40">
                     <i class="fas fa-sync-alt"></i> Refresh Rankings
                 </button>
                 <button onclick="exportRankingReport()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#8b6914] to-accent text-white border-none rounded-xl text-[13px] font-semibold cursor-pointer transition-all hover:-translate-y-px hover:shadow-lg">
                     <i class="fas fa-file-export"></i> Export CSV
                 </button>
+                <select id="collegeFilter" onchange="filterRankings()" class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans ml-auto">
+                    <option value="all">All Colleges</option>
+                </select>
+                <select id="assessmentTypeFilter" onchange="filterRankings()" class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans">
+                    <option value="all">All Tests</option>
+                    <option value="pre">Pre-Assessment Only</option>
+                    <option value="post">Post-Assessment Only</option>
+                    <option value="improvement">Improvement</option>
+                </select>
+                <div class="relative flex items-center">
+                    <i class="fas fa-search absolute left-3 text-text-muted text-[13px] pointer-events-none"></i>
+                    <input type="text" id="searchRankings" placeholder="Search section..." onkeyup="filterRankings()" class="pl-9 pr-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface w-[200px] focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all font-sans">
+                </div>
             </div>
 
             <!-- Summary Stats -->
@@ -569,13 +583,18 @@
                 </div>
             </div>
 
-            <div class="flex gap-2.5 flex-wrap mb-5">
+            <div class="flex gap-2.5 flex-wrap mb-5 items-center">
                 <button onclick="refreshStudentRanking()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-transparent text-text-secondary border border-border rounded-xl text-[13px] font-medium cursor-pointer transition-all hover:border-blue hover:text-blue hover:bg-info-bg/40">
                     <i class="fas fa-sync-alt"></i> Refresh Rankings
                 </button>
                 <button onclick="exportStudentRankingReport()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#8b6914] to-accent text-white border-none rounded-xl text-[13px] font-semibold cursor-pointer transition-all hover:-translate-y-px hover:shadow-lg">
                     <i class="fas fa-file-export"></i> Export CSV
                 </button>
+                <select id="studentTestTypeFilter" onchange="filterStudentRankings()" class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans ml-auto">
+                    <option value="all">All Tests</option>
+                    <option value="pre">Pre-Assessment Only</option>
+                    <option value="post">Post-Assessment Only</option>
+                </select>
             </div>
 
             <!-- Summary Stats -->
@@ -874,7 +893,7 @@
                         <div class="p-4 rounded-xl bg-surface border border-border mb-3" id="deanPreviewMeta"></div>
                         <div class="overflow-x-auto border border-border rounded-xl bg-white">
                             <table class="custom-table">
-<thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Section</th><th>Course Code</th><th>Professor</th><th>Account</th></tr></thead>
+<thead><tr><th>Name</th><th>Student ID</th><th>Email</th><th>Section</th><th>Course Code</th><th>Professor</th><th>Account</th></td></thead>
                                 <tbody id="deanPreviewTableBody"></tbody>
                             </table>
                         </div>
@@ -1063,7 +1082,8 @@
     </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1959,12 +1979,12 @@ function _resolveNormCategory({ testName, result, testId, studentEmail, genderKe
             };
             secStudents[n] = new Set();
             secMeta[n] = {
-                college: s.college || 'College of Human Kinetics',
-                professor: prof,
-                studentCount: s.studentCount || 0,
-                professorEmail: s.professorEmail || '',
-                professorId: s.professorId || ''
-            };
+            college: s.college || 'College of Human Kinetics',
+            professor: prof,
+            studentCount: s.studentCount || 0,
+            professorEmail: s.professorEmail || (prof !== 'Unassigned' ? generateProfessorEmail(prof) : ''),
+            professorId: s.professorId || ''
+        };
         });
 
         // Load students into sections
@@ -2177,8 +2197,12 @@ function renderSectionRankingTable() {
                 ${!hasData ? '<span style="margin-left:6px;font-size:10px;background:#f1f5f9;color:#94a3b8;padding:2px 7px;border-radius:10px;font-weight:600;">No data yet</span>' : ''}
             </td>
             <td data-label="College"><span style="font-size:13px;">${s.college}</span></td>
-            <td data-label="Professor"><span style="font-size:13px;">${s.professor || 'Unassigned'}</span></td>
-            <td data-label="Students">${s.studentCount}</td>
+            <td data-label="Professor">
+                <span style="font-size:13px;">${s.professor || 'Unassigned'}</span>
+                ${s.professorEmail || (s.professor !== 'Unassigned' ? generateProfessorEmail(s.professor) : '') ? 
+                    `<div style="font-size:10px; color:#8a98ae; margin-top:2px;">${s.professorEmail || generateProfessorEmail(s.professor)}</div>` : ''}
+            </td>      
+                  <td data-label="Students">${s.studentCount}</td>
             <td data-label="Tests Taken">${testsTakenCell}</td>
             <td data-label="Avg Performance">${avgPerfCell}</td>
            
@@ -2335,10 +2359,12 @@ async function loadTopSections() {
                 <div class="detail-block-label">👨‍🏫 Professor</div>
                 <div class="detail-block-val">${s.professor || 'Unassigned'}</div>
             </div>
-            <div class="detail-block">
-                <div class="detail-block-label">📧 Professor Email</div>
-                <div class="detail-block-val" style="font-size:12px; word-break:break-all;">${s.professorEmail || 'Not assigned'}</div>
-            </div>
+           <div class="detail-block">
+    <div class="detail-block-label">📧 Professor Email</div>
+    <div class="detail-block-val" style="font-size:12px; word-break:break-all;">
+        ${s.professorEmail ? s.professorEmail : (s.professor && s.professor !== 'Unassigned' ? generateProfessorEmail(s.professor) : 'Not assigned')}
+    </div>
+
             <div class="detail-block">
                 <div class="detail-block-label">👥 Total Students</div>
                 <div class="detail-block-val big">${s.studentCount}</div>
@@ -2854,6 +2880,60 @@ window.goToStudentRankingPage = function(page) {
 };
 
 
+function generateProfessorEmail(professorName) {
+    if (!professorName || professorName === 'Unassigned') return '';
+    
+    // Handle "Last, First M." format
+    let lastName = '', firstName = '';
+    if (professorName.includes(',')) {
+        const parts = professorName.split(',');
+        lastName = parts[0].trim();
+        const firstPart = parts[1].trim();
+        // Extract first name (skip "Ma." prefix and single-letter initials)
+        const nameParts = firstPart.split(/\s+/);
+        let firstNamePart = '';
+        for (const part of nameParts) {
+            const lowerPart = part.toLowerCase();
+            // Skip "Ma." prefix and single-letter initials
+            if (lowerPart === 'ma.' || lowerPart === 'ma' || /^[a-z]\.?$/i.test(part)) {
+                continue;
+            }
+            firstNamePart = part;
+            break;
+        }
+        firstName = firstNamePart;
+    } else {
+        // Handle "First M. Last" format
+        const parts = professorName.split(/\s+/);
+        if (parts.length >= 2) {
+            // Find first non-initial, non-Ma prefix as first name
+            let firstNameIdx = 0;
+            for (let i = 0; i < parts.length; i++) {
+                const lower = parts[i].toLowerCase();
+                if (lower !== 'ma.' && lower !== 'ma' && !/^[a-z]\.?$/i.test(parts[i])) {
+                    firstNameIdx = i;
+                    break;
+                }
+            }
+            firstName = parts[firstNameIdx];
+            // Last name is the last part
+            lastName = parts[parts.length - 1];
+        } else {
+            firstName = parts[0];
+            lastName = parts[0];
+        }
+    }
+    
+    // Clean up and generate email
+    firstName = firstName.toLowerCase().replace(/[^a-z]/g, '');
+    lastName = lastName.toLowerCase().replace(/[^a-z]/g, '');
+    
+    if (firstName && lastName) {
+        return `${firstName}.${lastName}@umak.edu.ph`;
+    }
+    return '';
+}
+
 
   function updateStudentRankingSummaryStats() {
     const withData = filteredStudentRankings.filter(s => s.hasData);
@@ -3261,7 +3341,7 @@ const testRows = sortedTests.length ? sortedTests.map(t => {
             <td data-label="Score" style="text-align:center;font-size:13px;font-weight:600;color:#0a1628;">${resultDisplay}</td>
             <td data-label="Attempt" style="text-align:center;font-size:13px;color:#4a5a72;">Attempt ${attemptNum}</td>
         </tr>`;
-    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#8a98ae;padding:24px 16px;font-size:13px;">No test history available yet.</td></tr>';
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#8a98ae;padding:24px 16px;font-size:13px;">No test history available yet.缓解</tr>';
 
     // ── BMI history ──
     const bmiHistory = (s.bmiRecords || []).sort((a,b) => {
@@ -3277,7 +3357,7 @@ const testRows = sortedTests.length ? sortedTests.map(t => {
             <td data-label="Category"><span class="bmi-pill ${getBMICategoryClass(cat)}">${getBMICategoryDisplay(cat)}</span></td>
             <td data-label="Date" style="font-size:12px;color:#8a98ae;">${isNaN(d)?'N/A':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
         </tr>`;
-    }).join('') : '<tr><td colspan="3" style="text-align:center;color:#8a98ae;padding:24px 16px;font-size:13px;">No BMI records available yet.</td></tr>';
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:#8a98ae;padding:24px 16px;font-size:13px;">No BMI records available yet.缓解</tr>';
 
     // ── Norm badge style (matches studentgrades.html) ──
     function normBadgeStyle(cat) {
@@ -3373,7 +3453,7 @@ function renderPreAssessmentsTable(data) {
     const rows = data !== undefined ? data : preAssessments;
     const tbody = document.getElementById('preAssessmentsTableBody'); if (!tbody) return;
     if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-clipboard"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Records</div><div style="font-size:14px;color:#8a98ae;">No pre-assessment data found.</div></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-clipboard"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Records</div><div style="font-size:14px;color:#8a98ae;">No pre-assessment data found.</div></div>缓解</tr>`;
         renderPreAssessmentPagination(rows);
         return;
     }
@@ -3691,7 +3771,7 @@ window.filterPostAssessments = function() {
    function renderAccountsTable() {
     const tbody = document.getElementById('accountsTableBody'); if (!tbody) return;
     if (!filteredAccounts.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-users"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Accounts Found</div></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div style="font-size:48px;color:#c5cfe0;margin-bottom:16px;"><i class="fas fa-users"></i></div><div style="font-size:17px;font-weight:600;color:#0a1628;margin-bottom:8px;">No Accounts Found</div></div></tr></tr>`;
         renderAccountsPagination();
         return;
     }
@@ -3851,12 +3931,104 @@ async function forceUpdateAllRoleReferences(email, uid, name, newRole) {
     window.closeEditRoleModal = function() { document.getElementById('editRoleModal').style.display='none'; currentUserToEdit=null; };
 
  
-// ══════════════════════════════════════════════════════════════════
-//  REPLACE the entire window.updateUserRole function in dean.html
-//  with this version.  Find:
-//    window.updateUserRole = async function() {
-//  and replace everything up to (and including) the closing  };
-// ══════════════════════════════════════════════════════════════════
+
+    // ─── COMPREHENSIVE SIDE EFFECTS MANAGER ───
+async function manageRoleSideEffects(oldRole, newRole, userId, userEmail, userName) {
+    const effects = [];
+    
+    // ─── LEAVING A ROLE ─────────────────────────────────────────
+    switch(oldRole) {
+        case 'professor':
+            // Unassign from all sections
+            const profSections = await db.collection('sections')
+                .where('professorId', '==', userId).get();
+            if (!profSections.empty) {
+                const batch = db.batch();
+                profSections.forEach(d => batch.update(d.ref, {
+                    professorId: null,
+                    professorEmail: null,
+                    professorName: 'Unassigned',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }));
+                await batch.commit();
+                effects.push(`Unassigned from ${profSections.size} section(s)`);
+            }
+            break;
+            
+        case 'student':
+            // Remove from any active enrollments or groups
+            try {
+                const studentEnrollments = await db.collection('enrollments')
+                    .where('studentId', '==', userId)
+                    .where('status', '==', 'active').get();
+                if (!studentEnrollments.empty) {
+                    const batch = db.batch();
+                    studentEnrollments.forEach(d => batch.update(d.ref, {
+                        status: 'archived',
+                        archivedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }));
+                    await batch.commit();
+                    effects.push(`Archived ${studentEnrollments.size} enrollment(s)`);
+                }
+            } catch(e) { console.warn('Enrollments collection may not exist:', e); }
+            break;
+            
+        case 'dean':
+            effects.push('Removed dean administrative privileges');
+            break;
+            
+        case 'secretary':
+            effects.push('Revoked secretary access');
+            break;
+    }
+    
+    // ─── JOINING A NEW ROLE ─────────────────────────────────────
+    switch(newRole) {
+        case 'professor':
+            // Re-link to sections that have this professor's email
+            const profSectionsByEmail = await db.collection('sections')
+                .where('professorEmail', '==', userEmail).get();
+            if (!profSectionsByEmail.empty) {
+                const batch = db.batch();
+                profSectionsByEmail.forEach(d => batch.update(d.ref, {
+                    professorId: userId,
+                    professorName: userName,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }));
+                await batch.commit();
+                effects.push(`Re-linked to ${profSectionsByEmail.size} section(s)`);
+            }
+            break;
+            
+        case 'dean':
+            effects.push('Granted full administrative access');
+            break;
+            
+        case 'secretary':
+            effects.push('Granted secretarial access');
+            break;
+            
+        case 'student':
+            // Ensure student has proper enrollment status
+            try {
+                const studentRecords = await db.collection('students')
+                    .where('email', '==', userEmail).get();
+                if (!studentRecords.empty) {
+                    const batch = db.batch();
+                    studentRecords.forEach(d => batch.update(d.ref, {
+                        status: 'active',
+                        lastRoleChange: firebase.firestore.FieldValue.serverTimestamp()
+                    }));
+                    await batch.commit();
+                    effects.push('Activated student record');
+                }
+            } catch(e) { console.warn('Students collection may not exist:', e); }
+            break;
+    }
+    
+    return effects;
+}
+
 
 window.updateUserRole = async function () {
     if (!currentUserToEdit) return;
@@ -4001,6 +4173,29 @@ window.updateUserRole = async function () {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             }, { merge: true });
         }
+
+        // ─── ✨ NEW: MANAGE SIDE EFFECTS ✨ ─────────────────────────
+setStatus('Managing side effects…');
+const sideEffects = await manageRoleSideEffects(
+    oldRole, newRole, resolvedUid, emailLower, name
+);
+
+// Log the side effects to activity log
+if (sideEffects.length) {
+    await db.collection('activityLogs').add({
+        type: 'role_side_effects',
+        userId: resolvedUid,
+        userName: name,
+        userEmail: emailLower,
+        oldRole: oldRole,
+        newRole: newRole,
+        effects: sideEffects,
+        changedBy: currentUser?.uid || 'dean_system',
+        changedByName: deanData?.name || currentUser?.displayName || 'Dean',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    setStatus(`Side effects applied: ${sideEffects.join(', ')}`);
+}
 
         // ── 4.  Extra side-effects per role transition ─────────────
         setStatus('Applying extra updates…');
