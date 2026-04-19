@@ -185,6 +185,117 @@
         background: #f4f6fa;
         border-bottom: 1px solid #e1e6ef;
     }
+    /* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+    .lesson-row {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 14px;
+        position: relative;
+    }
+    .lesson-row-checkbox {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+    }
+    .lesson-row-type-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+    }
+    .lesson-row-body {
+        flex: 1;
+        min-width: 0;
+        max-width: calc(100% - 50px);
+    }
+    .lesson-row-title {
+        font-size: 13px;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        word-break: break-word;
+    }
+    .lesson-row-meta {
+        gap: 6px;
+        margin-top: 5px;
+    }
+    .lesson-row-meta-item {
+        font-size: 11px;
+    }
+    .lesson-row-actions {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 6px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+    }
+    .lesson-row-actions button {
+        flex: 1;
+        min-width: 70px;
+        justify-content: center;
+        font-size: 12px !important;
+        padding: 8px 10px !important;
+    }
+    .badge {
+        font-size: 10px;
+        padding: 2px 8px;
+    }
+    /* Delete mode bar on mobile */
+    #selectAllRow {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 14px;
+        margin: 8px 12px;
+    }
+    #selectAllRow > i,
+    #selectAllRow > span:first-of-type {
+        width: 100%;
+    }
+    #lessonSelectAllBtn,
+    #bulkDeleteBtn,
+    #cancelDeleteBtn {
+        flex: 1;
+        min-width: 90px;
+        justify-content: center;
+        font-size: 12px !important;
+    }
+    /* Header filters stack on mobile */
+    .px-6.py-4.border-b {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    #sectionFilter,
+    #lessonTypeFilter {
+        width: 100%;
+        min-width: unset !important;
+    }
+    /* Pagination on mobile */
+    .pagination-wrap {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 400px) {
+    .lesson-row {
+        padding: 10px 12px;
+    }
+    .lesson-row-title {
+        font-size: 12.5px;
+    }
+    .lesson-row-actions button {
+        font-size: 11px !important;
+        padding: 7px 8px !important;
+    }
+    #lessonSelectAllBtn,
+    #bulkDeleteBtn,
+    #cancelDeleteBtn {
+        font-size: 11px !important;
+        padding: 6px 8px !important;
+    }
+}
     </style>
 
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -483,7 +594,7 @@
                         </select>
                         <button id="toggleDeleteModeBtn" onclick="toggleDeleteMode()"
                             class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-danger-bg text-danger border border-danger/30 rounded-lg font-sans text-[13px] font-semibold hover:bg-red-100 transition-all"
-                            style="cursor:pointer;">
+                            style="cursor:pointer; display:none;">
                             <i class="fas fa-trash-alt"></i><span>Delete</span>
                         </button>
                     </div>
@@ -496,15 +607,17 @@
                 <div id="selectAllRow" style="display:none; align-items:center; gap:10px; padding:10px 18px; border-radius:8px; border:1px solid #fecaca; background:#fef2f2; margin:10px 18px; flex-wrap:wrap;">
                 <i class="fas fa-trash-alt" style="color:#c0392b;"></i>
                 <span style="color:#c0392b; font-weight:600; font-size:13px;">Delete Mode — select lessons to delete</span>
-                <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer ml-2">
-                    <input type="checkbox" id="selectAllTop" class="lesson-row-checkbox" onchange="toggleSelectAll(this.checked)" style="display:block; accent-color:#c0392b;"> Select All
-                </label>
                 <span class="text-sm text-text-muted">(<span id="selectedCountLabel">0</span> selected)</span>
                 <div class="flex-1"></div>
+                <button id="lessonSelectAllBtn" onclick="toggleLessonSelectAll()"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-blue text-blue rounded-lg font-sans text-[12px] font-semibold hover:bg-blue hover:text-white transition-all"
+                    style="cursor:pointer; white-space:nowrap; min-width:110px; justify-content:center;">
+                    <i class="fas fa-check-double text-[11px]"></i> <span id="lessonSelectAllLabel">Select All</span>
+                </button>
                 <button id="bulkDeleteBtn" onclick="bulkDelete()"
                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-danger-bg text-danger border border-danger/30 rounded-lg font-sans text-[12px] font-semibold hover:bg-red-100 transition-all"
-                    style="cursor:pointer;">
-                    <i class="fas fa-trash-alt text-[11px]"></i> Delete Selected
+                    style="cursor:pointer; white-space:nowrap; min-width:140px; justify-content:center;">
+                    <i class="fas fa-trash-alt text-[11px]"></i> Delete Selected (<span id="deleteSelectedCount">0</span>)
                 </button>
                 <button onclick="exitDeleteMode()"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface text-text-secondary rounded-lg text-[13px] font-medium hover:bg-border transition-all"
@@ -512,6 +625,7 @@
                     style="border:1px solid #e1e6ef; cursor:pointer;">
                     <i class="fas fa-times text-[11px]"></i> Cancel
                 </button>
+                <input type="checkbox" id="selectAllTop" style="display:none;" onchange="toggleSelectAll(this.checked)">
             </div>
  
                 <!-- Lessons List -->
@@ -1103,14 +1217,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const pgWrap = document.getElementById('paginationWrap');
  
     if(!lessons.length){
-        grid.innerHTML = '';
-        grid.style.display = 'none';
-        empty.classList.remove('hidden');
-        selRow.style.display = 'none';
-        pgWrap.style.display = 'none';
-        updateBulkBar();
-        return;
-    }
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    empty.classList.remove('hidden');
+    selRow.style.display = 'none';
+    pgWrap.style.display = 'none';
+    updateBulkBar();
+   
+    const delBtn = document.getElementById('toggleDeleteModeBtn');
+    if(delBtn) delBtn.style.display = 'none';
+    if(deleteModeActive) exitDeleteMode();
+    return;
+}
+
+// Show delete button when lessons exist
+const delBtn = document.getElementById('toggleDeleteModeBtn');
+if(delBtn) delBtn.style.display = '';
  
     empty.classList.add('hidden');
     grid.style.display = 'block';
@@ -1272,10 +1394,65 @@ document.addEventListener('DOMContentLoaded', function() {
     const count = selectedIds.size;
     const label = document.getElementById('selectedCountLabel');
     if(label) label.textContent = count;
+    const countLabel2 = document.getElementById('deleteSelectedCount');
+    if(countLabel2) countLabel2.textContent = count;
     const el = document.getElementById('selectAllTop');
     if(!count && el){ el.checked = false; el.indeterminate = false; }
+    // Sync the Select All button state
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = filteredLessons.slice(start, start + PAGE_SIZE);
+    const allOnPage = pageRows.length > 0 && pageRows.every(l => selectedIds.has(l.id));
+    const btn = document.getElementById('lessonSelectAllBtn');
+    const btnLabel = document.getElementById('lessonSelectAllLabel');
+    if(btn && btnLabel){
+        if(allOnPage && pageRows.length > 0){
+            btnLabel.textContent = 'Deselect All';
+            btn.classList.add('bg-blue','text-white');
+            btn.classList.remove('bg-white','text-blue');
+        } else {
+            btnLabel.textContent = 'Select All';
+            btn.classList.remove('bg-blue','text-white');
+            btn.classList.add('bg-white','text-blue');
+        }
+    }
 }
- 
+           window.toggleLessonSelectAll = function(){
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = filteredLessons.slice(start, start + PAGE_SIZE);
+    const allOnPage = pageRows.length > 0 && pageRows.every(l => selectedIds.has(l.id));
+    const shouldSelect = !allOnPage;
+    pageRows.forEach(l => {
+        if(shouldSelect) selectedIds.add(l.id);
+        else selectedIds.delete(l.id);
+        const row = document.getElementById('row-' + l.id);
+        if(row) row.classList.toggle('selected', shouldSelect);
+        const cb = document.querySelector(`.lesson-row-checkbox[data-id="${l.id}"]`);
+        if(cb) cb.checked = shouldSelect;
+    });
+    const el = document.getElementById('selectAllTop');
+    if(el){ el.checked = shouldSelect; el.indeterminate = false; }
+
+    // Immediately update button color — no wait
+    const btn = document.getElementById('lessonSelectAllBtn');
+    const btnLabel = document.getElementById('lessonSelectAllLabel');
+    if(btn && btnLabel){
+        if(shouldSelect){
+            btnLabel.textContent = 'Deselect All';
+            btn.classList.add('bg-blue','text-white');
+            btn.classList.remove('bg-white','text-blue');
+        } else {
+            btnLabel.textContent = 'Select All';
+            btn.classList.remove('bg-blue','text-white');
+            btn.classList.add('bg-white','text-blue');
+        }
+    }
+
+    // Update count immediately
+    const label = document.getElementById('selectedCountLabel');
+    if(label) label.textContent = selectedIds.size;
+    const countLabel2 = document.getElementById('deleteSelectedCount');
+    if(countLabel2) countLabel2.textContent = selectedIds.size;
+};
     window.clearSelection = function(){
         selectedIds.clear();
         document.querySelectorAll('.lesson-row-checkbox').forEach(cb => cb.checked = false);

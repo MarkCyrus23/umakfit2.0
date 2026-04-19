@@ -466,6 +466,9 @@
                         <button id="cancelDeleteModeBtn" class="hidden inline-flex items-center gap-2 bg-surface hover:bg-border text-text-secondary font-semibold py-2.5 px-5 rounded-xl transition-all border border-border text-sm" onclick="cancelDeleteMode()">
                             <i class="fas fa-times"></i> Cancel
                         </button>
+                        <button id="desktopSelectAllBtn" class="hidden inline-flex items-center gap-2 bg-white border border-blue text-blue hover:bg-blue hover:text-white font-semibold py-2.5 px-5 rounded-xl transition-all text-sm" onclick="toggleDesktopSelectAll()">
+                            <i class="fas fa-check-double"></i> <span id="desktopSelectAllLabel">Select All</span>
+                        </button>
                         <button id="confirmDeleteSelectedBtn" class="hidden inline-flex items-center gap-2 bg-danger hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg text-sm" onclick="confirmDeleteSelected()">
                             <i class="fas fa-trash-alt"></i> Delete Selected (<span id="deleteSelectedCount">0</span>)
                         </button>
@@ -491,14 +494,10 @@
                         <option value="">All Sections (sorted by section)</option>
                     </select>
                 </div>
-                <!-- Mobile Select All Bar (visible only on mobile) -->
-                    <div id="mobileSelectAllBar" style="display:none; background:#f8fafc; border:1px solid #e1e6ef; border-bottom:none; border-radius:8px 8px 0 0; padding:12px 16px; margin-bottom:0;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                            <button id="mobileSelectAllBtn" onclick="toggleMobileSelectAllClick()" style="display:flex; align-items:center; gap:8px; background:white; border:1px solid #2d6fc4; border-radius:20px; padding:6px 14px; font-size:12px; font-weight:600; color:#2d6fc4; cursor:pointer;">
-                                <i class="fas fa-check-double"></i> Select All
-                            </button>
-                            <span id="mobileSelectedCount" style="font-size:12px; color:#64748b; background:#e2e8f0; padding:4px 10px; border-radius:20px;">0 selected</span>
-                        </div>
+                <!-- Mobile Select All Bar (removed) -->
+                    <div id="mobileSelectAllBar" style="display:none;">
+                        <span id="mobileSelectedCount" style="display:none;">0 selected</span>
+                        <button id="mobileSelectAllBtn" style="display:none;"></button>
                     </div>
                     <div class="table-responsive" style="border-radius: 8px; border: 1px solid #e1e6ef;">
                         <table class="custom-table" id="scheduleTable">
@@ -1427,6 +1426,11 @@ window._schedulePageSize = 10;
     window._selectedForDelete.clear();
     document.getElementById('toggleDeleteModeBtn').classList.add('hidden');
     document.getElementById('cancelDeleteModeBtn').classList.remove('hidden');
+    document.getElementById('desktopSelectAllBtn').classList.remove('hidden');
+document.getElementById('desktopSelectAllLabel').textContent = 'Select All';
+const btn = document.getElementById('desktopSelectAllBtn');
+btn.classList.remove('bg-blue', 'text-white');
+btn.classList.add('bg-white', 'text-blue');
     document.getElementById('confirmDeleteSelectedBtn').classList.remove('hidden');
     document.getElementById('deleteSelectedCount').textContent = '0';
     
@@ -1459,6 +1463,7 @@ window.cancelDeleteMode = function() {
     window._selectedForDelete.clear();
     document.getElementById('toggleDeleteModeBtn').classList.remove('hidden');
     document.getElementById('cancelDeleteModeBtn').classList.add('hidden');
+    document.getElementById('desktopSelectAllBtn').classList.add('hidden');
     document.getElementById('confirmDeleteSelectedBtn').classList.add('hidden');
     document.getElementById('deleteSelectedCount').textContent = '0';
     
@@ -3026,6 +3031,36 @@ window.clearStudentNorm = function() {
             renderStudentListForTest(document.getElementById('studentSearchBox').value);
         } catch(err) { showErrorModal('Error: '+err.message); }
     }, ()=>{});
+};
+        window.toggleDesktopSelectAll = function() {
+    const allOnPage = [...document.querySelectorAll('.schedule-delete-cb')];
+    const allChecked = allOnPage.length > 0 && allOnPage.every(cb => cb.checked);
+    const shouldSelect = !allChecked;
+
+    allOnPage.forEach(cb => {
+        cb.checked = shouldSelect;
+        const tid = cb.dataset.testid;
+        if (shouldSelect) window._selectedForDelete.add(tid);
+        else window._selectedForDelete.delete(tid);
+    });
+
+    document.getElementById('deleteSelectedCount').textContent = window._selectedForDelete.size;
+    document.getElementById('desktopSelectAllLabel').textContent = shouldSelect ? 'Deselect All' : 'Select All';
+
+    const btn = document.getElementById('desktopSelectAllBtn');
+    if (shouldSelect) {
+        btn.classList.add('bg-blue', 'text-white');
+        btn.classList.remove('bg-white', 'text-blue');
+    } else {
+        btn.classList.remove('bg-blue', 'text-white');
+        btn.classList.add('bg-white', 'text-blue');
+    }
+
+    const masterCb = document.getElementById('selectAllScheduleCheckbox');
+    if (masterCb) masterCb.checked = shouldSelect;
+
+    const mobileCountSpan = document.getElementById('mobileSelectedCount');
+    if (mobileCountSpan) mobileCountSpan.textContent = `${window._selectedForDelete.size} selected`;
 };
 
 // ── XSS helper ────────────────────────────────────────────────────
