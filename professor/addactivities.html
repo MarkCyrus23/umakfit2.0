@@ -292,6 +292,15 @@
     .btn-action { font-size:12px !important; padding:9px 10px !important; }
     .norm-grid { grid-template-columns:1fr; }
 }
+            
+                        #mobileSelectAllBar {
+                display: none !important;
+            }
+            @media (max-width: 768px) {
+                #mobileSelectAllBar.show-on-delete {
+                    display: flex !important;
+                }
+            }
     </style>
 </head>
 <body>
@@ -450,9 +459,20 @@
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue to-royal flex items-center justify-center text-white text-[13px]"><i class="fas fa-calendar-check"></i></div>
                         My Test Schedule
                     </h3>
-                    <button class="inline-flex items-center gap-2 bg-accent hover:bg-accent-light text-navy font-semibold py-2.5 px-5 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg text-sm" onclick="showScheduleTestModal()">
-                        <i class="fas fa-plus"></i> Schedule New Test
-                    </button>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button id="toggleDeleteModeBtn" class="inline-flex items-center gap-2 bg-danger hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg text-sm" onclick="toggleDeleteMode()">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                        <button id="cancelDeleteModeBtn" class="hidden inline-flex items-center gap-2 bg-surface hover:bg-border text-text-secondary font-semibold py-2.5 px-5 rounded-xl transition-all border border-border text-sm" onclick="cancelDeleteMode()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button id="confirmDeleteSelectedBtn" class="hidden inline-flex items-center gap-2 bg-danger hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg text-sm" onclick="confirmDeleteSelected()">
+                            <i class="fas fa-trash-alt"></i> Delete Selected (<span id="deleteSelectedCount">0</span>)
+                        </button>
+                        <button class="inline-flex items-center gap-2 bg-accent hover:bg-accent-light text-navy font-semibold py-2.5 px-5 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg text-sm" onclick="showScheduleTestModal()">
+                            <i class="fas fa-plus"></i> Schedule New Test
+                        </button>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div class="relative">
@@ -471,13 +491,35 @@
                         <option value="">All Sections (sorted by section)</option>
                     </select>
                 </div>
-                <div class="table-responsive" style="max-height: 420px; overflow-y: auto; border-radius: 8px; border: 1px solid #e1e6ef;">
-                    <table class="custom-table" id="scheduleTable">
+                <!-- Mobile Select All Bar (visible only on mobile) -->
+                    <div id="mobileSelectAllBar" style="display:none; background:#f8fafc; border:1px solid #e1e6ef; border-bottom:none; border-radius:8px 8px 0 0; padding:12px 16px; margin-bottom:0;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <button id="mobileSelectAllBtn" onclick="toggleMobileSelectAllClick()" style="display:flex; align-items:center; gap:8px; background:white; border:1px solid #2d6fc4; border-radius:20px; padding:6px 14px; font-size:12px; font-weight:600; color:#2d6fc4; cursor:pointer;">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <span id="mobileSelectedCount" style="font-size:12px; color:#64748b; background:#e2e8f0; padding:4px 10px; border-radius:20px;">0 selected</span>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="border-radius: 8px; border: 1px solid #e1e6ef;">
+                        <table class="custom-table" id="scheduleTable">
                         <thead>
-                            <tr><th>Test Name</th><th>Section</th><th>Date</th><th>Deadline</th><th>Progress</th><th>Attempts</th><th>Status</th><th>Action</th></tr>
+                           <thead>
+                            <tr id="scheduleTableHeader">
+                                <th id="scheduleCheckboxTh" style="width:40px; text-align:center; display:none;">
+                                    <input type="checkbox" id="selectAllScheduleCheckbox" onchange="toggleSelectAllSchedule(this)" style="width:16px;height:16px;cursor:pointer;">
+                                </th>
+                                <th>Test Name</th>
+                                <th>Section</th>
+                                <th>Date</th>
+                                <th>Deadline</th>
+                                <th>Progress</th>
+                                <th>Attempts</th>
+                                <th>Status</th>
+                                <th id="scheduleActionTh">Action</th>
+                            </tr>
                         </thead>
                         <tbody id="scheduleTableBody">
-                        <tr><td colspan="8">
+                        <tr><td colspan="9">
                             <div style="display:flex;flex-direction:column;gap:10px;padding:20px;">
                                 <div style="height:48px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;border-radius:8px;animation:shimmer 1.2s infinite;"></div>
                                 <div style="height:48px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;border-radius:8px;animation:shimmer 1.2s infinite;"></div>
@@ -487,6 +529,7 @@
                     </tbody>
                     </table>
                 </div>
+                <div id="schedulePagination" style="margin-top:16px;"></div>
             </div>
 
             <!-- Recent Test Results -->
@@ -1031,7 +1074,7 @@ function updateAttemptsDisplay() {
     function generateReports()    { showInfoModal('Report generation feature coming soon!'); }
     function filterResultsTable() { window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
     function clearResultFilters() { document.getElementById('searchResults').value=''; document.getElementById('filterSection').value=''; window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
-    window.filterScheduleTable = function() { if(window.allScheduledTests?.length&&window.renderScheduleTable) window.renderScheduleTable(window.allScheduledTests, window._enabledTestsMap||new Map()); };
+    window.filterScheduleTable = function() { window._scheduleCurrentPage=1; if(window.allScheduledTests?.length&&window.renderScheduleTable) window.renderScheduleTable(window.allScheduledTests, window._enabledTestsMap||new Map()); };
     window.closeScheduleTestModal = function() {
     document.getElementById('scheduleTestModal').style.display = 'none';
     // clear checkboxes
@@ -1373,64 +1416,358 @@ const sectionsSet = new Set([
     select.innerHTML = opts;
 }
 
+// ── Delete Mode State ──────────────────────────────────────────────
+window._deleteMode = false;
+window._selectedForDelete = new Set();
+window._scheduleCurrentPage = 1;
+window._schedulePageSize = 10;
+
+        window.toggleDeleteMode = function() {
+    window._deleteMode = true;
+    window._selectedForDelete.clear();
+    document.getElementById('toggleDeleteModeBtn').classList.add('hidden');
+    document.getElementById('cancelDeleteModeBtn').classList.remove('hidden');
+    document.getElementById('confirmDeleteSelectedBtn').classList.remove('hidden');
+    document.getElementById('deleteSelectedCount').textContent = '0';
+    
+    // Show checkbox column in header - Desktop
+    const checkboxTh = document.getElementById('scheduleCheckboxTh');
+if (checkboxTh) checkboxTh.style.display = 'table-cell';
+    
+    // Hide Action column header
+    const actionTh = document.getElementById('scheduleActionTh');
+    if (actionTh) {
+        actionTh.classList.add('hidden');
+        actionTh.style.display = 'none';
+    }
+    
+    // Show mobile select all bar ONLY on mobile (CSS media query handles visibility)
+    const mobileBar = document.getElementById('mobileSelectAllBar');
+    if (mobileBar) {
+        mobileBar.classList.add('show-on-delete');
+    }
+    
+    // Reset the master checkbox
+    const masterCb = document.getElementById('selectAllScheduleCheckbox');
+    if (masterCb) masterCb.checked = false;
+    
+    renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
+};
+
+window.cancelDeleteMode = function() {
+    window._deleteMode = false;
+    window._selectedForDelete.clear();
+    document.getElementById('toggleDeleteModeBtn').classList.remove('hidden');
+    document.getElementById('cancelDeleteModeBtn').classList.add('hidden');
+    document.getElementById('confirmDeleteSelectedBtn').classList.add('hidden');
+    document.getElementById('deleteSelectedCount').textContent = '0';
+    
+    // Hide checkbox column in header - Desktop
+    const checkboxTh = document.getElementById('scheduleCheckboxTh');
+if (checkboxTh) checkboxTh.style.display = 'none';
+    
+    // Show Action column header
+    const actionTh = document.getElementById('scheduleActionTh');
+    if (actionTh) {
+        actionTh.classList.remove('hidden');
+        actionTh.style.display = 'table-cell';
+    }
+    
+    document.getElementById('selectAllScheduleCheckbox').checked = false;
+    
+    // Hide mobile select all bar
+    const mobileBar = document.getElementById('mobileSelectAllBar');
+    if (mobileBar) {
+        mobileBar.classList.remove('show-on-delete');
+    }
+    
+    renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
+};
+
+window.toggleScheduleCheckbox = function(testId, cb) {
+    if (cb.checked) window._selectedForDelete.add(testId);
+    else window._selectedForDelete.delete(testId);
+    document.getElementById('deleteSelectedCount').textContent = window._selectedForDelete.size;
+    // Update mobile count
+    const mobileCountSpan = document.getElementById('mobileSelectedCount');
+    if (mobileCountSpan) mobileCountSpan.textContent = `${window._selectedForDelete.size} selected`;
+    const allOnPage = [...document.querySelectorAll('.schedule-delete-cb')];
+    const allChecked = allOnPage.length > 0 && allOnPage.every(c => c.checked);
+    document.getElementById('selectAllScheduleCheckbox').checked = allChecked;
+    // Sync mobile master checkbox
+    const mobileMasterCb = document.getElementById('mobileSelectAllCheckbox');
+    if (mobileMasterCb) mobileMasterCb.checked = allChecked;
+};
+        window.toggleSelectAllSchedule = function(masterCb) {
+            document.querySelectorAll('.schedule-delete-cb').forEach(cb => {
+                cb.checked = masterCb.checked;
+                const tid = cb.dataset.testid;
+                if (masterCb.checked) window._selectedForDelete.add(tid);
+                else window._selectedForDelete.delete(tid);
+            });
+            document.getElementById('deleteSelectedCount').textContent = window._selectedForDelete.size;
+            // Update mobile count and sync
+            const mobileCountSpan = document.getElementById('mobileSelectedCount');
+            if (mobileCountSpan) mobileCountSpan.textContent = `${window._selectedForDelete.size} selected`;
+            const mobileMasterCb = document.getElementById('mobileSelectAllCheckbox');
+            if (mobileMasterCb) mobileMasterCb.checked = masterCb.checked;
+        };
+        window.toggleMobileSelectAllClick = function() {
+    // Check current state - if all are selected, deselect; otherwise select all
+    const allOnPage = [...document.querySelectorAll('.schedule-delete-cb')];
+    const allChecked = allOnPage.length > 0 && allOnPage.every(cb => cb.checked);
+    const shouldSelect = !allChecked;
+    
+    allOnPage.forEach(cb => {
+        cb.checked = shouldSelect;
+        const tid = cb.dataset.testid;
+        if (shouldSelect) window._selectedForDelete.add(tid);
+        else window._selectedForDelete.delete(tid);
+    });
+    
+    // Update counts
+    document.getElementById('deleteSelectedCount').textContent = window._selectedForDelete.size;
+    const mobileCountSpan = document.getElementById('mobileSelectedCount');
+    if (mobileCountSpan) mobileCountSpan.textContent = `${window._selectedForDelete.size} selected`;
+    
+    // Sync desktop checkbox
+    const desktopCb = document.getElementById('selectAllScheduleCheckbox');
+    if (desktopCb) desktopCb.checked = shouldSelect;
+    
+    // Change button text based on state
+    const btn = document.getElementById('mobileSelectAllBtn');
+    if (btn) {
+        if (shouldSelect) {
+            btn.innerHTML = '<i class="fas fa-times"></i> Deselect All';
+            btn.style.background = '#fee2e2';
+            btn.style.color = '#dc2626';
+            btn.style.borderColor = '#dc2626';
+        } else {
+            btn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+            btn.style.background = 'white';
+            btn.style.color = '#2d6fc4';
+            btn.style.borderColor = '#2d6fc4';
+        }
+    }
+};
+
+// Keep old function for compatibility but deprecate
+window.toggleMobileSelectAll = function(masterCb) {
+    window.toggleMobileSelectAllClick();
+};
+
+window.confirmDeleteSelected = function() {
+    if (window._selectedForDelete.size === 0) {
+        showWarningModal('Please select at least one test to delete.', () => {}, () => {});
+        return;
+    }
+    showConfirmModal(
+        `Delete ${window._selectedForDelete.size} selected test(s)? This cannot be undone. All student results for these tests will also be deleted.`,
+        async () => {
+            const btn = document.getElementById('confirmDeleteSelectedBtn');
+            const origHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            
+            // Store the IDs to delete
+            const idsToDelete = Array.from(window._selectedForDelete);
+            
+            try {
+                let totalResultsDeleted = 0;
+                
+                // Delete in parallel for faster execution
+                const deletePromises = idsToDelete.map(async (testId) => {
+                    await setDoc(doc(db, 'deletedTests', testId), { deletedAt: serverTimestamp(), testId });
+                    const resultsSnap = await getDocs(query(collection(db, 'testResults'), where('testId', '==', testId)));
+                    const deleteBatch = [];
+                    resultsSnap.forEach(d => deleteBatch.push(deleteDoc(doc(db, 'testResults', d.id))));
+                    await Promise.all(deleteBatch);
+                    await deleteDoc(doc(db, 'scheduledTests', testId));
+                    return resultsSnap.size;
+                });
+                
+                const resultsCounts = await Promise.all(deletePromises);
+                totalResultsDeleted = resultsCounts.reduce((a, b) => a + b, 0);
+                
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+                
+                // Clear selection and exit delete mode immediately
+                window._selectedForDelete.clear();
+                cancelDeleteMode();
+                
+                showSuccessModal(`Deleted ${idsToDelete.length} test(s) and ${totalResultsDeleted} result(s).`);
+                
+                // Force immediate refresh of the table
+                if (window.allScheduledTests) {
+                    // Remove deleted tests from local array immediately
+                    window.allScheduledTests = window.allScheduledTests.filter(t => !idsToDelete.includes(t.id));
+                    // Re-render table instantly
+                    renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
+                }
+                
+                // Also trigger Firestore reload in background (but UI already updated)
+                loadScheduledTests(window.currentUser.email, window.currentUser.uid).catch(console.warn);
+                
+            } catch (e) {
+                showErrorModal('Error deleting: ' + e.message);
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+            }
+        },
+        () => {}
+    );
+};
+
 function renderScheduleTable(tests, enabledTestsMap) {
     const tb = document.getElementById('scheduleTableBody');
     if (!tests.length) {
-        // If sections haven't loaded yet, show loading skeleton instead of empty state
-        
-        if (window.assignedSections.length>0) {
-            const info = window.assignedSections.map(s=>`${s.section} (${s.students} students)`).join(', ');
-            tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No Active Test Schedules</div><div class="empty-text">You have: <strong>${info}</strong><br><br>Click "Schedule New Test" to create a fitness test.</div></div></td></tr>`;
+        if (window.assignedSections.length > 0) {
+            const info = window.assignedSections.map(s => `${s.section} (${s.students} students)`).join(', ');
+            tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No Active Test Schedules</div><div class="empty-text">You have: <strong>${info}</strong><br><br>Click "Schedule New Test" to create a fitness test.</div></div></td></tr>`;
         } else {
-            tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">No Sections Assigned</div></div></td></tr>`;
+            tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">No Sections Assigned</div></div></td></tr>`;
         }
+        renderSchedulePagination(1, 1, 0, 0, 0);
         return;
     }
 
-    const search  = (document.getElementById('searchSchedule')?.value||'').toUpperCase();
-    const type    = (document.getElementById('filterTestType')?.value||'').toUpperCase();
-    const section = document.getElementById('sortBySection')?.value||'';
-
+    const search  = (document.getElementById('searchSchedule')?.value || '').toUpperCase();
+    const type    = (document.getElementById('filterTestType')?.value || '').toUpperCase();
+    const section = document.getElementById('sortBySection')?.value || '';
     const removedNames = window._removedSectionNames || new Set();
-const filtered = tests.filter(t => {
-    if (removedNames.has(t.section)) return false;  // ← NEW
-    if (search && !(t.testName||'').toUpperCase().includes(search) && !(t.section||'').toUpperCase().includes(search)) return false;
-        if (type && !(t.testName||'').toUpperCase().includes(type)) return false;
+
+    const filtered = tests.filter(t => {
+        if (removedNames.has(t.section)) return false;
+        if (search && !(t.testName || '').toUpperCase().includes(search) && !(t.section || '').toUpperCase().includes(search)) return false;
+        if (type && !(t.testName || '').toUpperCase().includes(type)) return false;
         if (section && t.section !== section) return false;
         return true;
-    }).sort((a,b) => (a.section||'').localeCompare(b.section||''));
+    }).sort((a, b) => (a.section || '').localeCompare(b.section || ''));
 
-    if (!filtered.length) { tb.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No Tests Match Filters</div></div></td></tr>`; return; }
+    if (!filtered.length) {
+        tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No Tests Match Filters</div></div></td></tr>`;
+        renderSchedulePagination(1, 1, 0, 0, 0);
+        return;
+    }
+
+    const ps = window._schedulePageSize || 10;
+    const tot = filtered.length;
+    const tp = Math.max(1, Math.ceil(tot / ps));
+    if (window._scheduleCurrentPage > tp) window._scheduleCurrentPage = 1;
+    const cp = window._scheduleCurrentPage;
+    const si = (cp - 1) * ps;
+    const ei = Math.min(si + ps, tot);
+    const pageItems = filtered.slice(si, ei);
 
     const now = new Date();
-    tb.innerHTML = filtered.map(test => {
+    tb.innerHTML = pageItems.map(test => {
         const ddt = new Date(test.deadlineDateTime), isOverdue = ddt < now;
         const isEnabled = enabledTestsMap?.has(test.id);
         const enabledCount = isEnabled ? enabledTestsMap.get(test.id).length : 0;
-        const status = test.status||'scheduled';
-        const statusClass = status==='active'?'status-active':status==='completed'?'status-completed':'status-scheduled';
-        const prog = `${test.completedStudents||0}/${test.totalStudents||0}`;
-        const secInfo = window.assignedSections.find(s=>s.section===test.section);
+        const status = test.status || 'scheduled';
+        const statusClass = status === 'active' ? 'status-active' : status === 'completed' ? 'status-completed' : 'status-scheduled';
+        const prog = `${test.completedStudents || 0}/${test.totalStudents || 0}`;
+        const secInfo = window.assignedSections.find(s => s.section === test.section);
         const schedInfo = secInfo ? `${secInfo.time} / ${secInfo.day} / ${secInfo.room}` : 'Not Set';
-       const testKey = resolveTestKey(test.testName || '');
+        const testKey = resolveTestKey(test.testName || '');
         const sectionNormKey = `${test.section}__${testKey}`;
         const hasStudentNorms = !!(testKey && window._sectionTestNormsSet?.has(sectionNormKey));
         const normBadge = (test.customNorms?.thresholds || hasStudentNorms) ? `<br><small style="color:#7c3aed;font-weight:600;">🎛 Custom norms set</small>` : '';
-        return `<tr style="${isEnabled&&isOverdue?'background-color:#f0f9ff;':''}">
-            <td data-label="Test Name">${esc(test.testName||'Unnamed')}${normBadge}${isEnabled&&isOverdue?`<br><small style="color:#2d6fc4;font-weight:600;">✓ Enabled for ${enabledCount}</small>`:''}</td>
-            <td data-label="Section">${esc(test.section||'N/A')}<br><small style="color:#8a98ae;font-size:12px;">${esc(schedInfo)}</small></td>
-            <td data-label="Date">${test.date ? new Date(test.date+'T00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}</td>
-            <td data-label="Deadline">${test.deadline ? new Date(test.deadline+'T00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}${test.deadlineTime ? ' ' + new Date('1970-01-01T'+test.deadlineTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) : ''}</td>
+        const isChecked = window._selectedForDelete?.has(test.id);
+
+        const checkboxCell = window._deleteMode
+    ? `<td data-label="" style="width:40px;text-align:center;vertical-align:middle;"><input type="checkbox" class="schedule-delete-cb" data-testid="${test.id}" ${isChecked ? 'checked' : ''} onchange="toggleScheduleCheckbox('${test.id}', this)" style="width:16px;height:16px;cursor:pointer;"></td>`
+    : '';
+
+        const actionCell = window._deleteMode ? '' : `<td data-label="Action"><div class="action-buttons">
+            <button class="btn-action btn-edit" onclick="editTest('${test.id}')"><i class="fas fa-pencil-alt"></i> Edit</button>
+            <button class="btn-action btn-view" onclick="manageStudents('${test.id}','${esc(test.testName)}','${esc(test.section)}')"><i class="fas fa-users"></i> Manage</button>
+        </div></td>`;
+
+        return `<tr style="${isEnabled && isOverdue ? 'background-color:#f0f9ff;' : ''}${window._deleteMode && isChecked ? 'background:#fef2f2;' : ''}">
+            ${checkboxCell}
+            <td data-label="Test Name">${esc(test.testName || 'Unnamed')}${normBadge}${isEnabled && isOverdue ? `<br><small style="color:#2d6fc4;font-weight:600;">✓ Enabled for ${enabledCount}</small>` : ''}</td>
+            <td data-label="Section">${esc(test.section || 'N/A')}<br><small style="color:#8a98ae;font-size:12px;">${esc(schedInfo)}</small></td>
+            <td data-label="Date">${test.date ? new Date(test.date + 'T00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</td>
+            <td data-label="Deadline">${test.deadline ? new Date(test.deadline + 'T00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}${test.deadlineTime ? ' ' + new Date('1970-01-01T' + test.deadlineTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : ''}</td>
             <td data-label="Progress">${prog}</td>
-            <td data-label="Attempts">${test.attemptsAllowed||'1'}</td>
-            <td data-label="Status"><span class="status-badge ${statusClass}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>${isOverdue?'<br><small style="color:#c0392b;">⚠️ Overdue</small>':''}</td>
-            <td data-label="Action"><div class="action-buttons">
-                <button class="btn-action btn-edit" onclick="editTest('${test.id}')"><i class="fas fa-pencil-alt"></i> Edit</button>
-                <button class="btn-action btn-view" onclick="manageStudents('${test.id}','${esc(test.testName)}','${esc(test.section)}')"><i class="fas fa-users"></i> Manage</button>
-                <button class="btn-action btn-delete" onclick="deleteTest('${test.id}')"><i class="fas fa-trash-alt"></i> Delete</button>
-            </div></td>
+            <td data-label="Attempts">${test.attemptsAllowed || '1'}</td>
+            <td data-label="Status"><span class="status-badge ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>${isOverdue ? '<br><small style="color:#c0392b;">⚠️ Overdue</small>' : ''}</td>
+            ${actionCell}
         </tr>`;
     }).join('');
+
+            if (window._deleteMode) {
+        const allOnPage = [...document.querySelectorAll('.schedule-delete-cb')];
+        const allChecked = allOnPage.length > 0 && allOnPage.every(c => c.checked);
+        const masterCb = document.getElementById('selectAllScheduleCheckbox');
+        if (masterCb) masterCb.checked = allChecked;
+        
+        // Update mobile button text based on selection state
+        const mobileBtn = document.getElementById('mobileSelectAllBtn');
+        if (mobileBtn) {
+            if (allChecked && allOnPage.length > 0) {
+                mobileBtn.innerHTML = '<i class="fas fa-times"></i> Deselect All';
+                mobileBtn.style.background = '#fee2e2';
+                mobileBtn.style.color = '#dc2626';
+                mobileBtn.style.borderColor = '#dc2626';
+            } else {
+                mobileBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+                mobileBtn.style.background = 'white';
+                mobileBtn.style.color = '#2d6fc4';
+                mobileBtn.style.borderColor = '#2d6fc4';
+            }
+        }
+    } else {
+        // When not in delete mode, ensure mobile bar is hidden
+        const mobileBar = document.getElementById('mobileSelectAllBar');
+        if (mobileBar) {
+            mobileBar.classList.remove('show-on-delete');
+            mobileBar.style.display = 'none';
+        }
+    }
+
+    // Update mobile selected count
+    const mobileCountSpan = document.getElementById('mobileSelectedCount');
+    if (mobileCountSpan) {
+        mobileCountSpan.textContent = `${window._selectedForDelete.size} selected`;
+    }
+
+    renderSchedulePagination(cp, tp, tot, si, ei);
+}
+
+function renderSchedulePagination(cp, tp, tot, si, ei) {
+    let el = document.getElementById('schedulePagination');
+    if (!el) return;
+    if (!tot) {
+        el.innerHTML = `<div style="display:flex;align-items:center;justify-content:flex-end;padding:12px 4px;"><span style="font-size:13px;color:#64748b;">Showing <strong>0</strong> tests</span></div>`;
+        return;
+    }
+    const pages = [];
+    if (tp <= 7) { for (let i = 1; i <= tp; i++) pages.push(i); }
+    else {
+        pages.push(1);
+        if (cp > 3) pages.push('...');
+        for (let i = Math.max(2, cp - 1); i <= Math.min(tp - 1, cp + 1); i++) pages.push(i);
+        if (cp < tp - 2) pages.push('...');
+        pages.push(tp);
+    }
+    const btnStyle = (active, disabled) => `height:36px;border-radius:8px;cursor:${disabled ? 'not-allowed' : 'pointer'};font-size:13px;font-weight:${active ? 700 : 400};display:inline-flex;align-items:center;justify-content:center;border:1px solid ${disabled ? '#e1e6ef' : active ? '#2d6fc4' : '#e1e6ef'};background:${disabled ? '#f8fafc' : active ? '#2d6fc4' : 'white'};color:${disabled ? '#cbd5e1' : active ? 'white' : '#374151'};`;
+    el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px;padding:16px 4px 4px;">
+        <div style="font-size:13px;color:#64748b;">Showing <strong>${si + 1}–${ei}</strong> of <strong>${tot}</strong> tests</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:8px 4px 16px;flex-wrap:wrap;">
+        <button ${cp === 1 ? 'disabled' : ''} style="${btnStyle(false, cp === 1)}padding:0 12px;" onclick="window._scheduleCurrentPage=1;window.renderScheduleTable(window.allScheduledTests,window._enabledTestsMap||new Map())">«</button>
+        <button ${cp === 1 ? 'disabled' : ''} style="${btnStyle(false, cp === 1)}padding:0 14px;" onclick="if(${cp}>1){window._scheduleCurrentPage=${cp - 1};window.renderScheduleTable(window.allScheduledTests,window._enabledTestsMap||new Map());}">‹</button>
+        ${pages.map(p => p === '...'
+            ? `<span style="height:36px;padding:0 8px;display:inline-flex;align-items:center;color:#94a3b8;font-size:16px;">…</span>`
+            : `<button style="${btnStyle(p === cp, false)}width:36px;" onclick="window._scheduleCurrentPage=${p};window.renderScheduleTable(window.allScheduledTests,window._enabledTestsMap||new Map());">${p}</button>`
+        ).join('')}
+        <button ${cp === tp ? 'disabled' : ''} style="${btnStyle(false, cp === tp)}padding:0 14px;" onclick="if(${cp}<${tp}){window._scheduleCurrentPage=${cp + 1};window.renderScheduleTable(window.allScheduledTests,window._enabledTestsMap||new Map());}">›</button>
+        <button ${cp === tp ? 'disabled' : ''} style="${btnStyle(false, cp === tp)}padding:0 12px;" onclick="window._scheduleCurrentPage=${tp};window.renderScheduleTable(window.allScheduledTests,window._enabledTestsMap||new Map());">»</button>
+    </div>`;
 }
 
 async function loadScheduledTests(userEmail, userId) {
@@ -2151,6 +2488,8 @@ window.scheduleTest = async function() {
 
         // Create one scheduled test per section
         let totalScheduled = 0;
+        const newTests = []; // Store newly created tests for immediate UI update
+        
         for (const testSection of selectedSections) {
             const secInfo = window.assignedSections.find(s => s.section === testSection);
             const studSnap = await getDocs(query(collection(db, 'students'), where('section', '==', testSection)));
@@ -2169,71 +2508,92 @@ window.scheduleTest = async function() {
                 customNorms: null
             };
             const docRef = await addDoc(collection(db, 'scheduledTests'), testData);
+            
+            // Add to local array with the new ID
+            const newTest = { id: docRef.id, ...testData };
+            newTests.push(newTest);
             totalScheduled++;
-            // Notifications (fire-and-forget)
-// Notifications + Email (fire-and-forget)
-Promise.all(allEmails.map(async email => {
-    const stuDoc = studSnap.docs.find(d => d.data().email === email);
-    if (!stuDoc) return;
-    const stuData = stuDoc.data();
+            
+            // Notifications (fire-and-forget - don't await, let it run in background)
+            Promise.all(allEmails.map(async email => {
+                const stuDoc = studSnap.docs.find(d => d.data().email === email);
+                if (!stuDoc) return;
+                const stuData = stuDoc.data();
 
-    // 1. Firestore notification (existing)
-    await addDoc(collection(db, 'notifications'), {
-        type: 'new_test',
-        title: 'Fitness Test Available',
-        message: `${testType} has been assigned. Deadline: ${testDeadline} at ${testDeadlineTime}`,
-        section: testSection,
-        testName: testType,
-        testId: docRef.id,
-        testDate,
-        deadline: testDeadline,
-        deadlineTime: testDeadlineTime,
-        studentEmail: email,
-        studentId: stuDoc.id,
-        isRead: false,
-        createdAt: serverTimestamp(),
-        timestamp: new Date().toISOString()
-    });
+                // 1. Firestore notification (existing)
+                await addDoc(collection(db, 'notifications'), {
+                    type: 'new_test',
+                    title: 'Fitness Test Available',
+                    message: `${testType} has been assigned. Deadline: ${testDeadline} at ${testDeadlineTime}`,
+                    section: testSection,
+                    testName: testType,
+                    testId: docRef.id,
+                    testDate,
+                    deadline: testDeadline,
+                    deadlineTime: testDeadlineTime,
+                    studentEmail: email,
+                    studentId: stuDoc.id,
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                    timestamp: new Date().toISOString()
+                });
 
-    // 2. EmailJS notification (new)
-    try {
-        const formattedDate = new Date(testDate + 'T00:00').toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
-        const formattedTime = new Date('1970-01-01T' + testTime).toLocaleTimeString('en-US', {
-            hour: 'numeric', minute: '2-digit', hour12: true
-        });
-        const formattedDeadlineDate = new Date(testDeadline + 'T00:00').toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
-        const formattedDeadlineTime = new Date('1970-01-01T' + testDeadlineTime).toLocaleTimeString('en-US', {
-            hour: 'numeric', minute: '2-digit', hour12: true
-        });
+                // 2. EmailJS notification (new)
+                try {
+                    const formattedDate = new Date(testDate + 'T00:00').toLocaleDateString('en-US', {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    });
+                    const formattedTime = new Date('1970-01-01T' + testTime).toLocaleTimeString('en-US', {
+                        hour: 'numeric', minute: '2-digit', hour12: true
+                    });
+                    const formattedDeadlineDate = new Date(testDeadline + 'T00:00').toLocaleDateString('en-US', {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    });
+                    const formattedDeadlineTime = new Date('1970-01-01T' + testDeadlineTime).toLocaleTimeString('en-US', {
+                        hour: 'numeric', minute: '2-digit', hour12: true
+                    });
 
-await sendTestEmail({
-    to_email:       email,
-    student_name:   (stuData.firstName || stuData.displayName || stuData.name || 'Student').trim(),
-    test_name:      testType,
-    section:        testSection,
-    professor_name: (window.currentUser.displayName || window.currentUser.email || 'Professor').trim(),
-    test_date:      formattedDate,
-    test_time:      formattedTime,
-    deadline_date:  formattedDeadlineDate,
-    deadline_time:  formattedDeadlineTime,
-});
-    } catch (emailErr) {
-        console.warn('Email notification failed for', email, emailErr);
-        // Don't throw — email failure shouldn't break the schedule
-    }
-
-})).catch(e => console.warn('Notification error:', e));
+                    await sendTestEmail({
+                        to_email:       email,
+                        student_name:   (stuData.firstName || stuData.displayName || stuData.name || 'Student').trim(),
+                        test_name:      testType,
+                        section:        testSection,
+                        professor_name: (window.currentUser.displayName || window.currentUser.email || 'Professor').trim(),
+                        test_date:      formattedDate,
+                        test_time:      formattedTime,
+                        deadline_date:  formattedDeadlineDate,
+                        deadline_time:  formattedDeadlineTime,
+                    });
+                } catch (emailErr) {
+                    console.warn('Email notification failed for', email, emailErr);
+                }
+            })).catch(e => console.warn('Notification error:', e));
         }
 
         if (sb) { sb.disabled = false; sb.textContent = origText; }
         if (cb2) cb2.disabled = false;
         window.closeScheduleTestModal();
+        
+        // IMMEDIATE UI UPDATE - Add new tests to local array and re-render
+        if (window.allScheduledTests) {
+            // Add new tests to the beginning of the array (newest first)
+            window.allScheduledTests = [...newTests, ...window.allScheduledTests];
+            // Update status snapshot for new tests
+            if (!_lastStatusSnapshot) window._lastStatusSnapshot = new Map();
+            newTests.forEach(t => {
+                _lastStatusSnapshot.set(t.id, t.status);
+            });
+            // Re-render table instantly
+            renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
+            // Update section dropdown
+            populateSectionSortDropdown();
+        }
+        
         showSuccessModal(`✅ Test scheduled for ${totalScheduled} section(s)!`);
-        await loadScheduledTests(window.currentUser.email, window.currentUser.uid);
+        
+        // Refresh in background to sync with any other changes (don't await)
+        loadScheduledTests(window.currentUser.email, window.currentUser.uid).catch(console.warn);
+        
     } catch (e) {
         showErrorModal('Error scheduling test: ' + e.message);
         if (sb) { sb.disabled = false; sb.textContent = origText; }

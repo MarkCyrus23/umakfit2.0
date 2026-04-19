@@ -409,9 +409,9 @@
         <!-- Bulk mode bar -->
 <div id="bulkModeBar" class="hidden mb-4 p-3 rounded-xl border flex items-center gap-3 flex-wrap">
     <span id="bulkModeLabel" class="font-semibold text-sm"></span>
-    <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer ml-2">
-        <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer" style="accent-color:#1e4d8c;" onchange="toggleSelectAll(this)"> Select All
-    </label>
+    <button id="mobileSelectAllBtn" onclick="toggleMobileSelectAllClick()" style="display:inline-flex; align-items:center; gap:8px; background:white; border:1px solid #2d6fc4; border-radius:20px; padding:6px 14px; font-size:12px; font-weight:600; color:#2d6fc4; cursor:pointer;">
+        <i class="fas fa-check-double"></i> Select All
+    </button>
     <span class="text-sm text-text-muted">(<span id="bulkSelectedCount">0</span> selected)</span>
     <div class="ml-auto flex gap-2">
         <button id="bulkConfirmBtn" class="font-semibold py-1.5 px-4 rounded-lg text-sm flex items-center gap-2 transition-all" onclick="executeBulkAction()"></button>
@@ -1426,8 +1426,8 @@ function setupRealtimeUpdates() {
     const headerRow = document.querySelector('#sectionsTable thead tr');
     if (headerRow) {
         headerRow.innerHTML = isBulk
-            ? `<th style="width:36px;"><input type="checkbox" id="selectAllHeader" class="section-checkbox" onchange="toggleSelectAll(this)" style="accent-color:#1e4d8c;"></th><th>Section Name</th><th>Year Level</th><th>Total Students</th><th>Course Code</th><th>Time/Day/Room</th><th>Academic Year</th>`
-            : `<th>Section Name</th><th>Year Level</th><th>Total Students</th><th>Course Code</th><th>Time/Day/Room</th><th>Academic Year</th><th>Actions</th>`;
+    ? `<th style="width:36px;"><input type="checkbox" id="selectAllHeader" class="section-checkbox" onchange="toggleSelectAll(this)" style="accent-color:#1e4d8c;"></th><th>Section Name</th><th>Year Level</th><th>Total Students</th><th>Course Code</th><th>Time/Day/Room</th><th>Academic Year</th>`
+    : `<th>Section Name</th><th>Year Level</th><th>Total Students</th><th>Course Code</th><th>Time/Day/Room</th><th>Academic Year</th><th>Actions</th>`;
     }
 
     if (!filteredSections.length) {
@@ -1620,6 +1620,15 @@ window.enterBulkMode = function(mode) {
         btn.innerHTML = '<i class="fas fa-trash-alt"></i> Remove Selected';
     }
 
+    // Reset mobile button text
+    const mobileBtn = document.getElementById('mobileSelectAllBtn');
+    if (mobileBtn) {
+        mobileBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+        mobileBtn.style.background = 'white';
+        mobileBtn.style.color = '#2d6fc4';
+        mobileBtn.style.borderColor = '#2d6fc4';
+    }
+
     document.getElementById('bulkSelectedCount').textContent = '0';
     populateSectionsTable();
     updateResponsiveViews();
@@ -1643,23 +1652,81 @@ window.toggleRowCheckbox = function(cbId) {
 };
 
 window.toggleSelectAll = function(source) {
-    document.querySelectorAll('.section-checkbox').forEach(cb => { cb.checked = source.checked; });
+    // Select ALL row checkboxes only (exclude the header checkbox)
+    const rowCheckboxes = document.querySelectorAll('.section-checkbox:not(#selectAllHeader)');
+    rowCheckboxes.forEach(cb => { cb.checked = source.checked; });
+    
     const headerCb = document.getElementById('selectAllHeader');
     if (headerCb) headerCb.checked = source.checked;
-    const topCb = document.getElementById('selectAllCheckbox');
-    if (topCb) topCb.checked = source.checked;
+    
     onCheckChange();
 };
 
 window.onCheckChange = function() {
-    const all     = document.querySelectorAll('.section-checkbox');
-    const checked = document.querySelectorAll('.section-checkbox:checked');
-    const count   = checked.length;
+    // Count ONLY visible row checkboxes (exclude header checkbox and hidden duplicates)
+    const rowCheckboxes = Array.from(document.querySelectorAll('.section-checkbox:not(#selectAllHeader)'))
+        .filter(cb => cb.offsetParent !== null);
+    const checkedRows = rowCheckboxes.filter(cb => cb.checked);
+    const count = checkedRows.length;
     document.getElementById('bulkSelectedCount').textContent = count;
+    
     const headerCb = document.getElementById('selectAllHeader');
-    if (headerCb) { headerCb.checked = count > 0 && count === all.length; headerCb.indeterminate = count > 0 && count < all.length; }
-    const topCb = document.getElementById('selectAllCheckbox');
-    if (topCb) { topCb.checked = count > 0 && count === all.length; topCb.indeterminate = count > 0 && count < all.length; }
+    if (headerCb) {
+        headerCb.checked = count > 0 && count === rowCheckboxes.length;
+        headerCb.indeterminate = count > 0 && count < rowCheckboxes.length;
+    }
+    
+    const mobileBtn = document.getElementById('mobileSelectAllBtn');
+    if (mobileBtn && rowCheckboxes.length > 0) {
+        const allChecked = count === rowCheckboxes.length;
+        if (allChecked) {
+            mobileBtn.innerHTML = '<i class="fas fa-times"></i> Deselect All';
+            mobileBtn.style.background = '#fee2e2';
+            mobileBtn.style.color = '#dc2626';
+            mobileBtn.style.borderColor = '#dc2626';
+        } else {
+            mobileBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+            mobileBtn.style.background = 'white';
+            mobileBtn.style.color = '#2d6fc4';
+            mobileBtn.style.borderColor = '#2d6fc4';
+        }
+    }
+};
+
+window.toggleMobileSelectAllClick = function() {
+    // Only target visible checkboxes (exclude header and hidden desktop ones)
+    const rowCheckboxes = Array.from(document.querySelectorAll('.section-checkbox:not(#selectAllHeader)'))
+        .filter(cb => cb.offsetParent !== null);
+    if (!rowCheckboxes.length) return;
+    
+    const allChecked = rowCheckboxes.every(cb => cb.checked);
+    const shouldSelect = !allChecked;
+    
+    rowCheckboxes.forEach(cb => { cb.checked = shouldSelect; });
+    
+    const headerCb = document.getElementById('selectAllHeader');
+    if (headerCb) {
+        headerCb.checked = shouldSelect;
+        headerCb.indeterminate = false;
+    }
+    
+    const count = shouldSelect ? rowCheckboxes.length : 0;
+    document.getElementById('bulkSelectedCount').textContent = count;
+    
+    const mobileBtn = document.getElementById('mobileSelectAllBtn');
+    if (mobileBtn) {
+        if (shouldSelect) {
+            mobileBtn.innerHTML = '<i class="fas fa-times"></i> Deselect All';
+            mobileBtn.style.background = '#fee2e2';
+            mobileBtn.style.color = '#dc2626';
+            mobileBtn.style.borderColor = '#dc2626';
+        } else {
+            mobileBtn.innerHTML = '<i class="fas fa-check-double"></i> Select All';
+            mobileBtn.style.background = 'white';
+            mobileBtn.style.color = '#2d6fc4';
+            mobileBtn.style.borderColor = '#2d6fc4';
+        }
+    }
 };
 
 window.executeBulkAction = async function() {
@@ -1890,14 +1957,15 @@ function renderArchivedSections() {
 
     c.innerHTML = list.map(s => {
         const sched = s.schedule === 'Not Set' ? '<span style="color:#ef4444;">Not Set</span>' : esc(s.schedule);
+        // Use the SAME checkbox ID as desktop to avoid duplication
         const checkboxHtml = isBulk
-            ? `<input type="checkbox" id="mob_cb_${s.id}" class="section-checkbox" data-id="${s.id}" data-name="${esc(s.name)}" onchange="onCheckChange()" style="accent-color:#1e4d8c;margin-right:6px;">`
+            ? `<input type="checkbox" id="cb_${s.id}" class="section-checkbox" data-id="${s.id}" data-name="${esc(s.name)}" onchange="onCheckChange()" style="accent-color:#1e4d8c;margin-right:6px;">`
             : '';
         const actionsHtml = isBulk
-    ? `<label for="mob_cb_${s.id}" class="btn-action btn-view" style="cursor:pointer;"><i class="fas fa-check-square"></i> Select</label>`
+    ? `<label for="cb_${s.id}" class="btn-action btn-view" style="cursor:pointer;"><i class="fas fa-check-square"></i> Select</label>`
     : `<button class="btn-action btn-view" onclick="viewSectionDetails('${s.id}')"><i class="fas fa-eye"></i> View</button>`;
 
-        return `<div class="section-card${isBulk ? ' bulk-row-highlight' : ''}" ${isBulk ? `onclick="toggleRowCheckbox('mob_cb_${s.id}')" style="cursor:pointer;"` : ''}>
+        return `<div class="section-card${isBulk ? ' bulk-row-highlight' : ''}" ${isBulk ? `onclick="toggleRowCheckbox('cb_${s.id}')" style="cursor:pointer;"` : ''}>
             <div class="section-card-row" style="align-items:center;">
                 ${checkboxHtml}
                 <span class="section-card-label">Section Name</span>
