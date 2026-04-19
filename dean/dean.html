@@ -4812,7 +4812,91 @@ if (scheduledIds.length > 0) {
         } catch (_) { /* notifications collection may not exist */ }
     }
 }
-
+            let lessonsDeleted = 0;
+        let lessonProgressDeleted = 0;
+ 
+        // Try lessons collection filtered by section field
+        try {
+            const lessonsSnap = await db.collection('lessons')
+                .where('section', '==', sectionName).get();
+            for (const lessonDoc of lessonsSnap.docs) {
+                // Delete subcollections
+                for (const sub of ['content','progress','submissions','comments','attachments','quizzes','materials']) {
+                    try {
+                        const subSnap = await lessonDoc.ref.collection(sub).get();
+                        if (!subSnap.empty) await batchDelete(subSnap.docs);
+                    } catch (_) {}
+                }
+            }
+            await batchDelete(lessonsSnap.docs);
+            lessonsDeleted += lessonsSnap.size;
+        } catch (_) {}
+ 
+        // Also try sectionName field (alternate)
+        try {
+            const lessonsSnap2 = await db.collection('lessons')
+                .where('sectionName', '==', sectionName).get();
+            for (const lessonDoc of lessonsSnap2.docs) {
+                for (const sub of ['content','progress','submissions','comments','attachments','quizzes','materials']) {
+                    try {
+                        const subSnap = await lessonDoc.ref.collection(sub).get();
+                        if (!subSnap.empty) await batchDelete(subSnap.docs);
+                    } catch (_) {}
+                }
+            }
+            await batchDelete(lessonsSnap2.docs);
+            lessonsDeleted += lessonsSnap2.size;
+        } catch (_) {}
+ 
+        // Try lessonSections collection (per-section lesson sets)
+        try {
+            const lessonSectionRef = db.collection('lessonSections').doc(sectionName);
+            const lessonSectionSnap = await lessonSectionRef.get();
+            if (lessonSectionSnap.exists) {
+                for (const sub of ['lessons','materials']) {
+                    try {
+                        const subSnap = await lessonSectionRef.collection(sub).get();
+                        if (!subSnap.empty) await batchDelete(subSnap.docs);
+                    } catch (_) {}
+                }
+                await lessonSectionRef.delete();
+                lessonsDeleted++;
+            }
+        } catch (_) {}
+ 
+        // Delete lessonProgress by section
+        try {
+            const progressSnap = await db.collection('lessonProgress')
+                .where('section', '==', sectionName).get();
+            await batchDelete(progressSnap.docs);
+            lessonProgressDeleted += progressSnap.size;
+        } catch (_) {}
+ 
+        try {
+            const progressSnap2 = await db.collection('studentLessonProgress')
+                .where('section', '==', sectionName).get();
+            await batchDelete(progressSnap2.docs);
+            lessonProgressDeleted += progressSnap2.size;
+        } catch (_) {}
+ 
+        // Delete lessonProgress by student emails (chunks of 10)
+        const lessonEmailKeys = Array.from(studentEmails).filter(Boolean);
+        const LP_CHUNK = 10;
+        for (let i = 0; i < lessonEmailKeys.length; i += LP_CHUNK) {
+            const chunk = lessonEmailKeys.slice(i, i + LP_CHUNK);
+            try {
+                const snap = await db.collection('lessonProgress')
+                    .where('studentEmail', 'in', chunk).get();
+                await batchDelete(snap.docs);
+                lessonProgressDeleted += snap.size;
+            } catch (_) {}
+            try {
+                const snap2 = await db.collection('lessonProgress')
+                    .where('email', 'in', chunk).get();
+                await batchDelete(snap2.docs);
+                lessonProgressDeleted += snap2.size;
+            } catch (_) {}
+        }
         // ── Step 4: Delete studentNorms for this section's students ONLY ───
 // Structure: studentNorms/{email}/tests/{testKey}
 // Only delete norm docs for emails that belong to THIS section.
@@ -4890,6 +4974,8 @@ for (let i = 0; i < normKeys.length; i += CHUNK) {
      • ${bmiToDelete.length} BMI record(s)<br>
      • ${testsToDelete.length} test result(s)<br>
      • ${scheduledToDelete.length} scheduled test(s)<br>
+     • ${lessonsDeleted} lesson(s) deleted<br>
+    • ${lessonProgressDeleted} lesson progress record(s) deleted<br>
      • ${normsDeleted} student norm record(s)`,
     { title: 'Section Deleted', type: 'success', confirmText: 'Done' }
 );
@@ -5411,11 +5497,7 @@ async function deanUpsertStudentRow(row) {
     const existingSnap = await db.collection('students').where('email', '==', email).limit(1).get();
 
     const data = {
-        firstName,
-        lastName,
-        fullName,
-        studentId,
-        email,
+        firstName, lastName, fullName, studentId, email,
         section: (row.section || '').trim(),
         courseCode: (row.course_code || '').trim(),
         professor: (row.professor || '').trim(),
@@ -5432,36 +5514,135 @@ async function deanUpsertStudentRow(row) {
     if (!existingSnap.empty) {
         const existingId = existingSnap.docs[0].id;
         await db.collection('users').doc(email.replace(/\./g, '_')).set({
-            uid: existingId,
-            email,
-            role: 'student',
-            studentId,
-            name: fullName,
-            section: row.section || ''
+            uid: existingId, email, role: 'student',
+            studentId, name: fullName, section: row.section || ''
         }, { merge: true });
     } else {
         await db.collection('students').doc(uniqueId).set({
-            uid: uniqueId,
-            ...data,
-            status: 'active',
+            uid: uniqueId, ...data, status: 'active',
             importedBy: currentUser ? currentUser.uid : '',
             importedAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            emailVerified: false,
-            privacyAccepted: false,
-            isActive: true
+            emailVerified: false, privacyAccepted: false, isActive: true
         }, { merge: true });
         await db.collection('users').doc(email.replace(/\./g, '_')).set({
-            uid: uniqueId,
-            email,
-            role: 'student',
-            studentId,
-            name: fullName,
-            section: row.section || ''
+            uid: uniqueId, email, role: 'student',
+            studentId, name: fullName, section: row.section || ''
         }, { merge: true });
     }
-}
 
+    
+    const profName = (row.professor || '').trim();
+    if (profName) {
+        const resolvedEmail = await deanSaveProfessorFromImport(profName);
+        row._resolvedProfEmail = resolvedEmail || '';
+    }
+}
+            async function deanSaveProfessorFromImport(profName) {
+    if (!profName) return '';
+
+    // 1. Check professors collection by name
+    const existingByName = await db.collection('professors')
+        .where('name', '==', profName).limit(1).get();
+    if (!existingByName.empty) {
+        const data = existingByName.docs[0].data();
+        const existingEmail = data.email || '';
+        if (existingEmail) {
+            await db.collection('users').doc(existingEmail.replace(/\./g, '_')).set({
+                role: 'professor',
+                name: profName,
+                college: 'College of Human Kinetics',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+        return existingEmail;
+    }
+
+    // 2. Search ALL users by name — catches professors with student-format email
+    const usersByName = await db.collection('users')
+        .where('name', '==', profName).limit(1).get();
+    if (!usersByName.empty) {
+        const userData = usersByName.docs[0].data();
+        const existingEmail = userData.email || '';
+        if (existingEmail) {
+            // KEY FIX: upgrade role to professor
+            await db.collection('users').doc(existingEmail.replace(/\./g, '_')).set({
+                role: 'professor',
+                name: profName,
+                college: 'College of Human Kinetics',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Create professors doc using their actual email
+            const parts = profName.split(',');
+            const lastName = parts[0]?.trim() || '';
+            const afterComma = (parts[1] || '').trim().split(/\s+/).filter(Boolean);
+            const isInitial = (w) => /^[a-zA-Z]\.?$/.test(w);
+            const isMaPrefix = (w) => /^ma\.?$/i.test(w);
+            const firstNameParts = afterComma.filter(w => !isMaPrefix(w) && !isInitial(w));
+            const mi = afterComma.find(w => isInitial(w) && !isMaPrefix(w)) || '';
+            const profDocId = existingEmail.replace(/\./g, '_');
+
+            await db.collection('professors').doc(profDocId).set({
+                name: profName,
+                email: existingEmail,
+                lastName,
+                firstName: firstNameParts[0] || afterComma[0] || '',
+                middleInitial: mi,
+                college: 'College of Human Kinetics',
+                status: 'active',
+                role: 'professor',
+                isActive: true,
+                importedFromCSV: true,
+                linkedFromExistingUser: true,
+                createdBy: currentUser ? currentUser.uid : '',
+                createdByName: deanData?.name || 'Dean',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            return existingEmail;
+        }
+    }
+
+    // 3. Not found — generate email from name
+    const parts = profName.split(',');
+    const lastName = parts[0]?.trim() || '';
+    const afterComma = (parts[1] || '').trim().split(/\s+/).filter(Boolean);
+    const isMaPrefix = (w) => /^ma\.?$/i.test(w);
+    const isInitial = (w) => /^[a-zA-Z]\.?$/.test(w);
+    const firstNameParts = afterComma.filter(w => !isMaPrefix(w) && !isInitial(w));
+    const mi = afterComma.find(w => isInitial(w) && !isMaPrefix(w)) || '';
+    const firstNameForEmail = firstNameParts.join('').toLowerCase();
+    const lastNameForEmail = lastName.toLowerCase().replace(/\s+/g, '');
+    const genEmail = firstNameForEmail && lastNameForEmail
+        ? `${firstNameForEmail}.${lastNameForEmail}@umak.edu.ph`
+        : '';
+    const profDocId = profName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+
+    await db.collection('professors').doc(profDocId).set({
+        name: profName, email: genEmail, lastName,
+        firstName: firstNameParts[0] || afterComma[0] || '',
+        middleInitial: mi, college: 'College of Human Kinetics',
+        status: 'active', role: 'professor', isActive: true,
+        importedFromCSV: true,
+        createdBy: currentUser ? currentUser.uid : '',
+        createdByName: deanData?.name || 'Dean',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    if (genEmail) {
+        await db.collection('users').doc(genEmail.replace(/\./g, '_')).set({
+            uid: profDocId, email: genEmail, role: 'professor',
+            name: profName, college: 'College of Human Kinetics',
+            status: 'active', importedFromCSV: true,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    }
+
+    return genEmail;
+}
 async function deanUpdateSectionRoster(sectionName, rows, meta) {
     const safeName = (sectionName || '').trim();
     if (!safeName) return;
@@ -5474,11 +5655,15 @@ async function deanUpdateSectionRoster(sectionName, rows, meta) {
         student_id: (r.student_id || '').trim()
     })).filter(s => s.email);
 
+
+    const resolvedProfEmail = rows.find(r => r._resolvedProfEmail)?._resolvedProfEmail || '';
+
     const metaFields = {
         name: safeName,
         courseCode: (meta.courseCode || '').trim(),
         courseTitle: (meta.courseTitle || '').trim(),
         professor: (meta.professorName || '').trim(),
+        professorEmail: resolvedProfEmail, 
         time: (meta.timeSchedule || '').trim(),
         day: (meta.daySchedule || '').trim(),
         room: (meta.roomSchedule || '').trim(),

@@ -59,7 +59,134 @@
                 }
             }
         }
+        
     </script>
+        <style id="lesson-list-styles">
+    /* ── Lesson List Row ── */
+    .lesson-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #e1e6ef;
+        transition: background 0.15s;
+        position: relative;
+    }
+    .lesson-row:last-child { border-bottom: none; }
+    .lesson-row:hover { background: #f8fafc; }
+    .lesson-row.selected { background: #eff6ff; }
+    
+    .lesson-row-checkbox {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        border: 2px solid #c5cfe0;
+        cursor: pointer;
+        flex-shrink: 0;
+        accent-color: #2d6fc4;
+        transition: border-color 0.15s;
+    }
+    .lesson-row-checkbox:checked { border-color: #2d6fc4; }
+    
+    .lesson-row-type-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+    
+    .lesson-row-body { flex: 1; min-width: 0; }
+    .lesson-row-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #0a1628;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    .lesson-row-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 4px;
+    }
+    .lesson-row-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11.5px;
+        color: #8a98ae;
+        font-weight: 500;
+    }
+    
+    .lesson-row-actions {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-shrink: 0;
+    }
+    
+    /* ── Bulk Action Bar ── */
+    .bulk-bar {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 18px;
+        background: #eff6ff;
+        border-bottom: 1px solid #bfdbfe;
+        animation: fadeSlide 0.2s ease;
+    }
+    .bulk-bar.visible { display: flex; }
+    
+    /* ── Pagination ── */
+    .pagination-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-top: 1px solid #e1e6ef;
+        background: #fafbfd;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .page-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid #e1e6ef;
+        background: white;
+        color: #4a5a72;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'DM Sans', sans-serif;
+        transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { background: #eff6ff; border-color: #2d6fc4; color: #2d6fc4; }
+    .page-btn.active { background: #2d6fc4; border-color: #2d6fc4; color: white; font-weight: 700; }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    /* ── Select All row ── */
+    .select-all-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 18px;
+        background: #f4f6fa;
+        border-bottom: 1px solid #e1e6ef;
+    }
+    </style>
+
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -327,8 +454,9 @@
                 </div>
             </div>
 
-            <!-- Lessons Panel -->
+             <!-- Lessons Panel -->
             <div class="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                <!-- Header -->
                 <div class="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3 max-[768px]:flex-col max-[768px]:items-start">
                     <div class="flex items-center gap-2.5 text-[15px] font-semibold text-navy">
                         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-royal to-blue flex items-center justify-center text-white text-[13px]"><i class="fas fa-book"></i></div>
@@ -347,7 +475,6 @@
                             class="px-3.5 py-2 border border-border rounded-lg font-sans text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue transition-all min-w-[180px]">
                             <option value="">All Sections</option>
                         </select>
-                        <!-- CHANGED: Removed "Lecture" option from the filter dropdown -->
                         <select id="lessonTypeFilter" onchange="filterLessons()"
                             class="px-3.5 py-2 border border-border rounded-lg font-sans text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue transition-all">
                             <option value="all">All Types</option>
@@ -356,11 +483,43 @@
                         </select>
                     </div>
                 </div>
-                <div id="lessonsGrid" class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5 p-6 max-[768px]:grid-cols-1 max-[768px]:p-4"></div>
+ 
+                <!-- Bulk Action Bar -->
+                <div class="bulk-bar" id="bulkBar">
+                    <span class="text-[13px] font-semibold text-blue" id="selectedCountLabel">0 selected</span>
+                    <div class="flex-1"></div>
+                    <button onclick="bulkDelete()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-danger text-white rounded-lg text-[13px] font-bold hover:bg-red-700 transition-all"
+                        style="border:none;cursor:pointer;">
+                        <i class="fas fa-trash-alt text-[11px]"></i> Delete Selected
+                    </button>
+                    <button onclick="clearSelection()"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface text-text-secondary rounded-lg text-[13px] font-medium hover:bg-border transition-all"
+                        style="border:1px solid #e1e6ef;cursor:pointer;">
+                        Cancel
+                    </button>
+                </div>
+ 
+                <!-- Select All Row -->
+                <div class="select-all-row" id="selectAllRow" style="display:none;">
+                    <input type="checkbox" id="selectAllTop" class="lesson-row-checkbox" onchange="toggleSelectAll(this.checked)" title="Select All on this page">
+                    <span class="text-[12px] font-semibold text-text-muted uppercase tracking-[0.6px]">Select All</span>
+                </div>
+ 
+                <!-- Lessons List -->
+                <div id="lessonsGrid"></div>
+ 
+                <!-- Empty State -->
                 <div id="noLessonsMsg" class="hidden py-16 px-8 text-center">
                     <div class="w-[60px] h-[60px] rounded-2xl bg-surface flex items-center justify-center text-2xl text-text-muted mx-auto mb-4"><i class="fas fa-book-open"></i></div>
                     <div class="text-base font-semibold text-text-primary mb-1.5">No Lessons Found</div>
                     <div class="text-[13px] text-text-muted" id="noLessonsMsgText">Click "Create New Lesson" above to get started!</div>
+                </div>
+ 
+                <!-- Pagination -->
+                <div class="pagination-wrap" id="paginationWrap" style="display:none;">
+                    <div class="text-[13px] text-text-muted" id="paginationInfo"></div>
+                    <div class="flex items-center gap-1.5" id="paginationBtns"></div>
                 </div>
             </div>
 
@@ -868,82 +1027,278 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStats();applyFilters();
 }
     
+   let currentPage = 1;
+    const PAGE_SIZE = 5;
+    let selectedIds = new Set();
+ 
     function updateStats(){
-        document.getElementById('statTotalLessons').textContent=allLessons.length;
-        document.getElementById('statPublished').textContent=allLessons.filter(l=>l.status==='published').length;
-        document.getElementById('statDrafts').textContent=allLessons.filter(l=>!l.status||l.status==='draft').length;
-        document.getElementById('lessonsCount').textContent=filteredLessons.length||allLessons.length;
+        document.getElementById('statTotalLessons').textContent = allLessons.length;
+        document.getElementById('statPublished').textContent    = allLessons.filter(l => l.status === 'published').length;
+        document.getElementById('statDrafts').textContent       = allLessons.filter(l => !l.status || l.status === 'draft').length;
+        document.getElementById('lessonsCount').textContent     = filteredLessons.length || allLessons.length;
     }
 
-    window.filterBySection=function(){
-        const v=document.getElementById('sectionFilter').value;activeSectionFilter=v||null;
-        if(activeSectionFilter){document.getElementById('activeSectionName').textContent=activeSectionFilter;document.getElementById('heroFilterName').textContent=activeSectionFilter;document.getElementById('activeSectionBadge').classList.remove('hidden');document.getElementById('heroFilterBadge').classList.remove('hidden');}
-        else{document.getElementById('activeSectionBadge').classList.add('hidden');document.getElementById('heroFilterBadge').classList.add('hidden');}
+     window.filterBySection = function(){
+        const v = document.getElementById('sectionFilter').value;
+        activeSectionFilter = v || null;
+        if(activeSectionFilter){
+            document.getElementById('activeSectionName').textContent = activeSectionFilter;
+            document.getElementById('heroFilterName').textContent    = activeSectionFilter;
+            document.getElementById('activeSectionBadge').classList.remove('hidden');
+            document.getElementById('heroFilterBadge').classList.remove('hidden');
+        } else {
+            document.getElementById('activeSectionBadge').classList.add('hidden');
+            document.getElementById('heroFilterBadge').classList.add('hidden');
+        }
         applyFilters();
     };
-    window.filterLessons=()=>applyFilters();
-    window.clearSectionFilter=function(){document.getElementById('sectionFilter').value='';activeSectionFilter=null;document.getElementById('activeSectionBadge').classList.add('hidden');document.getElementById('heroFilterBadge').classList.add('hidden');applyFilters();};
-
+    window.filterLessons = () => applyFilters();
+    window.clearSectionFilter = function(){
+        document.getElementById('sectionFilter').value = '';
+        activeSectionFilter = null;
+        document.getElementById('activeSectionBadge').classList.add('hidden');
+        document.getElementById('heroFilterBadge').classList.add('hidden');
+        applyFilters();
+    };
+ 
     function applyFilters(){
-        const sf=document.getElementById('sectionFilter').value,tf=document.getElementById('lessonTypeFilter').value;
-        filteredLessons=allLessons.filter(l=>{if(sf){const lessonSections=l.sections&&l.sections.length>0?l.sections:[l.section];if(!lessonSections.includes(sf))return false;}if(tf!=='all'&&l.type!==tf)return false;return true;});
-        displayLessons(filteredLessons);document.getElementById('lessonsCount').textContent=filteredLessons.length;
-        if(filteredLessons.length===0)document.getElementById('noLessonsMsgText').textContent=(sf||tf!=='all')?'No lessons match your current filters. Try adjusting your filters.':'Click "Create New Lesson" above to get started!';
+        const sf = document.getElementById('sectionFilter').value;
+        const tf = document.getElementById('lessonTypeFilter').value;
+        filteredLessons = allLessons.filter(l => {
+            if(sf){
+                const ls = l.sections && l.sections.length > 0 ? l.sections : [l.section];
+                if(!ls.includes(sf)) return false;
+            }
+            if(tf !== 'all' && l.type !== tf) return false;
+            return true;
+        });
+        currentPage = 1;
+        selectedIds.clear();
+        displayLessons(filteredLessons);
+        document.getElementById('lessonsCount').textContent = filteredLessons.length;
+        if(filteredLessons.length === 0)
+            document.getElementById('noLessonsMsgText').textContent =
+                (sf || tf !== 'all')
+                    ? 'No lessons match your current filters. Try adjusting your filters.'
+                    : 'Click "Create New Lesson" above to get started!';
     }
 
-    // CHANGED: Removed 'lecture' from LESSON_TYPE_CFG
-    const LESSON_TYPE_CFG={reading:{icon:'fas fa-book-open',color:'bg-info-bg text-blue',label:'Reading Material'},video:{icon:'fab fa-youtube',color:'bg-danger-bg text-danger',label:'Video Lesson'}};
-
+     const LESSON_TYPE_CFG = {
+        reading: { icon: 'fas fa-book-open',  color: 'bg-info-bg text-blue',    label: 'Reading Material' },
+        video:   { icon: 'fab fa-youtube',    color: 'bg-danger-bg text-danger', label: 'Video Lesson'     }
+    };
+ 
     function displayLessons(lessons){
-        const grid=document.getElementById('lessonsGrid'),empty=document.getElementById('noLessonsMsg');
-        if(!lessons.length){grid.innerHTML='';grid.style.display='none';empty.classList.remove('hidden');return;}
-        empty.classList.add('hidden');grid.style.display='grid';
-        grid.innerHTML=lessons.map(lesson=>{
-            const date=(lesson.publishDate||lesson.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-            const preview=(lesson.content||'').replace(/<[^>]*>/g,'').substring(0,130)+((lesson.content||'').length>130?'…':'');
-            const st=lesson.status||'draft';
-            const badgeCls=st==='published'?'badge-published':st==='scheduled'?'badge-scheduled':'badge-draft';
-            const badgeIcon=st==='published'?'<i class="fas fa-check-circle text-[10px]"></i>':st==='scheduled'?'<i class="fas fa-clock text-[10px]"></i>':'<i class="fas fa-pencil-alt text-[10px]"></i>';
-            const badgeTxt=st==='published'?'Published':st==='scheduled'?'Scheduled':'Draft';
-            const fileCount=lesson.materials?.length||0,hasYT=lesson.youtubeVideoId?.trim();
-            // CHANGED: fallback to 'reading' if type is 'lecture' or unknown for display purposes
-            const typeCfg=LESSON_TYPE_CFG[lesson.type]||LESSON_TYPE_CFG.reading;
-            const cardAccent=st==='published'?'border-t-success':st==='scheduled'?'border-t-info':'border-t-[#c5cfe0]';
-            return `<div class="lesson-card bg-white rounded-2xl border border-border border-t-4 ${cardAccent} shadow-sm flex flex-col">
-                <div class="p-5 pb-3.5">
-                    <div class="flex justify-between items-start gap-2 mb-3.5">
-                        <div class="flex items-start gap-3 flex-1 min-w-0">
-                            <div class="w-9 h-9 rounded-xl ${typeCfg.color} flex items-center justify-center text-[14px] flex-shrink-0 mt-0.5"><i class="${typeCfg.icon}"></i></div>
-                            <div class="min-w-0"><h4 class="font-display text-[15px] font-bold text-navy leading-snug">${lesson.title||'Untitled Lesson'}</h4><div class="inline-block bg-surface text-text-muted text-[11px] font-semibold px-2 py-0.5 rounded mt-1">${typeCfg.label}</div></div>
-                        </div>
-                        <span class="badge ${badgeCls} flex-shrink-0 mt-0.5 gap-1">${badgeIcon} ${badgeTxt}</span>
-                    </div>
-                    <div class="flex flex-wrap gap-x-4 gap-y-1.5">
-                        <div class="flex items-center gap-1.5 text-[12px] text-text-secondary"><i class="fas fa-chalkboard-teacher text-text-muted text-[11px]"></i><span class="inline-block bg-info-bg/60 text-blue text-[11px] font-semibold px-2 py-0.5 rounded" title="${lesson.sections ? lesson.sections.join(', ') : (lesson.section || 'No Section')}">${lesson.sections ? lesson.sections.length + ' section' + (lesson.sections.length > 1 ? 's' : '') : (lesson.section || 'No Section')}</span></div>
-                        <div class="flex items-center gap-1.5 text-[12px] text-text-muted"><i class="fas fa-calendar-alt text-[11px]"></i><span>${date}</span></div>
-                        ${hasYT?`<div class="flex items-center gap-1.5 text-[12px] text-danger font-medium"><i class="fab fa-youtube text-[11px]"></i><span>Video</span></div>`:''}
-                        ${fileCount>0?`<div class="flex items-center gap-1.5 text-[12px] text-text-muted"><i class="fas fa-paperclip text-[11px]"></i><span>${fileCount} file${fileCount>1?'s':''}</span></div>`:''}
+        const grid   = document.getElementById('lessonsGrid');
+        const empty  = document.getElementById('noLessonsMsg');
+        const selRow = document.getElementById('selectAllRow');
+        const pgWrap = document.getElementById('paginationWrap');
+ 
+        if(!lessons.length){
+            grid.innerHTML = '';
+            grid.style.display = 'none';
+            empty.classList.remove('hidden');
+            selRow.style.display = 'none';
+            pgWrap.style.display = 'none';
+            updateBulkBar();
+            return;
+        }
+ 
+        empty.classList.add('hidden');
+        grid.style.display = 'block';
+        selRow.style.display = 'flex';
+        pgWrap.style.display = '';
+ 
+        const totalPages = Math.max(1, Math.ceil(lessons.length / PAGE_SIZE));
+        if(currentPage > totalPages) currentPage = totalPages;
+ 
+        const start    = (currentPage - 1) * PAGE_SIZE;
+        const pageRows = lessons.slice(start, start + PAGE_SIZE);
+ 
+        grid.innerHTML = pageRows.map(lesson => {
+            const date       = (lesson.publishDate || lesson.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const st         = lesson.status || 'draft';
+            const badgeCls   = st === 'published' ? 'badge-published' : st === 'scheduled' ? 'badge-scheduled' : 'badge-draft';
+            const badgeIcon  = st === 'published'  ? 'fa-check-circle' : st === 'scheduled' ? 'fa-clock' : 'fa-pencil-alt';
+            const badgeTxt   = st === 'published'  ? 'Published' : st === 'scheduled' ? 'Scheduled' : 'Draft';
+            const fileCount  = lesson.materials?.length || 0;
+            const hasYT      = lesson.youtubeVideoId?.trim();
+            const typeCfg    = LESSON_TYPE_CFG[lesson.type] || LESSON_TYPE_CFG.reading;
+            const isSelected = selectedIds.has(lesson.id);
+            const sectionLabel = lesson.sections && lesson.sections.length > 0
+                ? (lesson.sections.length === 1 ? lesson.sections[0] : lesson.sections.length + ' sections')
+                : (lesson.section || 'No Section');
+ 
+            return `
+            <div class="lesson-row${isSelected ? ' selected' : ''}" id="row-${lesson.id}">
+                <input type="checkbox"
+                    class="lesson-row-checkbox"
+                    data-id="${lesson.id}"
+                    ${isSelected ? 'checked' : ''}
+                    onchange="onRowCheck('${lesson.id}', this.checked)">
+                <div class="lesson-row-type-icon ${typeCfg.color}">
+                    <i class="${typeCfg.icon}"></i>
+                </div>
+                <div class="lesson-row-body">
+                    <div class="lesson-row-title" title="${(lesson.title || 'Untitled Lesson').replace(/"/g,'&quot;')}">${lesson.title || 'Untitled Lesson'}</div>
+                    <div class="lesson-row-meta">
+                        <span class="lesson-row-meta-item">
+                            <i class="fas fa-tag" style="font-size:10px;"></i>
+                            <span style="background:rgba(45,111,196,0.08);color:#2d6fc4;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;">${typeCfg.label}</span>
+                        </span>
+                        <span class="lesson-row-meta-item">
+                            <i class="fas fa-chalkboard-teacher" style="font-size:10px;"></i>
+                            <span style="background:rgba(45,111,196,0.06);color:#1e4d8c;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;">${sectionLabel}</span>
+                        </span>
+                        <span class="lesson-row-meta-item">
+                            <i class="fas fa-calendar-alt" style="font-size:10px;"></i>${date}
+                        </span>
+                        ${hasYT ? `<span class="lesson-row-meta-item" style="color:#c0392b;"><i class="fab fa-youtube" style="font-size:10px;"></i> Video</span>` : ''}
+                        ${fileCount > 0 ? `<span class="lesson-row-meta-item"><i class="fas fa-paperclip" style="font-size:10px;"></i>${fileCount} file${fileCount > 1 ? 's' : ''}</span>` : ''}
                     </div>
                 </div>
-                <div class="h-px bg-border mx-5"></div>
-                <div class="px-5 py-3.5 flex-1">
-                    ${lesson.description?`<div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Description</div><p class="text-[12.5px] text-text-secondary leading-relaxed mb-3">${lesson.description}</p>`:''}
-                    ${preview?`<div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-1">Content Preview</div><p class="text-[12.5px] text-text-secondary leading-relaxed">${preview}</p>`:''}
-                    ${fileCount>0?`<div class="mt-3 pt-3 border-t border-dashed border-border"><div class="text-[11px] font-bold text-text-muted uppercase tracking-[0.7px] mb-2 flex items-center gap-1.5"><i class="fas fa-folder-open text-blue"></i> Attached Files</div>${lesson.materials.map((f,i)=>`<div class="flex items-center gap-2 py-1"><div class="w-6 h-6 rounded bg-info-bg flex items-center justify-center flex-shrink-0"><i class="${getFileIcon(f.name)} text-blue text-[10px]"></i></div><a href="#" onclick="viewFile('${lesson.id}',${i}); return false;" class="text-[12px] text-royal hover:underline flex-1 truncate font-medium">${f.name}</a><span class="text-text-muted text-[11px] flex-shrink-0">${formatFileSize(f.size)}</span></div>`).join('')}</div>`:''}
-                </div>
-                <div class="px-5 py-3.5 border-t border-border bg-surface rounded-b-2xl flex items-center justify-between gap-2">
-                    <div class="flex gap-1.5">
-                        <button onclick="editLesson('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/15 text-accent font-bold text-[12px] rounded-lg hover:bg-accent/25 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-edit text-[10px]"></i> Edit</button>
-                        <button onclick="deleteLesson('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-danger-bg text-danger font-bold text-[12px] rounded-lg hover:bg-red-200 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-trash-alt text-[10px]"></i> Delete</button>
-                    </div>
-                    ${st==='published'
-                        ?`<button onclick="viewLessonDetails('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-success-bg text-success font-bold text-[12px] rounded-lg hover:bg-green-200 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-eye text-[10px]"></i> View</button>`
-                        :`<button onclick="publishLesson('${lesson.id}')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-br from-royal to-blue text-white font-bold text-[12px] rounded-lg hover:opacity-90 transition-all" style="border:none;cursor:pointer;"><i class="fas fa-paper-plane text-[10px]"></i> Publish</button>`
+                <span class="badge ${badgeCls} flex-shrink-0" style="white-space:nowrap;gap:4px;">
+                    <i class="fas ${badgeIcon}" style="font-size:10px;"></i>${badgeTxt}
+                </span>
+                <div class="lesson-row-actions">
+                    <button onclick="editLesson('${lesson.id}')"
+                        style="border:none;cursor:pointer;"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/15 text-accent font-bold text-[12px] rounded-lg hover:bg-accent/25 transition-all">
+                        <i class="fas fa-edit" style="font-size:10px;"></i> Edit
+                    </button>
+                    ${st === 'published'
+                        ? `<button onclick="viewLessonDetails('${lesson.id}')"
+                                style="border:none;cursor:pointer;"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success-bg text-success font-bold text-[12px] rounded-lg hover:bg-green-200 transition-all">
+                               <i class="fas fa-eye" style="font-size:10px;"></i> View
+                           </button>`
+                        : `<button onclick="publishLesson('${lesson.id}')"
+                                style="border:none;cursor:pointer;"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-br from-royal to-blue text-white font-bold text-[12px] rounded-lg hover:opacity-90 transition-all">
+                               <i class="fas fa-paper-plane" style="font-size:10px;"></i> Publish
+                           </button>`
                     }
                 </div>
             </div>`;
         }).join('');
+ 
+        const allOnPage  = pageRows.every(l => selectedIds.has(l.id));
+        const someOnPage = pageRows.some(l  => selectedIds.has(l.id));
+        ['selectAllTop'].forEach(id => {
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.checked       = allOnPage;
+            el.indeterminate = !allOnPage && someOnPage;
+        });
+ 
+        updateBulkBar();
+        renderPagination(lessons.length, totalPages);
     }
+ 
+    function renderPagination(total, totalPages){
+        const info = document.getElementById('paginationInfo');
+        const wrap = document.getElementById('paginationBtns');
+        if(!info || !wrap) return;
+        const start = (currentPage - 1) * PAGE_SIZE + 1;
+        const end   = Math.min(currentPage * PAGE_SIZE, total);
+        info.textContent = `Showing ${start}–${end} of ${total} lesson${total !== 1 ? 's' : ''}`;
+        let pages = [];
+        for(let i = 1; i <= totalPages; i++){
+            if(i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) pages.push(i);
+            else if(pages[pages.length - 1] !== '…') pages.push('…');
+        }
+        wrap.innerHTML =
+            `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left" style="font-size:11px;"></i>
+             </button>` +
+            pages.map(p => p === '…'
+                ? `<span style="padding:0 4px;color:#8a98ae;font-size:13px;line-height:32px;display:inline-block;">…</span>`
+                : `<button class="page-btn${p === currentPage ? ' active' : ''}" onclick="goToPage(${p})">${p}</button>`
+            ).join('') +
+            `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right" style="font-size:11px;"></i>
+             </button>`;
+    }
+ 
+    window.goToPage = function(page){
+        const totalPages = Math.max(1, Math.ceil(filteredLessons.length / PAGE_SIZE));
+        if(page < 1 || page > totalPages) return;
+        currentPage = page;
+        selectedIds.clear();
+        displayLessons(filteredLessons);
+    };
+ 
+    window.onRowCheck = function(id, checked){
+        if(checked) selectedIds.add(id);
+        else         selectedIds.delete(id);
+        const row = document.getElementById('row-' + id);
+        if(row) row.classList.toggle('selected', checked);
+        updateBulkBar();
+        const start    = (currentPage - 1) * PAGE_SIZE;
+        const pageRows = filteredLessons.slice(start, start + PAGE_SIZE);
+        const allOnPage  = pageRows.every(l => selectedIds.has(l.id));
+        const someOnPage = pageRows.some(l  => selectedIds.has(l.id));
+        const el = document.getElementById('selectAllTop');
+        if(el){ el.checked = allOnPage; el.indeterminate = !allOnPage && someOnPage; }
+    };
+ 
+    window.toggleSelectAll = function(checked){
+        const start    = (currentPage - 1) * PAGE_SIZE;
+        const pageRows = filteredLessons.slice(start, start + PAGE_SIZE);
+        pageRows.forEach(l => {
+            if(checked) selectedIds.add(l.id);
+            else         selectedIds.delete(l.id);
+            const row = document.getElementById('row-' + l.id);
+            if(row) row.classList.toggle('selected', checked);
+            const cb = document.querySelector(`.lesson-row-checkbox[data-id="${l.id}"]`);
+            if(cb) cb.checked = checked;
+        });
+        const el = document.getElementById('selectAllTop');
+        if(el){ el.checked = checked; el.indeterminate = false; }
+        updateBulkBar();
+    };
+ 
+    function updateBulkBar(){
+        const bar   = document.getElementById('bulkBar');
+        const label = document.getElementById('selectedCountLabel');
+        const count = selectedIds.size;
+        if(count > 0){
+            bar.classList.add('visible');
+            label.textContent = `${count} lesson${count !== 1 ? 's' : ''} selected`;
+        } else {
+            bar.classList.remove('visible');
+            const el = document.getElementById('selectAllTop');
+            if(el){ el.checked = false; el.indeterminate = false; }
+        }
+    }
+ 
+    window.clearSelection = function(){
+        selectedIds.clear();
+        document.querySelectorAll('.lesson-row-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.lesson-row.selected').forEach(row => row.classList.remove('selected'));
+        updateBulkBar();
+    };
+ 
+    window.bulkDelete = function(){
+        const count = selectedIds.size;
+        if(!count) return;
+        showConfirm(
+            `Delete ${count} selected lesson${count !== 1 ? 's' : ''}? This cannot be undone.`,
+            async () => {
+                try{
+                    const ids = Array.from(selectedIds);
+                    for(const id of ids){
+                        await deleteDoc(doc(db, 'lessons', id));
+                    }
+                    selectedIds.clear();
+                    showAlert(`${count} lesson${count !== 1 ? 's' : ''} deleted successfully.`, 'success');
+                    await loadLessons();
+                } catch(e){
+                    showAlert('Error deleting: ' + e.message, 'error');
+                }
+            }
+        );
+    };
 
     function initListeners(){
         const fi=document.getElementById('lessonFiles');
