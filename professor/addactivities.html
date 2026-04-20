@@ -301,6 +301,25 @@
                     display: flex !important;
                 }
             }
+            /* Ensure desktop checkbox column is properly visible */
+#scheduleCheckboxTh {
+    width: 40px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#scheduleCheckboxTh input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0 auto;
+}
+
+/* Ensure action column is properly shown when not in delete mode */
+#scheduleActionTh {
+    display: table-cell;
+}
+
     </style>
 </head>
 <body>
@@ -1422,68 +1441,79 @@ window._selectedForDelete = new Set();
 window._scheduleCurrentPage = 1;
 window._schedulePageSize = 10;
 
-        window.toggleDeleteMode = function() {
+window.toggleDeleteMode = function() {
     window._deleteMode = true;
     window._selectedForDelete.clear();
     document.getElementById('toggleDeleteModeBtn').classList.add('hidden');
     document.getElementById('cancelDeleteModeBtn').classList.remove('hidden');
     document.getElementById('confirmDeleteSelectedBtn').classList.remove('hidden');
     document.getElementById('deleteSelectedCount').textContent = '0';
-    
-    // Show checkbox column in header - Desktop
+
+    // Show checkbox column in desktop table header
     const checkboxTh = document.getElementById('scheduleCheckboxTh');
-if (checkboxTh) checkboxTh.style.display = 'table-cell';
-    
-    // Hide Action column header
+    if (checkboxTh) {
+        checkboxTh.style.display = 'table-cell';
+        checkboxTh.style.width = '40px';
+        checkboxTh.style.textAlign = 'center';
+        checkboxTh.style.verticalAlign = 'middle';
+    }
+
+    // Hide action column (Edit/Manage buttons)
     const actionTh = document.getElementById('scheduleActionTh');
     if (actionTh) {
-        actionTh.classList.add('hidden');
         actionTh.style.display = 'none';
     }
-    
-    // Show mobile select all bar ONLY on mobile (CSS media query handles visibility)
+
+    // Show mobile select all bar
     const mobileBar = document.getElementById('mobileSelectAllBar');
     if (mobileBar) {
+        mobileBar.style.display = 'flex';
         mobileBar.classList.add('show-on-delete');
     }
-    
-    // Reset the master checkbox
+
     const masterCb = document.getElementById('selectAllScheduleCheckbox');
-    if (masterCb) masterCb.checked = false;
-    
+    if (masterCb) {
+        masterCb.checked = false;
+        masterCb.style.display = 'inline-block';
+    }
+
     renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
 };
-
 window.cancelDeleteMode = function() {
     window._deleteMode = false;
     window._selectedForDelete.clear();
+    
     document.getElementById('toggleDeleteModeBtn').classList.remove('hidden');
     document.getElementById('cancelDeleteModeBtn').classList.add('hidden');
     document.getElementById('confirmDeleteSelectedBtn').classList.add('hidden');
     document.getElementById('deleteSelectedCount').textContent = '0';
-    
-    // Hide checkbox column in header - Desktop
+
+    // Hide checkbox column in desktop table header
     const checkboxTh = document.getElementById('scheduleCheckboxTh');
-if (checkboxTh) checkboxTh.style.display = 'none';
-    
-    // Show Action column header
+    if (checkboxTh) {
+        checkboxTh.style.display = 'none';
+    }
+
+    // Show action column (Edit/Manage buttons)
     const actionTh = document.getElementById('scheduleActionTh');
     if (actionTh) {
-        actionTh.classList.remove('hidden');
         actionTh.style.display = 'table-cell';
     }
-    
-    document.getElementById('selectAllScheduleCheckbox').checked = false;
-    
+
+    const masterCb = document.getElementById('selectAllScheduleCheckbox');
+    if (masterCb) {
+        masterCb.checked = false;
+    }
+
     // Hide mobile select all bar
     const mobileBar = document.getElementById('mobileSelectAllBar');
     if (mobileBar) {
+        mobileBar.style.display = 'none';
         mobileBar.classList.remove('show-on-delete');
     }
-    
+
     renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
 };
-
 window.toggleScheduleCheckbox = function(testId, cb) {
     if (cb.checked) window._selectedForDelete.add(testId);
     else window._selectedForDelete.delete(testId);
@@ -1618,15 +1648,16 @@ window.confirmDeleteSelected = function() {
         () => {}
     );
 };
-
 function renderScheduleTable(tests, enabledTestsMap) {
     const tb = document.getElementById('scheduleTableBody');
     if (!tests.length) {
         if (window.assignedSections.length > 0) {
             const info = window.assignedSections.map(s => `${s.section} (${s.students} students)`).join(', ');
-            tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No Active Test Schedules</div><div class="empty-text">You have: <strong>${info}</strong><br><br>Click "Schedule New Test" to create a fitness test.</div></div></td></tr>`;
+            const colspan = window._deleteMode ? 9 : 8;
+            tb.innerHTML = `<tr><td colspan="${colspan}"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No Active Test Schedules</div><div class="empty-text">You have: <strong>${info}</strong><br><br>Click "Schedule New Test" to create a fitness test.</div></div></td></tr>`;
         } else {
-            tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">No Sections Assigned</div></div></td></tr>`;
+            const colspan = window._deleteMode ? 9 : 8;
+            tb.innerHTML = `<tr><td colspan="${colspan}"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">No Sections Assigned</div></div></td></tr>`;
         }
         renderSchedulePagination(1, 1, 0, 0, 0);
         return;
@@ -1646,7 +1677,8 @@ function renderScheduleTable(tests, enabledTestsMap) {
     }).sort((a, b) => (a.section || '').localeCompare(b.section || ''));
 
     if (!filtered.length) {
-        tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No Tests Match Filters</div></div></td></tr>`;
+        const colspan = window._deleteMode ? 9 : 8;
+        tb.innerHTML = `<tr><td colspan="${colspan}"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No Tests Match Filters</div></div></td></tr>`;
         renderSchedulePagination(1, 1, 0, 0, 0);
         return;
     }
@@ -1676,9 +1708,10 @@ function renderScheduleTable(tests, enabledTestsMap) {
         const normBadge = (test.customNorms?.thresholds || hasStudentNorms) ? `<br><small style="color:#7c3aed;font-weight:600;">🎛 Custom norms set</small>` : '';
         const isChecked = window._selectedForDelete?.has(test.id);
 
-        const checkboxCell = window._deleteMode
-    ? `<td data-label="" style="width:40px;text-align:center;vertical-align:middle;"><input type="checkbox" class="schedule-delete-cb" data-testid="${test.id}" ${isChecked ? 'checked' : ''} onchange="toggleScheduleCheckbox('${test.id}', this)" style="width:16px;height:16px;cursor:pointer;"></td>`
-    : '';
+        // CHECKBOX CELL - always rendered but visibility controlled by CSS
+        const checkboxCell = `<td class="delete-checkbox-cell" style="${window._deleteMode ? '' : 'display:none;'}width:40px;text-align:center;vertical-align:middle;">
+            <input type="checkbox" class="schedule-delete-cb" data-testid="${test.id}" ${isChecked ? 'checked' : ''} onchange="toggleScheduleCheckbox('${test.id}', this)" style="width:16px;height:16px;cursor:pointer;">
+        </td>`;
 
         const actionCell = window._deleteMode ? '' : `<td data-label="Action"><div class="action-buttons">
             <button class="btn-action btn-edit" onclick="editTest('${test.id}')"><i class="fas fa-pencil-alt"></i> Edit</button>
@@ -1698,13 +1731,12 @@ function renderScheduleTable(tests, enabledTestsMap) {
         </tr>`;
     }).join('');
 
-            if (window._deleteMode) {
+    if (window._deleteMode) {
         const allOnPage = [...document.querySelectorAll('.schedule-delete-cb')];
         const allChecked = allOnPage.length > 0 && allOnPage.every(c => c.checked);
         const masterCb = document.getElementById('selectAllScheduleCheckbox');
         if (masterCb) masterCb.checked = allChecked;
         
-        // Update mobile button text based on selection state
         const mobileBtn = document.getElementById('mobileSelectAllBtn');
         if (mobileBtn) {
             if (allChecked && allOnPage.length > 0) {
@@ -1720,7 +1752,6 @@ function renderScheduleTable(tests, enabledTestsMap) {
             }
         }
     } else {
-        // When not in delete mode, ensure mobile bar is hidden
         const mobileBar = document.getElementById('mobileSelectAllBar');
         if (mobileBar) {
             mobileBar.classList.remove('show-on-delete');
@@ -1728,7 +1759,6 @@ function renderScheduleTable(tests, enabledTestsMap) {
         }
     }
 
-    // Update mobile selected count
     const mobileCountSpan = document.getElementById('mobileSelectedCount');
     if (mobileCountSpan) {
         mobileCountSpan.textContent = `${window._selectedForDelete.size} selected`;
@@ -1736,7 +1766,6 @@ function renderScheduleTable(tests, enabledTestsMap) {
 
     renderSchedulePagination(cp, tp, tot, si, ei);
 }
-
 function renderSchedulePagination(cp, tp, tot, si, ei) {
     let el = document.getElementById('schedulePagination');
     if (!el) return;
