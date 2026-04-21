@@ -485,22 +485,22 @@
             </div>
 
             <!-- Filters Section -->
-            <div class="flex gap-2.5 flex-wrap mb-5 items-center">
-                <button onclick="refreshSectionRanking()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-transparent text-text-secondary border border-border rounded-xl text-[13px] font-medium cursor-pointer transition-all hover:border-blue hover:text-blue hover:bg-info-bg/40">
-                    <i class="fas fa-sync-alt"></i> Refresh Rankings
-                </button>
-                <button onclick="exportRankingReport()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#8b6914] to-accent text-white border-none rounded-xl text-[13px] font-semibold cursor-pointer transition-all hover:-translate-y-px hover:shadow-lg">
-                    <i class="fas fa-file-export"></i> Export CSV
-                </button>
-                <select id="collegeFilter" onchange="filterRankings()" class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans ml-auto">
-                    <option value="all">All Colleges</option>
-                </select>
-                <select id="assessmentTypeFilter" onchange="filterRankings()" class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans">
-                    <option value="all">All Tests</option>
-                    <option value="pre">Pre-Assessment Only</option>
-                    <option value="post">Post-Assessment Only</option>
-                    <option value="improvement">Improvement</option>
-                </select>
+            <!-- Filters Section -->
+<div class="flex gap-2.5 flex-wrap mb-5 items-center">
+    <button onclick="refreshSectionRanking()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-transparent text-text-secondary border border-border rounded-xl text-[13px] font-medium cursor-pointer transition-all hover:border-blue hover:text-blue hover:bg-info-bg/40">
+        <i class="fas fa-sync-alt"></i> Refresh Rankings
+    </button>
+    <button onclick="exportRankingReport()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#8b6914] to-accent text-white border-none rounded-xl text-[13px] font-semibold cursor-pointer transition-all hover:-translate-y-px hover:shadow-lg">
+        <i class="fas fa-file-export"></i> Export CSV
+    </button>
+    <select id="testTypeFilter" onchange="filterRankings()" class="px-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface cursor-pointer focus:outline-none focus:border-blue font-sans ml-auto">
+        <option value="all">All Tests</option>
+        <option value="pushup">Push-Up</option>
+        <option value="curlup">Curl-Up</option>
+        <option value="sitreach">Sit-and-Reach</option>
+        <option value="steptest">Step Test (3-Minute)</option>
+        <option value="skinfold">Skinfold</option>
+    </select>
                 <div class="relative flex items-center">
                     <i class="fas fa-search absolute left-3 text-text-muted text-[13px] pointer-events-none"></i>
                     <input type="text" id="searchRankings" placeholder="Search section..." onkeyup="filterRankings()" class="pl-9 pr-3.5 py-2 border border-border rounded-lg text-[13px] text-text-primary bg-surface w-[200px] focus:outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 focus:bg-white transition-all font-sans">
@@ -1983,10 +1983,18 @@ function _resolveNormCategory({ testName, result, testId, studentEmail, genderKe
             const n = s.name; if (!n) return;
             const prof = s.professorName || s.professor || s.assignedProfessor || 'Unassigned';
             secData[n] = {
-                pre: [], post: [], preScores: [], postScores: [], allScores: [],
-                bmiPreValues: [],   // ← collect raw BMI pre values
-                bmiPostValues: []   // ← collect raw BMI post values
-            };
+    pre: [], post: [], preScores: [], postScores: [], allScores: [],
+    bmiPreValues: [],
+    bmiPostValues: [],
+    scoresByTestType: {
+        pushup: [],
+        curlup: [],
+        sitreach: [],
+        steptest: [],
+        skinfold: []
+    }
+};
+
             secStudents[n] = new Set();
             secMeta[n] = {
             college: s.college || 'College of Human Kinetics',
@@ -2073,10 +2081,33 @@ Object.entries(perSectionStudentBest).forEach(([compositeKey, stuMap]) => {
         secData[sec].allScores.push(score);
         if (type === 'pre')  { secData[sec].pre.push(t);  secData[sec].preScores.push(score); }
         if (type === 'post') { secData[sec].post.push(t); secData[sec].postScores.push(score); }
+        
+        // ========== IDAGDAG MO ITO DITO ==========
+        // Determine test type
+        const tl = (t.testName || '').toLowerCase();
+        let testTypeKey = null;
+        if (tl.includes('push')) testTypeKey = 'pushup';
+        else if (tl.includes('curl')) testTypeKey = 'curlup';
+        else if (tl.includes('sit') && tl.includes('reach')) testTypeKey = 'sitreach';
+        else if (tl.includes('step') || tl.includes('3-minute')) testTypeKey = 'steptest';
+        else if (tl.includes('skinfold') || tl.includes('skin fold')) testTypeKey = 'skinfold';
+        
+        if (testTypeKey && secData[sec]) {
+            if (!secData[sec].scoresByTestType) {
+                secData[sec].scoresByTestType = {
+                    pushup: [], curlup: [], sitreach: [], steptest: [], skinfold: []
+                };
+            }
+            if (!secData[sec].scoresByTestType[testTypeKey]) {
+                secData[sec].scoresByTestType[testTypeKey] = [];
+            }
+            secData[sec].scoresByTestType[testTypeKey].push(score);
+        }
+        // ========== HANGGANG DITO ==========
+        
         const sk = t.studentId || t.studentEmail; if (sk) secStudents[sec].add(sk);
     });
 });
-
         sectionRankings = []; allColleges.clear();
 
         for (const [name, data] of Object.entries(secData)) {
@@ -2115,26 +2146,28 @@ sectionRankings.push({
     professorEmail: meta.professorEmail || '',
     professorId: meta.professorId || '',
     studentCount: enrolledCount,
-                preTestCount: data.pre.length,
-                postTestCount: data.post.length,
-                preTestAvg: parseFloat(preAvg.toFixed(2)),
-                postTestAvg: parseFloat(postAvg.toFixed(2)),
-                improvement: parseFloat((postAvg - preAvg).toFixed(2)),
-                avgScore: parseFloat(avgScore.toFixed(2)),
-                totalTests: data.allScores.length || 0,
-                hasData: (data.allScores.length || 0) > 0,
-                preScores: data.preScores,
-                postScores: data.postScores,
-                allScores: data.allScores,
-                // ─── BMI fields ───
-                bmiPreAvg:      bmiPreAvg  !== null ? parseFloat(bmiPreAvg.toFixed(2))  : null,
-                bmiPreCategory,
-                bmiPreCount:    data.bmiPreValues.length,
-                bmiPostAvg:     bmiPostAvg !== null ? parseFloat(bmiPostAvg.toFixed(2)) : null,
-                bmiPostCategory,
-                bmiPostCount:   data.bmiPostValues.length,
-                bmiImprovement
-            });
+    preTestCount: data.pre.length,
+    postTestCount: data.post.length,
+    preTestAvg: parseFloat(preAvg.toFixed(2)),
+    postTestAvg: parseFloat(postAvg.toFixed(2)),
+    improvement: parseFloat((postAvg - preAvg).toFixed(2)),
+    avgScore: parseFloat(avgScore.toFixed(2)),
+    totalTests: data.allScores.length || 0,
+    hasData: (data.allScores.length || 0) > 0,
+    preScores: data.preScores,
+    postScores: data.postScores,
+    allScores: data.allScores,
+    // ─── BMI fields ───
+    bmiPreAvg:      bmiPreAvg  !== null ? parseFloat(bmiPreAvg.toFixed(2))  : null,
+    bmiPreCategory,
+    bmiPreCount:    data.bmiPreValues.length,
+    bmiPostAvg:     bmiPostAvg !== null ? parseFloat(bmiPostAvg.toFixed(2)) : null,
+    bmiPostCategory,
+    bmiPostCount:   data.bmiPostValues.length,
+    bmiImprovement,
+    // ⭐ IMPORTANT: Add this for test type filtering
+    allScoresByTestType: data.scoresByTestType || { pushup: [], curlup: [], sitreach: [], steptest: [], skinfold: [] }
+});
         }
 
 const withData = sectionRankings.filter(s => s.hasData).sort((a, b) => {
@@ -2158,30 +2191,45 @@ const withData = sectionRankings.filter(s => s.hasData).sort((a, b) => {
     }
 
     window.filterRankings = function() {
-    const search=(document.getElementById('searchRankings')?.value||'').toLowerCase();
-    const type=document.getElementById('assessmentTypeFilter')?.value||'all';
-    const college=document.getElementById('collegeFilter')?.value||'all';
-    filteredRankings=sectionRankings.filter(s => {
-        const ms=s.name.toLowerCase().includes(search)||s.professor.toLowerCase().includes(search);
-        const mc=college==='all'||s.college===college;
-        let mt=true;
-        if(type==='pre') mt=s.preTestCount>0;
-        else if(type==='post') mt=s.postTestCount>0;
-        else if(type==='improvement') mt=s.improvement!==0;
-        return ms&&mc&&mt;
+    const testType = document.getElementById('testTypeFilter')?.value || 'all';
+    
+    filteredRankings = sectionRankings.filter(s => {
+        if (testType === 'all') return true;
+        
+        // Check if section has any test of this type
+        const hasTestType = s.allScoresByTestType && s.allScoresByTestType[testType] && s.allScoresByTestType[testType].length > 0;
+        return hasTestType;
     });
-    if(type==='pre') filteredRankings.sort((a,b)=>b.preTestAvg-a.preTestAvg);
-    else if(type==='post') filteredRankings.sort((a,b)=>b.postTestAvg-a.postTestAvg);
-    else if(type==='improvement') filteredRankings.sort((a,b)=>b.improvement-a.improvement);
-else filteredRankings.sort((a, b) => {
-    if (!a.hasData && !b.hasData) return a.name.localeCompare(b.name);
-    if (!a.hasData) return 1; if (!b.hasData) return -1;
-    if (b.totalTests !== a.totalTests) return b.totalTests - a.totalTests;
-    return b.avgScore - a.avgScore;
-});
-    window.sectionRankingCurrentPage = 1; // reset on filter
+    
+    // Sort by the selected test type's average score
+    if (testType !== 'all') {
+        filteredRankings.sort((a, b) => {
+            const aAvg = (a.allScoresByTestType && a.allScoresByTestType[testType]) 
+                ? a.allScoresByTestType[testType].reduce((sum, val) => sum + val, 0) / a.allScoresByTestType[testType].length 
+                : -1;
+            const bAvg = (b.allScoresByTestType && b.allScoresByTestType[testType]) 
+                ? b.allScoresByTestType[testType].reduce((sum, val) => sum + val, 0) / b.allScoresByTestType[testType].length 
+                : -1;
+            if (aAvg === -1 && bAvg === -1) return a.name.localeCompare(b.name);
+            if (aAvg === -1) return 1;
+            if (bAvg === -1) return -1;
+            return bAvg - aAvg;
+        });
+    } else {
+        filteredRankings.sort((a, b) => {
+            if (!a.hasData && !b.hasData) return a.name.localeCompare(b.name);
+            if (!a.hasData) return 1;
+            if (!b.hasData) return -1;
+            if (b.totalTests !== a.totalTests) return b.totalTests - a.totalTests;
+            return b.avgScore - a.avgScore;
+        });
+    }
+    
+    window.sectionRankingCurrentPage = 1;
     renderSectionRankingTable();
 };
+
+
 function renderSectionRankingTable() {
     const tbody = document.getElementById('sectionRankingTableBody'); if (!tbody) return;
     if (!filteredRankings.length) {
@@ -2374,72 +2422,398 @@ const top = sectionRankings
 
     const rank = sectionRankings.findIndex(r => r.name === sectionName) + 1;
     const rc = rank <= 3 ? `rank-${rank}` : 'rank-other';
-
+    
+    // Show loading state
     document.getElementById('sectionDetailsTitle').textContent = `Section: ${sectionName}`;
-
     document.getElementById('sectionDetailsContent').innerHTML = `
-        <div class="detail-grid">
-            <div class="detail-block">
-                <div class="detail-block-label">🏫 Section Name</div>
-                <div class="detail-block-val" style="font-size:18px; font-weight:700;">${s.name}</div>
-            </div>
-            <div class="detail-block">
-                <div class="detail-block-label">🎓 College</div>
-                <div class="detail-block-val">${s.college}</div>
-            </div>
-            <div class="detail-block">
-                <div class="detail-block-label">👨‍🏫 Professor</div>
-                <div class="detail-block-val">${s.professor || 'Unassigned'}</div>
-            </div>
-           <div class="detail-block">
-    <div class="detail-block-label">📧 Professor Email</div>
-    <div class="detail-block-val" style="font-size:12px; word-break:break-all;">
-        ${s.professorEmail ? s.professorEmail : (s.professor && s.professor !== 'Unassigned' ? generateProfessorEmail(s.professor) : 'Not assigned')}
-    </div>
+        <div style="text-align:center;padding:48px 24px;">
+            <div class="spinner" style="margin:0 auto 16px;"></div>
+            <div style="font-size:14px;color:#8a98ae;">Loading section details...</div>
+        </div>`;
+    document.getElementById('sectionDetailsModal').style.display = 'flex';
 
-            <div class="detail-block">
-                <div class="detail-block-label">👥 Total Students</div>
-                <div class="detail-block-val big">${s.studentCount}</div>
-            </div>
-            <div class="detail-block">
-                <div class="detail-block-label">📝 Total Test Results</div>
-                <div class="detail-block-val big">${s.totalTests || 0}</div>
-            </div>
-            <div class="detail-block">
-                <div class="detail-block-label">🏆 Overall Performance</div>
-                <div class="detail-block-val big">
-                    ${s.avgScore > 0
-                        ? `<span class="score-pill ${getScoreRating(s.avgScore).cls}" style="font-size:18px; padding:8px 20px;">${getScoreRating(s.avgScore).text}</span>`
-                        : '—'}
+    // Fetch additional data for this section
+    let studentsList = [];
+    let activeStudents = [];
+    let testBreakdown = {
+        pushup: { count: 0, avg: 0, total: 0, excellent: 0, good: 0, average: 0, poor: 0 },
+        curlup: { count: 0, avg: 0, total: 0, excellent: 0, good: 0, average: 0, poor: 0 },
+        sitreach: { count: 0, avg: 0, total: 0, excellent: 0, good: 0, average: 0, poor: 0 },
+        steptest: { count: 0, avg: 0, total: 0, excellent: 0, good: 0, average: 0, poor: 0 },
+        skinfold: { count: 0, avg: 0, total: 0, excellent: 0, good: 0, average: 0, poor: 0 }
+    };
+    
+    try {
+        // Get students in this section
+        const usersSnap = await db.collection('users')
+            .where('role', '==', 'student')
+            .where('section', '==', sectionName)
+            .get();
+        studentsList = usersSnap.docs.map(d => ({
+            name: d.data().name || 'Unknown',
+            email: d.data().email || '',
+            umakId: d.data().umakId || ''
+        }));
+        
+        // Calculate test breakdown from testResults
+        const sectionTests = testResults.filter(t => t.section === sectionName && t.score > 0);
+        
+        sectionTests.forEach(t => {
+            const tl = (t.testName || '').toLowerCase();
+            let testKey = null;
+            if (tl.includes('push')) testKey = 'pushup';
+            else if (tl.includes('curl')) testKey = 'curlup';
+            else if (tl.includes('sit') && tl.includes('reach')) testKey = 'sitreach';
+            else if (tl.includes('step') || tl.includes('3-minute')) testKey = 'steptest';
+            else if (tl.includes('skinfold') || tl.includes('skin fold')) testKey = 'skinfold';
+            
+            if (testKey && testBreakdown[testKey]) {
+                testBreakdown[testKey].count++;
+                testBreakdown[testKey].total += t.score;
+                const cat = (t.category || '').toLowerCase();
+                if (cat === 'excellent') testBreakdown[testKey].excellent++;
+                else if (cat === 'good') testBreakdown[testKey].good++;
+                else if (cat === 'average') testBreakdown[testKey].average++;
+                else if (cat === 'poor' || cat === 'below average') testBreakdown[testKey].poor++;
+            }
+        });
+        
+        // Calculate averages
+        Object.keys(testBreakdown).forEach(key => {
+            if (testBreakdown[key].count > 0) {
+                testBreakdown[key].avg = (testBreakdown[key].total / testBreakdown[key].count).toFixed(2);
+            }
+        });
+        
+        // Fetch most active students (those who took the most tests)
+        const studentTestCount = new Map();
+        const studentScores = new Map();
+        const studentNames = new Map();
+        
+        sectionTests.forEach(t => {
+            const studentKey = t.studentId || t.studentEmail || t.umakId || t.email;
+            if (!studentKey) return;
+            
+            let studentName = t.studentName || '';
+            if (!studentName) {
+                const found = studentsList.find(s => 
+                    s.email === t.studentEmail || 
+                    s.umakId === t.umakId ||
+                    s.name?.toLowerCase().includes((t.studentName || '').toLowerCase())
+                );
+                if (found) studentName = found.name;
+                else studentName = t.studentEmail?.split('@')[0] || 'Unknown';
+            }
+            
+            const count = studentTestCount.get(studentKey) || 0;
+            studentTestCount.set(studentKey, count + 1);
+            
+            const scores = studentScores.get(studentKey) || [];
+            scores.push(t.score);
+            studentScores.set(studentKey, scores);
+            studentNames.set(studentKey, studentName);
+        });
+        
+        // Build active students array (sorted by most tests taken)
+        activeStudents = Array.from(studentTestCount.entries())
+            .map(([key, testCount]) => {
+                const scores = studentScores.get(key) || [];
+                const avgScore = scores.length ? scores.reduce((a,b) => a+b, 0) / scores.length : 0;
+                const avgRating = getScoreRating(avgScore);
+                return {
+                    name: studentNames.get(key) || 'Unknown',
+                    testCount: testCount,
+                    avgScore: avgScore,
+                    rating: avgRating ? avgRating.text : '—',
+                    ratingClass: avgRating ? avgRating.cls : 'score-fair'
+                };
+            })
+            .sort((a, b) => b.testCount - a.testCount)
+           // .slice(0, 10);
+            
+    } catch(e) { console.error('Error fetching section details:', e); }
+
+
+
+    // Build test breakdown HTML
+    const testKeys = [
+    { key: 'pushup', label: 'Push-Up', color: '#3b82f6', bg: '#eff6ff' },
+    { key: 'curlup', label: 'Curl-Up', color: '#10b981', bg: '#ecfdf5' },
+    { key: 'sitreach', label: 'Sit-and-Reach', color: '#f59e0b', bg: '#fffbeb' },
+    { key: 'steptest', label: 'Step Test (3-Minute)', color: '#ef4444', bg: '#fef2f2' },
+    { key: 'skinfold', label: 'Skinfold', color: '#8b5cf6', bg: '#f5f3ff' }
+];
+    
+    let testBreakdownHtml = '';
+    for (const tk of testKeys) {
+        const data = testBreakdown[tk.key];
+        const totalTests = data.count;
+        const avgScore = data.avg;
+        const excellentPct = totalTests > 0 ? ((data.excellent / totalTests) * 100).toFixed(0) : 0;
+        const goodPct = totalTests > 0 ? ((data.good / totalTests) * 100).toFixed(0) : 0;
+        const avgPct = totalTests > 0 ? ((data.average / totalTests) * 100).toFixed(0) : 0;
+        const poorPct = totalTests > 0 ? ((data.poor / totalTests) * 100).toFixed(0) : 0;
+        
+        testBreakdownHtml += `
+            <div style="background:${tk.bg};border-radius:14px;padding:16px;margin-bottom:12px;border-left:4px solid ${tk.color};">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+                    <div>
+                        <span style="font-weight:700;color:#1e293b;">${tk.label}</span>
+                        ${totalTests > 0 ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${totalTests} test(s)</span>` : ''}
+                    </div>
+                    ${totalTests > 0 ? `<span style="font-family:'DM Mono',monospace;font-weight:700;color:${tk.color};">Avg: ${avgScore}</span>` : '<span style="color:#94a3b8;">No data yet</span>'}
                 </div>
-                ${s.improvement !== 0 && s.hasData ? `
-                <div style="margin-top:8px; font-size:12px;" class="${s.improvement > 0 ? 'trend-up' : (s.improvement < 0 ? 'trend-down' : 'trend-neutral')}">
-                    <i class="fas fa-${s.improvement > 0 ? 'arrow-up' : (s.improvement < 0 ? 'arrow-down' : 'minus')}"></i>
-                    ${s.improvement > 0 ? '+' : ''}${s.improvement.toFixed(1)} pts from pre-test
+                ${totalTests > 0 ? `
+<div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:6px;background:#d4f0e6;padding:4px 12px;border-radius:20px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:#0e8a5f;"></span>
+        <span style="font-size:11px;font-weight:600;color:#0e8a5f;">Excellent:</span>
+        <span style="font-size:13px;font-weight:700;color:#0e8a5f;">${data.excellent}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#d6eaf8;padding:4px 12px;border-radius:20px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:#1a6fa8;"></span>
+        <span style="font-size:11px;font-weight:600;color:#1a6fa8;">Good:</span>
+        <span style="font-size:13px;font-weight:700;color:#1a6fa8;">${data.good}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#fef3d4;padding:4px 12px;border-radius:20px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:#b07e16;"></span>
+        <span style="font-size:11px;font-weight:600;color:#b07e16;">Average:</span>
+        <span style="font-size:13px;font-weight:700;color:#b07e16;">${data.average}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#fce8e6;padding:4px 12px;border-radius:20px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:#c0392b;"></span>
+        <span style="font-size:11px;font-weight:600;color:#c0392b;">Poor:</span>
+        <span style="font-size:13px;font-weight:700;color:#c0392b;">${data.poor}</span>
+    </div>
+</div>
+` : '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">No test submissions yet</div>'}
+            </div>
+        `;
+    }
+
+    // ─── ENROLLED STUDENTS PAGINATION ───
+    const studentsPerPage = 8;
+    let enrolledCurrentPage = 1;
+    const totalEnrolledPages = Math.ceil(studentsList.length / studentsPerPage);
+    
+    function renderEnrolledStudentsTable(page) {
+        const start = (page - 1) * studentsPerPage;
+        const pageStudents = studentsList.slice(start, start + studentsPerPage);
+        
+        let tableHtml = `
+            <div style="background:linear-gradient(135deg,#ffffff 0%,#f8fafc 100%);border-radius:16px;padding:16px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    ${pageStudents.map((s, idx) => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2e8f0;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;">${start + idx + 1}</div>
+                                <span style="font-weight:500;color:#1e293b;">${escapeHtml(s.name) || 'Unknown'}</span>
+                            </div>
+                            <span style="font-size:12px;color:#64748b;font-family:'DM Mono',monospace;background:#f1f5f9;padding:4px 12px;border-radius:20px;">${s.umakId || s.email?.split('@')[0] || 'N/A'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                ${studentsList.length > studentsPerPage ? `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;">
+                    <button onclick="changeEnrolledPage(-1)" style="padding:8px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:white;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;${page === 1 ? 'opacity:0.5;cursor:not-allowed;' : ''}" ${page === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <div style="display:flex;gap:6px;">
+                        ${(() => {
+                            let pages = [];
+                            for (let i = 1; i <= totalEnrolledPages; i++) {
+                                if (i === 1 || i === totalEnrolledPages || (i >= page - 1 && i <= page + 1)) {
+                                    pages.push(`<button onclick="goToEnrolledPage(${i})" style="width:34px;height:34px;border-radius:8px;border:none;background:${i === page ? '#667eea' : '#e2e8f0'};color:${i === page ? 'white' : '#64748b'};cursor:pointer;font-weight:${i === page ? '700' : '500'};">${i}</button>`);
+                                } else if (pages[pages.length - 1] !== '...') {
+                                    pages.push('<span style="color:#94a3b8;">...</span>');
+                                }
+                            }
+                            return pages.join('');
+                        })()}
+                    </div>
+                    <button onclick="changeEnrolledPage(1)" style="padding:8px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:white;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;${page === totalEnrolledPages ? 'opacity:0.5;cursor:not-allowed;' : ''}" ${page === totalEnrolledPages ? 'disabled' : ''}>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
                 ` : ''}
             </div>
-            <div class="detail-block">
-                <div class="detail-block-label">🎖️ Overall Rank</div>
-                <div class="detail-block-val">
-                    <div class="rank-num ${rc}" style="width:50px; height:50px; font-size:22px; margin:0 auto;">
-                        ${rank}
+        `;
+        
+        // Store pagination functions globally
+        window.changeEnrolledPage = function(delta) {
+            let newPage = enrolledCurrentPage + delta;
+            if (delta === 1) newPage = enrolledCurrentPage + 1;
+            if (newPage < 1 || newPage > totalEnrolledPages) return;
+            enrolledCurrentPage = newPage;
+            
+            const enrolledContainer = document.getElementById('enrolledStudentsContainer');
+            if (enrolledContainer) {
+                enrolledContainer.innerHTML = renderEnrolledStudentsTable(enrolledCurrentPage);
+            }
+        };
+        
+        window.goToEnrolledPage = function(page) {
+            if (page < 1 || page > totalEnrolledPages) return;
+            enrolledCurrentPage = page;
+            const enrolledContainer = document.getElementById('enrolledStudentsContainer');
+            if (enrolledContainer) {
+                enrolledContainer.innerHTML = renderEnrolledStudentsTable(enrolledCurrentPage);
+            }
+        };
+        
+        return tableHtml;
+    }
+
+    // Build most active students HTML (professional colorful design)
+    const activeStudentsHtml = activeStudents.length > 0 ? `
+        <div style="background:linear-gradient(135deg,#1e1b4b 0%,#0f172a 100%);border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+            <div style="padding:16px 20px;background:linear-gradient(90deg,#4f46e5,#7c3aed,#ec4899);">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-trophy" style="color:#fbbf24;font-size:20px;"></i>
                     </div>
-                    <div style="font-size:11px; color:#8a98ae; margin-top:6px;">out of ${sectionRankings.length} sections</div>
+                    <div>
+<span style="font-weight:800;color:white;font-size:16px;">Most Active Students</span>                        <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:8px;">top performers by test attempts</span>
+                    </div>
+                </div>
+            </div>
+            <div style="overflow-x:auto;padding:4px;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#1e293b;">
+                            <th style="text-align:left;padding:14px 16px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Rank</th>
+                            <th style="text-align:left;padding:14px 16px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Student</th>
+                            <th style="text-align:center;padding:14px 16px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Tests</th>
+                            <th style="text-align:center;padding:14px 16px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Performance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${activeStudents.map((stu, idx) => {
+                            const rank = idx + 1;
+                            let rankHtml = '';
+                            if (rank === 1) {
+                                rankHtml = '<div style="background:linear-gradient(135deg,#fbbf24,#f59e0b);width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(251,191,36,0.4);"><span style="font-size:24px;">👑</span></div>';
+                            } else if (rank === 2) {
+                                rankHtml = '<div style="background:linear-gradient(135deg,#94a3b8,#64748b);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;">🥈</span></div>';
+                            } else if (rank === 3) {
+                                rankHtml = '<div style="background:linear-gradient(135deg,#fcd34d,#b45309);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;">🥉</span></div>';
+                            } else {
+                                rankHtml = `<div style="background:#334155;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-weight:700;font-size:14px;">${rank}</div>`;
+                            }
+                            return `
+                                <tr style="border-bottom:1px solid #334155;${rank <= 3 ? 'background:rgba(79,70,229,0.08);' : ''}">
+                                    <td style="padding:10px 16px;">${rankHtml}</td>
+                                    <td style="padding:10px 16px;"><span style="font-weight:600;color:#f1f5f9;">${escapeHtml(stu.name)}</span></td>
+                                    <td style="padding:10px 16px;text-align:center;">
+                                        <div style="display:inline-flex;align-items:center;gap:8px;background:#334155;padding:5px 14px;border-radius:30px;">
+                                            <i class="fas fa-clipboard-list" style="font-size:11px;color:#60a5fa;"></i>
+                                            <span style="font-weight:700;color:#f1f5f9;">${stu.testCount}</span>
+                                            <span style="font-size:10px;color:#94a3b8;">test${stu.testCount !== 1 ? 's' : ''}</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding:10px 16px;text-align:center;">
+                                        <span class="score-pill ${stu.ratingClass}" style="font-size:11px;padding:5px 14px;">${stu.rating}</span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    ` : '<div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:16px;padding:40px;text-align:center;color:#94a3b8;border:1px dashed #cbd5e1;"><i class="fas fa-chart-line" style="font-size:32px;margin-bottom:12px;display:block;"></i>No test submissions yet from students</div>';
+
+    // Build the complete modal content
+    const overallRating = s.avgScore > 0 ? getScoreRating(s.avgScore) : null;
+    const bmiStatus = s.bmiPreAvg ? getBMICategory(s.bmiPreAvg) : null;
+    const bmiChange = s.bmiImprovement ? (s.bmiImprovement > 0 ? `+${s.bmiImprovement.toFixed(1)}` : s.bmiImprovement.toFixed(1)) : null;
+    
+    document.getElementById('sectionDetailsContent').innerHTML = `
+        <div style="margin-bottom:24px;max-height:80vh;overflow-y:auto;padding-right:8px;">
+            <!-- Header Stats - Colorful Professional -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+                <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:20px;padding:20px;color:white;box-shadow:0 8px 20px rgba(102,126,234,0.25);">
+                    <div style="font-size:12px;opacity:0.9;letter-spacing:1px;">OVERALL RANK</div>
+                    <div style="font-size:42px;font-weight:800;font-family:'DM Mono',monospace;margin:8px 0 4px;">#${rank}</div>
+                    <div style="font-size:12px;opacity:0.8;">out of ${sectionRankings.length} sections</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);border-radius:20px;padding:20px;color:white;box-shadow:0 8px 20px rgba(17,153,142,0.25);">
+                    <div style="font-size:12px;opacity:0.9;letter-spacing:1px;">OVERALL PERFORMANCE</div>
+                    <div style="font-size:32px;font-weight:800;margin:8px 0 4px;">${overallRating ? overallRating.text : '—'}</div>
+                    <div style="font-size:12px;opacity:0.8;">${s.totalTests || 0} total tests taken</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);border-radius:20px;padding:20px;color:white;box-shadow:0 8px 20px rgba(240,147,251,0.25);">
+                    <div style="font-size:12px;opacity:0.9;letter-spacing:1px;">BMI HEALTH</div>
+                    <div style="font-size:32px;font-weight:800;margin:8px 0 4px;">${s.bmiPreAvg ? s.bmiPreAvg.toFixed(1) : '—'}</div>
+                    <div style="font-size:12px;opacity:0.8;">${bmiStatus ? getBMICategoryDisplay(bmiStatus) : 'No data'} ${bmiChange ? `(${bmiChange})` : ''}</div>
+                </div>
+            </div>
+            
+            <!-- Section Info Grid -->
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;">
+                <div style="background:linear-gradient(135deg,#f8fafc,#ffffff);border-radius:14px;padding:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">🏫 Section Name</div>
+                    <div style="font-size:18px;font-weight:700;color:#0f172a;margin-top:4px;">${escapeHtml(s.name)}</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#f8fafc,#ffffff);border-radius:14px;padding:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">🎓 College</div>
+                    <div style="font-size:15px;font-weight:500;color:#1e293b;margin-top:4px;">${escapeHtml(s.college)}</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#f8fafc,#ffffff);border-radius:14px;padding:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">👨‍🏫 Professor</div>
+                    <div style="font-size:15px;font-weight:500;color:#1e293b;margin-top:4px;">${escapeHtml(s.professor || 'Unassigned')}</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#f8fafc,#ffffff);border-radius:14px;padding:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">📧 Professor Email</div>
+                    <div style="font-size:12px;word-break:break-all;color:#1e293b;margin-top:4px;">${s.professorEmail || (s.professor && s.professor !== 'Unassigned' ? generateProfessorEmail(s.professor) : 'Not assigned')}</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#f8fafc,#ffffff);border-radius:14px;padding:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">👥 Total Students</div>
+                    <div style="font-size:28px;font-weight:800;color:#0f172a;margin-top:4px;">${s.studentCount}</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#f8fafc,#ffffff);border-radius:14px;padding:16px;border:1px solid #e2e8f0;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">📝 Total Test Results</div>
+                    <div style="font-size:28px;font-weight:800;color:#0f172a;margin-top:4px;">${s.totalTests || 0}</div>
+                </div>
+            </div>
+            
+           
+            
+            <!-- Test Breakdown -->
+            <div style="margin-bottom:24px;">
+                <div style="font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-flask" style="color:white;font-size:16px;"></i>
+                    </div>
+                    <span style="font-size:15px;color:#1e293b;">Fitness Test Breakdown</span>
+                </div>
+                ${testBreakdownHtml}
+            </div>
+            
+            <!-- Most Active Students -->
+            <div style="margin-bottom:24px;">
+                ${activeStudentsHtml}
+            </div>
+            
+            <!-- Enrolled Students with Pagination -->
+            <div>
+                <div style="font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-users" style="color:white;font-size:16px;"></i>
+                    </div>
+                    <span style="font-size:15px;color:#1e293b;">Enrolled Students</span>
+                    <span style="background:#e2e8f0;padding:2px 10px;border-radius:30px;font-size:12px;color:#475569;">${studentsList.length} total</span>
+                </div>
+                <div id="enrolledStudentsContainer">
+                    ${renderEnrolledStudentsTable(1)}
                 </div>
             </div>
         </div>
-
-        ${!s.hasData ? `
-        <div class="info-note" style="margin-top:20px;">
-            <i class="fas fa-info-circle"></i>
-            <span>This section has no assessment data yet. Scores will appear once students complete fitness tests.</span>
-        </div>
-        ` : ''}
     `;
+};
 
     document.getElementById('sectionDetailsModal').style.display = 'flex';
-};
+
     
     window.closeSectionDetailsModal = function() { document.getElementById('sectionDetailsModal').style.display='none'; };
 async function loadStudentRankings() {
@@ -2637,25 +3011,17 @@ async function loadStudentRankings() {
                 return db - da;
             });
             
-   // Deduplicate by testId — keep highest-ranked attempt (mirrors modal + studentgrades.html)
-// Deduplicate by Canonical Test Type — keep highest-ranked attempt
-const NORM_RANK_MAP = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+   const NORM_RANK_MAP = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
 const uniqueTestMap = new Map();
 studentTests.forEach(t => {
-    // Generate canonical group key to merge multiple attempts of the same exam
-    const tl = (t.testName || '').toLowerCase();
-    let groupKey = tl.replace(/[^a-z]/g, '');
-    if (tl.includes('push')) groupKey = 'pushup';
-    else if (tl.includes('curl')) groupKey = 'curlup';
-    else if (tl.includes('sit') && tl.includes('reach')) groupKey = 'sitreach';
-    else if (tl.includes('step') || tl.includes('3-minute')) groupKey = 'steptest';
-    else if (tl.includes('skinfold') || tl.includes('skin fold')) groupKey = 'skinfold';
-    if (!groupKey) groupKey = t.testName || 'unknown';
+    // Use testId as the primary key so two different push-up assignments stay separate.
+    // Fall back to testName only when testId is absent (legacy/unscheduled results).
+    const groupKey = t.testId || t.scheduledTestId || t.testName || 'unknown';
 
     const currentRank = NORM_RANK_MAP[t.category] || (t.score || 0);
     const existing = uniqueTestMap.get(groupKey);
     const existingRank = existing ? (NORM_RANK_MAP[existing.category] || (existing.score || 0)) : -1;
-if (!existing || currentRank > existingRank) {
+    if (!existing || currentRank > existingRank) {
         uniqueTestMap.set(groupKey, {
             name: t.testName,
             testKey: t.testNameKey,
@@ -3704,18 +4070,66 @@ window.goToPostAssessmentPage = function(page) {
     window.refreshPreAssessments = function() { loadPreAssessments(); };
     window.refreshPostAssessments = function() { loadPostAssessments(); };
 
-    window.viewBMIDetails = function(id,type) {
-        const list=type==='pre'?preAssessments:postAssessments;
-        const a=list.find(r=>r.id===id); if(!a) return;
-        const bmi=parseFloat(a.bmi)||0; const cat=resolveBMICat(a.category,bmi); const date=parseBMIDate(a);
-        const name=a.studentName||a.name||a.displayName||'Unknown'; const section=a.section||a.assignedSection||'N/A';
-        const umakId=a.umakId||a.studentId||''; const email=a.email||'';
-        let html=`<div class="detail-grid"><div class="detail-block"><div class="detail-block-label">Student Name</div><div class="detail-block-val">${name}</div></div><div class="detail-block"><div class="detail-block-label">UMAK ID</div><div class="detail-block-val" style="font-family:'DM Mono',monospace;font-size:13px;">${umakId||'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Section</div><div class="detail-block-val">${section}</div></div><div class="detail-block"><div class="detail-block-label">Email</div><div class="detail-block-val" style="font-size:13px;word-break:break-all;">${email||'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Assessment Date</div><div class="detail-block-val">${date}</div></div><div class="detail-block"><div class="detail-block-label">Recorded By</div><div class="detail-block-val" style="text-transform:capitalize;">${a.recordedBy||'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Height (cm)</div><div class="detail-block-val">${a.height||'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Weight (kg)</div><div class="detail-block-val">${a.weight||'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">BMI</div><div class="detail-block-val big">${bmi>0?bmi.toFixed(2):'N/A'}</div></div><div class="detail-block"><div class="detail-block-label">Category</div><div class="detail-block-val"><span class="bmi-pill ${getBMICategoryClass(cat)}">${getBMICategoryDisplay(cat)}</span></div></div><div class="detail-block"><div class="detail-block-label">Test Type</div><div class="detail-block-val" style="text-transform:capitalize;">${a.testType||type||'N/A'}</div></div>`;
-        if(type==='post'&&typeof a._bmiChange==='number') { const ch=a._bmiChange; const style=ch<0?'color:#0e8a5f':ch>0?'color:#c0392b':'color:#8a98ae'; html+=`<div class="detail-block"><div class="detail-block-label">BMI Change vs Pre</div><div class="detail-block-val" style="${style};font-weight:700;">${ch>0?'+':''}${ch.toFixed(2)}</div></div>`; }
-        html+='</div>';
-        document.getElementById('assessmentDetailContent').innerHTML=html;
-        document.getElementById('assessmentDetailModal').style.display='flex';
-    };
+   window.viewBMIDetails = function(id, type) {
+    const list = type === 'pre' ? preAssessments : postAssessments;
+    const a = list.find(r => r.id === id);
+    if (!a) return;
+
+    // ─── FIX: Get proper student name from multiple sources ───
+    let studentName = 'Unknown Student';
+    if (a._fullName) {
+        studentName = a._fullName;
+    } else if (a.studentName) {
+        studentName = a.studentName;
+    } else if (a.name) {
+        studentName = a.name;
+    } else if (a.displayName) {
+        studentName = a.displayName;
+    } else if (a.email) {
+        studentName = a.email.split('@')[0];
+    }
+
+    const bmi = parseFloat(a.bmi) || 0;
+    const cat = resolveBMICat(a.category, bmi);
+    const date = parseBMIDate(a);
+    const section = a.section || a.assignedSection || 'N/A';
+    const umakId = a.umakId || a.studentId || '';
+    const email = a.email || '';
+
+    let html = `<div class="detail-grid">
+        <div class="detail-block"><div class="detail-block-label">Student Name</div><div class="detail-block-val">${escapeHtml(studentName)}</div></div>
+        <div class="detail-block"><div class="detail-block-label">UMAK ID</div><div class="detail-block-val" style="font-family:'DM Mono',monospace;font-size:13px;">${umakId || 'N/A'}</div></div>
+        <div class="detail-block"><div class="detail-block-label">Section</div><div class="detail-block-val">${escapeHtml(section)}</div></div>
+        <div class="detail-block"><div class="detail-block-label">Email</div><div class="detail-block-val" style="font-size:13px;word-break:break-all;">${email || 'N/A'}</div></div>
+        <div class="detail-block"><div class="detail-block-label">Assessment Date</div><div class="detail-block-val">${date}</div></div>
+        <div class="detail-block"><div class="detail-block-label">Height (cm)</div><div class="detail-block-val">${a.height || 'N/A'}</div></div>
+        <div class="detail-block"><div class="detail-block-label">Weight (kg)</div><div class="detail-block-val">${a.weight || 'N/A'}</div></div>
+        <div class="detail-block"><div class="detail-block-label">BMI</div><div class="detail-block-val big">${bmi > 0 ? bmi.toFixed(2) : 'N/A'}</div></div>
+        <div class="detail-block"><div class="detail-block-label">Category</div><div class="detail-block-val"><span class="bmi-pill ${getBMICategoryClass(cat)}">${getBMICategoryDisplay(cat)}</span></div></div>
+        <div class="detail-block"><div class="detail-block-label">Test Type</div><div class="detail-block-val" style="text-transform:capitalize;">${a.testType || type || 'N/A'}</div></div>`;
+
+    if (type === 'post' && typeof a._bmiChange === 'number') {
+        const ch = a._bmiChange;
+        const style = ch < 0 ? 'color:#0e8a5f' : ch > 0 ? 'color:#c0392b' : 'color:#8a98ae';
+        html += `<div class="detail-block"><div class="detail-block-label">BMI Change vs Pre</div><div class="detail-block-val" style="${style};font-weight:700;">${ch > 0 ? '+' : ''}${ch.toFixed(2)}</div></div>`;
+    }
+
+    html += '</div>';
+    document.getElementById('assessmentDetailContent').innerHTML = html;
+    document.getElementById('assessmentDetailModal').style.display = 'flex';
+};
+
+// Helper function to escape HTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
     window.viewAssessmentDetails=window.viewBMIDetails;
     window.closeAssessmentDetailModal = function() { document.getElementById('assessmentDetailModal').style.display='none'; };
 
