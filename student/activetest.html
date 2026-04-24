@@ -914,86 +914,102 @@ previewEl.play().catch(() => {});
 
         // ========== NORM LOOKUP WITH PRIORITY + CACHE (mirrored from dashboard) ==========
 
-        async function getNormCategoryWithPriority(testName, result, testId = null) {
-            if (!studentData || !testName) return null;
-            const testKey = resolveTestKey(testName);
-            if (!testKey) return null;
-            const gender = _genderKey();
-            const ageGroup = _ageGroup();
-            const value = extractNumericResult(result);
-            const cacheKey = `${studentData?.email}|${testKey}|${gender}|${ageGroup}|${testId || 'none'}`;
-            if (normCache.has(cacheKey)) return normCache.get(cacheKey);
+async function getNormCategoryWithPriority(testName, result, testId = null) {
+    const nCheck = (testName || '').toLowerCase();
 
-            function applyThresholds(nd, value) {
-                const lowerIsBetter = nd.lowerIsBetter ?? false;
-                const order = ['Excellent', 'Good', 'Average', 'Below Average'];
-                for (const cat of order) {
-                    const threshold = nd.thresholds[cat];
-                    if (threshold == null) continue;
-                    if (lowerIsBetter && value <= threshold) return cat;
-                    if (!lowerIsBetter && value >= threshold) return cat;
-                }
-                return 'Poor';
-            }
+    // PE 2 jump rope: always target-based, no norms needed
+    if (nCheck.includes('jump rope') || nCheck.includes('jumprope') || 
+        nCheck.includes('jump-rope') || nCheck.includes('skipping')) {
+        const target = currentTest?.targetRepetitions || currentTest?.testTarget || 0;
+        if (target <= 0) return 'Average';
+        const val = parseFloat(result) || 0;
+        const pct = (val / target) * 100;
+        if (pct >= 100) return 'Excellent';
+        if (pct >= 80)  return 'Good';
+        if (pct >= 60)  return 'Average';
+        if (pct >= 40)  return 'Below Average';
+        return 'Poor';
+    }
 
-            // 1. Student-specific norms
-            try {
-                const snap = await getDoc(doc(db, 'studentNorms', studentData.email, 'tests', testKey));
-                if (snap.exists()) {
-                    const cat = applyThresholds(snap.data(), value);
-                    normCache.set(cacheKey, cat);
-                    return cat;
-                }
-            } catch(_) {}
+    const testKey  = resolveTestKey(testName);
+    const gender   = _genderKey();
+    const ageGroup = _ageGroup();
+    const value    = parseFloat(extractNumericResult(result)) || 0;
+    const cacheKey = `${studentData?.email}|${testKey}|${gender}|${ageGroup}|${testId || 'none'}`;
 
-            // 2. Test-level norms (scheduledTestNorms subcollection)
-            if (testId) {
-                try {
-                    const snap = await getDoc(doc(db, 'scheduledTestNorms', testId, 'tests', testKey));
-                    if (snap.exists()) {
-                        const cat = applyThresholds(snap.data(), value);
-                        normCache.set(cacheKey, cat);
-                        return cat;
-                    }
-                } catch(_) {}
-            }
+    if (normCache.has(cacheKey)) return normCache.get(cacheKey);
 
-            // 3. Test-level inline customNorms
-            if (testId) {
-                try {
-                    const snap = await getDoc(doc(db, 'scheduledTests', testId));
-                    if (snap.exists() && snap.data().customNorms?.thresholds) {
-                        const cat = applyThresholds(snap.data().customNorms, value);
-                        normCache.set(cacheKey, cat);
-                        return cat;
-                    }
-                } catch(_) {}
-            }
+    if (!testKey) return null;
 
-            // 4. Default database norms
-            try {
-                const snap = await getDoc(doc(db, 'fitnessNorms', `${testKey}_${gender}_${ageGroup}`));
-                if (snap.exists()) {
-                    const cat = applyThresholds(snap.data(), value);
-                    normCache.set(cacheKey, cat);
-                    return cat;
-                }
-            } catch(_) {}
-
-            // 5. Fallback normLookup.js
-            try {
-                const fb = await getNormCategory(db, {
-                    testName, result,
-                    studentEmail: studentData?.email || '',
-                    gender: studentData?.gender || 'male',
-                    age: _studentAge()
-                });
-                if (fb) { normCache.set(cacheKey, fb.category); return fb.category; }
-            } catch(_) {}
-
-            return null;
+    function applyThresholds(nd, value) {
+        const lowerIsBetter = nd.lowerIsBetter ?? false;
+        const order = ['Excellent', 'Good', 'Average', 'Below Average'];
+        for (const cat of order) {
+            const threshold = nd.thresholds[cat];
+            if (threshold == null) continue;
+            if (lowerIsBetter && value <= threshold) return cat;
+            if (!lowerIsBetter && value >= threshold) return cat;
         }
+        return 'Poor';
+    }
 
+    // 1. Student-specific norms
+    try {
+        const snap = await getDoc(doc(db, 'studentNorms', studentData.email, 'tests', testKey));
+        if (snap.exists()) {
+            const cat = applyThresholds(snap.data(), value);
+            normCache.set(cacheKey, cat);
+            return cat;
+        }
+    } catch(_) {}
+
+    // 2. Test-level norms (scheduledTestNorms subcollection)
+    if (testId) {
+        try {
+            const snap = await getDoc(doc(db, 'scheduledTestNorms', testId, 'tests', testKey));
+            if (snap.exists()) {
+                const cat = applyThresholds(snap.data(), value);
+                normCache.set(cacheKey, cat);
+                return cat;
+            }
+        } catch(_) {}
+    }
+
+    // 3. Test-level inline customNorms
+    if (testId) {
+        try {
+            const snap = await getDoc(doc(db, 'scheduledTests', testId));
+            if (snap.exists() && snap.data().customNorms?.thresholds) {
+                const cat = applyThresholds(snap.data().customNorms, value);
+                normCache.set(cacheKey, cat);
+                return cat;
+            }
+        } catch(_) {}
+    }
+
+    // 4. Default database norms
+    try {
+        const snap = await getDoc(doc(db, 'fitnessNorms', `${testKey}_${gender}_${ageGroup}`));
+        if (snap.exists()) {
+            const cat = applyThresholds(snap.data(), value);
+            normCache.set(cacheKey, cat);
+            return cat;
+        }
+    } catch(_) {}
+
+    // 5. Fallback normLookup.js
+    try {
+        const fb = await getNormCategory(db, {
+            testName, result,
+            studentEmail: studentData?.email || '',
+            gender: studentData?.gender || 'male',
+            age: _studentAge()
+        });
+        if (fb) { normCache.set(cacheKey, fb.category); return fb.category; }
+    } catch(_) {}
+
+    return null;
+}
         function mapNormCategoryToScore(cat) {
             return { Excellent:100, Good:90, Average:80, 'Below Average':70, Poor:60 }[cat] || 75;
         }
@@ -1540,6 +1556,28 @@ window.startTimer = async function() {
                     </div>
                 </div>`;
                 document.getElementById('submitBtn').disabled = false;
+                 } else if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) {
+                const effectiveTarget = currentTest.targetRepetitions || currentTest.testTarget || 0;
+                const targetDisplay = effectiveTarget ? ` (Target: ${effectiveTarget} reps)` : '';
+                const maxDigits = effectiveTarget ? effectiveTarget.toString().length + 1 : 4;
+                html = `
+                <div class="input-group-custom">
+                    <label class="input-label">🪢 Number of Jump Rope Repetitions <span style="color:#ef4444;">*</span></label>
+                    <input type="number" class="input-field" id="repetitionsInput"
+                        placeholder="Enter total jumps (max: ${effectiveTarget || 'unlimited'})"
+                        max="${effectiveTarget || 9999}"
+                        oninput="this.value=this.value.replace(/[^0-9]/g,'');${effectiveTarget ? `if(parseInt(this.value)>${effectiveTarget})this.value='${effectiveTarget}';` : `if(this.value.length>${maxDigits})this.value=this.value.slice(0,${maxDigits});`}">
+                    <div class="input-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Count each complete rotation of the rope as one jump${targetDisplay}
+                    </div>
+                    ${effectiveTarget
+                        ? `<div class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-800 font-semibold">
+                            🎯 Professor's Target: <strong>${effectiveTarget} reps</strong> — You cannot enter more than this.
+                           </div>`
+                        : ''}
+                </div>`;
+                document.getElementById('submitBtn').disabled = false;
             } else {
                 const targetHint = currentTest.testTarget ? ` (Target: ${currentTest.testTarget})` : '';
                 html = `<div class="input-group-custom"><label class="input-label">📊 Test Result <span style="color:#ef4444;">*</span></label><input type="text" class="input-field" id="resultInput" placeholder="Enter your test result${targetHint}" required><div class="input-hint"><i class="bi bi-info-circle"></i>Enter your test result as instructed by your instructor${targetHint}</div></div>`;
@@ -1617,13 +1655,47 @@ window.startTimer = async function() {
             if (normCat) return mapNormCategoryToScore(normCat);
             return calculateScoreWithTarget(testName, rawResult, testTarget);
         }
-
+            function calculateFallbackCategory(testName, rawResult, testTarget) {
+    const nCheck = (testName || '').toLowerCase();
+    // PE 2 jump rope: percentage-based on targetRepetitions
+    if (nCheck.includes('jump rope') || nCheck.includes('jumprope') || nCheck.includes('jump-rope') || nCheck.includes('skipping')) {
+        const target = currentTest?.targetRepetitions || testTarget || 0;
+        if (target <= 0) return 'Average';
+        const val = parseFloat(rawResult) || 0;
+        const pct = (val / target) * 100;
+        if (pct >= 100) return 'Excellent';
+        if (pct >= 80)  return 'Good';
+        if (pct >= 60)  return 'Average';
+        if (pct >= 40)  return 'Below Average';
+        return 'Poor';
+    }
+    const effectiveTarget = currentTest?.targetRepetitions || testTarget || 0;
+    const score = calculateScoreWithTarget(testName, rawResult, effectiveTarget);
+    if (score >= 100) return 'Excellent';
+    if (score >= 90)  return 'Good';
+    if (score >= 80)  return 'Average';
+    if (score >= 70)  return 'Below Average';
+    return 'Poor';
+}
         function calculateScoreWithTarget(testName, rawResult, testTarget) {
             const n = testName.toLowerCase(); const v = parseFloat(rawResult);
             if (n.includes('skinfold')) { if (v < 12) return 100; if (v < 18) return 90; if (v < 28) return 75; if (v < 32) return 60; return 50; }
             if (!testTarget || testTarget <= 0) return calculateDefaultScore(n, v);
             function pct(val, tgt, lower) { const p = lower ? (tgt / val) * 100 : (val / tgt) * 100; if (p >= 100) return 100; if (p >= 90) return 95; if (p >= 80) return 90; if (p >= 70) return 85; if (p >= 60) return 80; if (p >= 50) return 75; if (p >= 40) return 70; return Math.max(50, Math.round(p)); }
-            if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') || n.includes('curl-up') || n.includes('curl up')) return pct(v, testTarget, false);
+              if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') ||
+                n.includes('curl-up') || n.includes('curl up')) {
+                return pct(v, testTarget, false);
+            }
+            if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) {
+                const effectiveTarget = currentTest?.targetRepetitions || testTarget || 0;
+                if (effectiveTarget <= 0) return calculateDefaultScore(n, v);
+                const percentage = (v / effectiveTarget) * 100;
+                if (percentage >= 100) return 100; // Excellent
+                if (percentage >= 80)  return 90;  // Good
+                if (percentage >= 60)  return 80;  // Average
+                if (percentage >= 40)  return 70;  // Below Average
+                return 60;                         // Poor
+            }
             if (n.includes('plank') || n.includes('grip') || n.includes('sit-and-reach')) return pct(v, testTarget, false);
             if (n.includes('mile') || n.includes('run')) return pct(v, testTarget, true);
             if (n.includes('step test') || n.includes('3-minute')) { if (v < 68) return 100; if (v < 80) return 90; if (v < 90) return 80; if (v < 100) return 70; if (v < 110) return 60; return 50; }
@@ -1631,6 +1703,17 @@ window.startTimer = async function() {
         }
 
         function calculateDefaultScore(n, v) {
+       if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) {
+    const target = currentTest?.targetRepetitions || currentTest?.testTarget || 0;
+    if (target <= 0) return 75;
+    const pct = (v / target) * 100;
+    if (pct >= 100) return 100; // Excellent  ≥ 100%
+    if (pct >= 80)  return 90;  // Good        80–99%
+    if (pct >= 60)  return 80;  // Average     60–79%
+    if (pct >= 40)  return 70;  // Below Avg   40–59%
+    return 60;                  // Poor        < 40%
+}
+
             if (n.includes('push-up') || n.includes('pushup')) { if (v >= 40) return 100; if (v >= 30) return 90; if (v >= 20) return 80; if (v >= 15) return 70; return 60; }
             if (n.includes('curl-up') || n.includes('curl up')) { if (v >= 75) return 100; if (v >= 50) return 90; if (v >= 30) return 80; if (v >= 20) return 70; return 60; }
             if (n.includes('plank')) { if (v >= 120) return 100; if (v >= 90) return 90; if (v >= 60) return 80; if (v >= 45) return 70; return 60; }
@@ -1653,9 +1736,12 @@ window.startTimer = async function() {
             let resultValue = '', rawResult = '';
             const n = currentTest.testName.toLowerCase();
 
-            if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') || n.includes('curl-up') || n.includes('curl up')) {
+            if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') || n.includes('curl-up') || n.includes('curl up') || n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) {
                 const i = document.getElementById('repetitionsInput'); if (!i?.value) { showErrorPopup('Please enter the number of repetitions completed.'); return; }
-                rawResult = i.value; resultValue = i.value + (n.includes('curl-up') || n.includes('curl up') ? ' curl-ups' : ' reps');
+                rawResult = i.value;
+                if (n.includes('curl-up') || n.includes('curl up')) resultValue = i.value + ' curl-ups';
+                else if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) resultValue = i.value + ' jumps';
+                else resultValue = i.value + ' reps';
             } else if (n.includes('plank')) {
                 const i = document.getElementById('durationInput'); if (!i?.value) { showErrorPopup('Please start the timer and stop it when done.'); return; }
                 const [m, s] = i.value.split(':').map(Number); rawResult = (m * 60 + s).toString(); resultValue = i.value;
@@ -1700,11 +1786,18 @@ window.startTimer = async function() {
                 document.getElementById('submitBtn').disabled = true;
                 document.getElementById('submitBtn').innerHTML = `<span class="btn-text-one"><i class="bi bi-hourglass-split"></i> Submitting...</span><span class="btn-text-two"><i class="bi bi-hourglass-split"></i> Submitting...</span>`;
 
-                // ✅ Run score calculation and attempt count query in parallel
-                const [calculatedScore, attSnap] = await Promise.all([
-                    calculateScoreWithNorms(currentTest.testName, rawResult, currentTest.testTarget, currentTest.id),
-                    getDocs(query(collection(db,'testResults'), where('testId','==',currentTest.id), where('studentEmail','==',studentData.email)))
-                ]);
+               const [normResult, attSnap] = await Promise.all([
+                getNormCategoryWithPriority(currentTest.testName, rawResult, currentTest.id),
+                getDocs(query(collection(db,'testResults'), where('testId','==',currentTest.id), where('studentEmail','==',studentData.email)))
+            ]);
+
+           const rawNormCategory = normResult || calculateFallbackCategory(currentTest.testName, rawResult, currentTest.targetRepetitions || currentTest.testTarget);
+            const calculatedScore = mapNormCategoryToScore(rawNormCategory);
+
+            const isJumpRope = (currentTest.testName || '').toLowerCase().match(/jump rope|jumprope|jump-rope|skipping/);
+            const normCategory = isJumpRope
+                ? (calculatedScore >= 100 ? 'Excellent' : calculatedScore >= 90 ? 'Good' : calculatedScore >= 80 ? 'Average' : calculatedScore >= 70 ? 'Below Average' : 'Poor')
+                : rawNormCategory;
 
                 const currentAttempts = attSnap.size;
                 const isFirst = currentAttempts === 0;
@@ -1749,7 +1842,7 @@ window.startTimer = async function() {
                 if (isFirst) postSubmitUpdates.push(updateDoc(doc(db,'scheduledTests',currentTest.id), { completedStudents: increment(1) }));
                 Promise.all(postSubmitUpdates).catch(e => console.warn('Post-submit update error:', e));
 
-                showSuccessPopup(calculatedScore, currentAttempts + 1, currentTest.attemptsAllowed || 1, docRef.id, currentTest.id);
+                showSuccessPopup(normCategory, currentAttempts + 1, currentTest.attemptsAllowed || 1, docRef.id, currentTest.id);
             } catch(error) {
                 console.error('Error submitting test:', error);
                 try { setVideoStatusPill('Submission failed', 'error'); } catch (_) {}
@@ -1759,19 +1852,22 @@ window.startTimer = async function() {
             }
         };
 
-        // ✅ Map norm score → display label + color (consistent with studentresult.html)
-        function _scoreToNormDisplay(score) {
-            if (score >= 100) return { label:'Excellent', color:'#059669', bg:'#f0fdf4', border:'#86efac' };
-            if (score >= 90)  return { label:'Good',      color:'#2563eb', bg:'#eff6ff', border:'#93c5fd' };
-            if (score >= 80)  return { label:'Average',   color:'#d97706', bg:'#fffbeb', border:'#fcd34d' };
-            if (score >= 70)  return { label:'Below Average', color:'#dc2626', bg:'#fef2f2', border:'#fca5a5' };
-            return                   { label:'Poor',      color:'#dc2626', bg:'#fef2f2', border:'#fca5a5' };
-        }
+       
+       function _scoreToNormDisplay(category) {
+    const map = {
+        'Excellent':     { label:'Excellent',     color:'#059669', bg:'#f0fdf4', border:'#86efac' },
+        'Good':          { label:'Good',           color:'#2563eb', bg:'#eff6ff', border:'#93c5fd' },
+        'Average':       { label:'Average',        color:'#d97706', bg:'#fffbeb', border:'#fcd34d' },
+        'Below Average': { label:'Below Average',  color:'#dc2626', bg:'#fef2f2', border:'#fca5a5' },
+        'Poor':          { label:'Poor',           color:'#7c3aed', bg:'#f5f3ff', border:'#c4b5fd' },
+    };
+    return map[category] || map['Average'];
+}
 
-        function showSuccessPopup(score, attempt, totalAttempts, resultId, testId) {
-            const overlay = document.createElement('div');
-            overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4';
-            const { label, color, bg, border } = _scoreToNormDisplay(score);
+        function showSuccessPopup(normCategory, attempt, totalAttempts, resultId, testId) {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4';
+    const { label, color, bg, border } = _scoreToNormDisplay(normCategory);
             overlay.innerHTML = `
                 <style>@keyframes checkDraw{0%{stroke-dashoffset:100}100%{stroke-dashoffset:0}}@keyframes slideUp{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
                 <div class="bg-white rounded-3xl px-8 pt-10 pb-8 max-w-sm w-full shadow-2xl text-center font-inter" style="animation:slideUp .35s cubic-bezier(.4,0,.2,1)">
@@ -1848,6 +1944,8 @@ window.startTimer = async function() {
             else if (n.includes('shoulder flexibility')) el.textContent = 'Reach one arm over your shoulder and the other arm behind your back. Try to touch or overlap your fingers. Measure the distance between your hands in centimeters.';
             else if (n.includes('grip strength')) el.textContent = 'Hold the grip strength dynamometer in one hand with your arm at your side. Squeeze as hard as you can for 3-5 seconds. Perform 3 attempts with each hand. Record the highest reading in kilograms below.';
             else if (n.includes('curl-up') || n.includes('curl up')) el.textContent = 'Lie on your back with knees bent and feet flat. Slide your fingertips from the first mark to the second mark by curling your upper body. Perform one curl-up every 3 seconds. Stop when you can no longer maintain the pace. Record your total repetitions.';
+             else if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping'))
+                el.textContent = 'Hold the jump rope handles firmly, one in each hand. Stand on the center of the rope to size it — handles should reach your armpits. Swing the rope overhead and jump over it as it passes your feet. Land softly on the balls of your feet. Count each full rotation as one repetition. Continue until you reach the target or can no longer maintain proper form. Enter your total repetitions below.';
             else if (n.includes('bmi')) el.textContent = 'Measure your height and weight accurately. Enter both measurements below and your BMI will be calculated automatically.';
             else if (n.includes('skinfold')) el.textContent = 'A trained professional will perform skinfold measurements at 3 specific body sites using calipers. Enter the measurements below to calculate your body fat percentage.';
             else el.textContent = 'Follow the test protocol as instructed. Complete the test according to proper form and technique. Record your results in the input field below when finished.';

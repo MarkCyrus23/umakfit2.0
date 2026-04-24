@@ -403,34 +403,65 @@
             }[cat] ?? { text:'Needs Improvement', class:'rating-needs-improvement' };
         }
 
-        function calculateScoreFallback(testName, result, testTarget) {
+         function calculateScoreFallback(testName, result, testTarget, targetRepetitions = 0) {
             const n = (testName || '').toLowerCase();
             const val = extractNumericResult(result);
             if (n.includes('skinfold')) return 100;
-            if (!testTarget || testTarget <= 0) return 75;
+            const effectiveTarget = targetRepetitions || testTarget || 0;
+            if (!effectiveTarget || effectiveTarget <= 0) return 75;
+            if (!testTarget || testTarget <= 0) testTarget = effectiveTarget;
             if (n.includes('bmi')) {
                 if (val >= 18.5 && val <= 24.9) return 100;
                 if ((val >= 17 && val < 18.5) || (val >= 25 && val < 27)) return 85;
                 if ((val >= 16 && val < 17) || (val >= 27 && val < 30)) return 70;
                 return 60;
             }
+            if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') ||
+                n.includes('curl-up') || n.includes('curl up')) {
+                const p = effectiveTarget > 0 ? (val / effectiveTarget) * 100 : 0;
+                if (p >= 100) return 100;
+                if (p >= 80)  return 90;
+                if (p >= 60)  return 80;
+                if (p >= 40)  return 70;
+                return 60;
+            }
+            if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) {
+            const effectiveTarget = targetRepetitions || testTarget || 0;
+            if (effectiveTarget <= 0) return 75;
+            const pct = (extractNumericResult(result) / effectiveTarget) * 100;
+            if (pct >= 100) return 100;
+            if (pct >= 80)  return 90;
+            if (pct >= 60)  return 80;
+            if (pct >= 40)  return 70;
+            return 60;
+        }
             const isLower = n.includes('step test') || n.includes('3-minute');
             const pct = isLower ? (testTarget / val) * 100 : (val / testTarget) * 100;
             if (pct >= 100) return 100; if (pct >= 90) return 95; if (pct >= 80) return 90;
             if (pct >= 70) return 85; if (pct >= 60) return 80;
             return Math.max(50, Math.round(pct));
+ 
         }
 
         // ========== UNIFIED NORM LOOKUP WITH CACHE (same as dashboard) ==========
 
-        async function resolveNormCategory(testName, result, scheduledTestId) {
-            const testKey = resolveTestKey(testName);
-            if (!testKey) return null;
-            const gender = _genderKey();
-            const ageGroup = _ageGroup();
-            const value = extractNumericResult(result);
-            const cacheKey = `${studentData?.email}|${testKey}|${gender}|${ageGroup}|${scheduledTestId || 'none'}`;
-            if (normCache.has(cacheKey)) return normCache.get(cacheKey);
+         async function resolveNormCategory(testName, result, scheduledTestId) {
+    const n = (testName || '').toLowerCase();
+    if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping')) {
+        // Fetch targetRepetitions from the scheduled test doc
+        let target = 0;
+        if (scheduledTestId) {
+            try {
+                const snap = await getDoc(doc(db, 'scheduledTests', scheduledTestId));
+                if (snap.exists()) target = snap.data().targetRepetitions || 0;
+            } catch(_) {}
+        }
+        if (target <= 0) return { category: 'Average', source: 'fallback' };
+        const val = parseFloat(extractNumericResult(result)) || 0;
+        const pct = (val / target) * 100;
+        const category = pct >= 100 ? 'Excellent' : pct >= 80 ? 'Good' : pct >= 60 ? 'Average' : pct >= 40 ? 'Below Average' : 'Poor';
+        return { category, source: 'target-based' };
+    }
 
             function applyThresholds(nd, value) {
                 const lib = nd.lowerIsBetter ?? false;
@@ -864,9 +895,18 @@ const active = allNotifs.filter(n => {
 
                 const normCategory = normResult?.category ?? null;
                 const normSource   = normResult?.source ?? 'fallback';
+                const targetRepetitions = scheduledTestDoc?.exists()
+                    ? (scheduledTestDoc.data().targetRepetitions || 0)
+                    : 0;
                 const score = normCategory
                     ? mapNormCategoryToScore(normCategory)
-                    : calculateScoreFallback(data.testName, data.result, data.testTarget);
+                    : calculateScoreFallback(data.testName, data.result, data.testTarget, targetRepetitions);
+
+                // For jump rope, derive category directly from score (not normCategory)
+                const isJumpRope = (data.testName || '').toLowerCase().match(/jump rope|jumprope|jump-rope|skipping/);
+                const derivedCategory = isJumpRope
+                    ? (score >= 100 ? 'Excellent' : score >= 90 ? 'Good' : score >= 80 ? 'Average' : score >= 70 ? 'Below Average' : 'Poor')
+                    : normCategory;
 
                 // ========== POPULATE UI ==========
                 document.getElementById('testName').textContent = data.testName;
@@ -889,7 +929,12 @@ const active = allNotifs.filter(n => {
 
                 // Rating badge
                 const scoreRatingEl = document.getElementById('scoreRating');
-                const displayCategory = normCategory || (score >= 90 ? 'Excellent' : score >= 80 ? 'Good' : score >= 70 ? 'Average' : 'Below Average');
+                const displayCategory = derivedCategory || (
+                    score >= 100 ? 'Excellent' :
+                    score >= 90  ? 'Good' :
+                    score >= 80  ? 'Average' :
+                    score >= 70  ? 'Below Average' : 'Poor'
+                );
                 const rating = getRatingFromCategory(displayCategory);
                 const sourceBadge = normSource === 'student'
                     ? `<div class="mt-2"><span class="norm-applied-badge"><i class="bi bi-sliders"></i> Student-specific norms applied</span></div>`

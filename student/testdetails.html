@@ -1622,7 +1622,7 @@ function showToast(message, type = 'info') {
                 'Stop if sharp pain occurs'
             ]
         },
-            'Skinfold Caliper': {
+           'Skinfold Caliper': {
             category: 'BODY COMPOSITION TEST',
             icon: 'https://c.animaapp.com/HN7hFbsr/img/image-151@2x.png',
             badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
@@ -1644,6 +1644,34 @@ function showToast(message, type = 'info') {
                 'Same tester for all measurements',
                 'Measure on right side of body',
                 'Mark sites carefully for accuracy'
+            ]
+        },
+            'Jump Rope': {
+            category: 'PE2 ACTIVITY',
+            icon: 'https://c.animaapp.com/HN7hFbsr/img/image-150@2x.png',
+            badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
+            getDuration: (target) => target ? `Target: ${target} jumps` : 'Maximum repetitions',
+            difficulty: 'Beginner',
+            objective: 'To measure cardiovascular endurance, coordination, and lower-body muscular endurance through jump rope repetitions.',
+            scoring: 'Count each complete rotation of the rope as one jump. Score is based on total jumps relative to the professor\'s target.',
+            requirements: 'Jump rope (skipping rope) appropriate for your height, flat non-slippery surface.',
+            video: 'https://c.animaapp.com/pVU46Rgb/img/image-82.png',
+            videoDescription: 'Watch proper jump rope technique for accurate counting and safe performance',
+            protocol: [
+                'Stand upright holding one end of the jump rope in each hand.',
+                'Position the rope behind you at ground level.',
+                'Swing the rope overhead and jump over it as it reaches your feet.',
+                'Land softly on the balls of your feet, keeping knees slightly bent.',
+                'Maintain a consistent rhythm throughout the test.',
+                'Count each complete rotation of the rope as one repetition.',
+                'Continue until you reach the target or cannot maintain proper form.',
+                'Record your total number of successful jumps below.'
+            ],
+            safetyTips: [
+                'Wear proper athletic shoes with good cushioning',
+                'Use a rope sized to your height — handles reach armpits when standing on center',
+                'Jump on a flat, non-slippery surface with enough overhead clearance',
+                'Start slowly to warm up, then build to your full pace'
             ]
         },
         };
