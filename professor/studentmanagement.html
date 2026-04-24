@@ -1148,7 +1148,7 @@
             const profilesMap  = new Map();
             profileSnap.forEach(d => {
                 const data = d.data();
-                if (data.email) profilesMap.set(data.email, { birthday:data.birthday||null, age:data.age||null, gender:data.gender||'male', medicalCondition:data.medicalCondition||null });
+if (data.email) profilesMap.set(data.email, { birthday:data.birthday||null, age:data.age||null, gender:data.gender||'male', medicalCondition:data.medicalCondition||null, medicalProofURL:data.medicalProofURL||null });
             });
 
             // ── Batch 2: all completed results ─────────────────────
@@ -1223,7 +1223,8 @@
                         age: profile.age || null,
                         birthday: profile.birthday || null,
                         gender: profile.gender || 'male',
-                        medicalCondition: profile.medicalCondition || null,
+medicalCondition: profile.medicalCondition || null,
+medicalProofURL: profile.medicalProofURL || null,
                         testNames: Array.from(testNames),
                         testResultsRaw: results,
                     });
@@ -1836,10 +1837,12 @@ function renderArchivedSections() {
     // If no test selected, render immediately with overall category
     if (!activeTest) {
         tbody.innerHTML = display.map(student => {
-            const health = student.medicalCondition
-                ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;color:#92400e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">🏥 ${esc(student.medicalCondition)}</span>`
-                : `<span style="color:#94a3b8;font-size:13px;">—</span>`;
-            return `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
+const health = student.medicalCondition
+    ? `<div style="display:flex;flex-direction:column;gap:4px;">
+        <span style="display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;color:#92400e;font-weight:600;font-size:12px;padding:4px 10px;border-radius:20px;">🏥 ${esc(student.medicalCondition)}</span>
+        ${student.medicalProofURL ? `<button onclick="event.stopPropagation();viewMedicalProof('${esc(student.medicalProofURL)}','${esc(student.medicalCondition)}')" style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px;cursor:pointer;width:fit-content;">🖼 View Proof</button>` : ''}
+       </div>`
+    : `<span style="color:#94a3b8;font-size:13px;">—</span>`;            return `<tr onclick="viewStudentDetails('${student.id}')" style="cursor:pointer;">
                 <td data-label="ID"><strong>${esc(student.umakId||'N/A')}</strong></td>
                 <td data-label="Student Name">${esc(student.firstName)} ${esc(student.lastName)}</td>
                 <td data-label="Section">${esc(student.section||'N/A')}</td>
@@ -3151,6 +3154,42 @@ window.refreshData = async function(event) {
         const p = h>=12?'PM':'AM'; const h12 = h%12||12;
         return `${dt} ${h12}:${m.toString().padStart(2,'0')} ${p}`;
     }
+</script>
+<div id="medicalProofModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeMedicalProofModal()">
+  <div style="background:white;border-radius:16px;padding:24px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="medicalProofTitle" style="font-size:16px;font-weight:700;color:#0a1628;margin:0;">Medical Proof</h3>
+      <button onclick="closeMedicalProofModal()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px;color:#64748b;">✕</button>
+    </div>
+    <div id="medicalProofContent" style="text-align:center;"></div>
+    <div style="margin-top:16px;text-align:right;">
+      <a id="medicalProofLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#1e4d8c;color:white;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">↗ Open Full Size</a>
+    </div>
+  </div>
+</div>
+
+<script>
+window.viewMedicalProof = function(url, condition) {
+  const modal = document.getElementById('medicalProofModal');
+  const content = document.getElementById('medicalProofContent');
+  const link = document.getElementById('medicalProofLink');
+  document.getElementById('medicalProofTitle').textContent = '🏥 ' + condition + ' — Medical Proof';
+  link.href = url;
+  const isPDF = url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('/raw/');
+  if (isPDF) {
+    content.innerHTML = `<div style="padding:32px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+      <div style="font-size:48px;margin-bottom:12px;">📄</div>
+      <div style="font-weight:600;color:#1e293b;margin-bottom:4px;">PDF Document</div>
+      <div style="font-size:13px;color:#64748b;">Click "Open Full Size" to view the document.</div>
+    </div>`;
+  } else {
+    content.innerHTML = `<img src="${url}" alt="Medical proof" style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid #e2e8f0;object-fit:contain;" onerror="this.outerHTML='<div style=padding:24px;color:#ef4444;>Unable to load image.</div>'">`;
+  }
+  modal.style.display = 'flex';
+};
+window.closeMedicalProofModal = function() {
+  document.getElementById('medicalProofModal').style.display = 'none';
+};
 </script>
 </body>
 </html>
