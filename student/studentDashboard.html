@@ -800,6 +800,100 @@
             return 75;
         }
 
+        function scoreToCategory(score) {
+            const s = Number(score);
+            if (Number.isNaN(s)) return null;
+            if (s >= 100) return 'Excellent';
+            if (s >= 90) return 'Good';
+            if (s >= 80) return 'Average';
+            if (s >= 70) return 'Below Average';
+            return 'Poor';
+        }
+
+        function isJumpRopeTest(testName = '') {
+            const n = String(testName).toLowerCase();
+            return n.includes('jumping rope') || n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping');
+        }
+
+        function resolveProfessorTarget(result = {}) {
+            const directCandidates = [
+                result?.targetRepetitions,
+                result?.testTarget,
+                result?.result?.targetRepetitions,
+                result?.resultData?.targetRepetitions,
+                result?.result?.testTarget,
+                result?.resultData?.testTarget
+            ];
+            for (const candidate of directCandidates) {
+                const value = Number(candidate);
+                if (!Number.isNaN(value) && value > 0) return value;
+            }
+
+            const scheduledId = result?.testId || result?.scheduledTestId;
+            if (scheduledId) {
+                const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
+                const scheduledCandidates = [scheduledData?.targetRepetitions, scheduledData?.testTarget];
+                for (const candidate of scheduledCandidates) {
+                    const value = Number(candidate);
+                    if (!Number.isNaN(value) && value > 0) return value;
+                }
+            }
+            return 0;
+        }
+
+        function isPeNoNormCourse(result = {}) {
+            const candidates = [
+                result?.courseCode,
+                result?.result?.courseCode,
+                result?.resultData?.courseCode
+            ];
+            const scheduledId = result?.testId || result?.scheduledTestId;
+            if (scheduledId) {
+                const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
+                candidates.push(scheduledData?.courseCode);
+            }
+            return candidates.some(code => /^pe\s*[234]$/i.test(String(code || '').trim()));
+        }
+
+        function getDashboardDisplayCategory(result) {
+            const professorTarget = resolveProfessorTarget(result);
+            const raw = result?.resultData ?? result?.result;
+            const rawValue = extractNumericResult(raw);
+            const normalizedName = String(result?.testName || '').toLowerCase();
+
+            if (professorTarget > 0 && rawValue) {
+                const lowerIsBetter = normalizedName.includes('mile') || normalizedName.includes('run') || normalizedName.includes('step');
+                const pct = lowerIsBetter ? (professorTarget / rawValue) * 100 : (rawValue / professorTarget) * 100;
+                return scoreToCategory(
+                    pct >= 100 ? 100 :
+                    pct >= 80 ? 90 :
+                    pct >= 60 ? 80 :
+                    pct >= 40 ? 70 : 60
+                ) || 'Average';
+            }
+
+            if (isPeNoNormCourse(result) || isJumpRopeTest(result?.testName)) {
+                const fallbackScore = calculateTestScore(
+                    result?.testName || '',
+                    raw,
+                    result?.testTarget,
+                    result?.targetRepetitions
+                );
+                return scoreToCategory(fallbackScore) || 'Average';
+            }
+
+            const normCat = getNormCategorySync(result.testName, raw, result.testId);
+            if (normCat) return normCat;
+
+            const fallbackScore = calculateTestScore(
+                result?.testName || '',
+                raw,
+                result?.testTarget,
+                result?.targetRepetitions
+            );
+            return scoreToCategory(fallbackScore) || 'Average';
+        }
+
         // ========== NORM LOOKUP WITH PRIORITY + CACHE ==========
 
         async function getNormCategoryWithPriority(testName, result, testId = null) {
@@ -888,6 +982,7 @@ async function prefetchNormDocs(results) {
         const testKey = resolveTestKey(r.testName);
         if (testKey) testKeys.add(testKey);
         if (r.testId) testIds.add(r.testId);
+        if (r.scheduledTestId) testIds.add(r.scheduledTestId);
     });
 
     const fetchPromises = [];
@@ -1207,9 +1302,7 @@ if (rawStudent?._ref) {
         for (const result of testResults) {
             const testId = result.testId || result.scheduledTestId || result.testName;
             // FIX: use sync lookup from prefetched cache instead of async Firestore calls
-            const normCat = getNormCategorySync(
-                result.testName, result.result ?? result.resultData, result.testId
-            );
+            const normCat = getDashboardDisplayCategory(result);
             const rank = normCat ? (NORM_RANKS[normCat] ?? 3) : 0;
             const dateObj = result.submittedAt?.toDate?.() || (result.submittedAt ? new Date(result.submittedAt) : new Date(0));
 
@@ -1447,9 +1540,7 @@ if (rawStudent?._ref) {
                 // FIX: use sync lookup instead of batchGetNormCategories
                 relevant.forEach(r => {
                     const cat = getCategoryForTestProgress(r.testName);
-                    const normCat = getNormCategorySync(
-                        r.testName, r.result ?? r.resultData, r.testId
-                    ) || 'Completed';
+                    const normCat = getDashboardDisplayCategory(r) || 'Completed';
                     const rank = NORM_RANKS[normCat] || 3;
                     if (catRanks[cat]) catRanks[cat].push(rank);
                 });
@@ -1509,23 +1600,9 @@ if (rawStudent?._ref) {
                 const score = calculateTestScore(r.testName, r.result, r.testTarget, r.targetRepetitions);
                 if (score > s.bestScore) {
                     s.bestScore = score;
-                    // Get cached norm if available
-                    const cacheKey = `${studentData.email}|${resolveTestKey(r.testName) || r.testName}|${_genderKey()}|${_ageGroup()}|${testId}`;
-                    const cached = normCache.get(cacheKey);
-                    if (cached) s.bestNorm = cached;
+                    s.bestNorm = getDashboardDisplayCategory(r) || '--';
                 }
             }
-
-            // Batch norm lookups for best attempts (parallel)
-            const bestAttemptResults = testResults.filter(r => {
-                const s = testStatusMap.get(r.testId);
-                return s && calculateTestScore(r.testName, r.result, r.testTarget, r.targetRepetitions) === s.bestScore;
-            });
-            const bestNorms = await batchGetNormCategories(bestAttemptResults);
-            bestAttemptResults.forEach((r, i) => {
-                const s = testStatusMap.get(r.testId);
-                if (s && bestNorms[i]) s.bestNorm = bestNorms[i];
-            });
 
             const upcoming = [];
             scheduledTests.forEach(test => {
