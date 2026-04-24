@@ -74,6 +74,29 @@
         .input-hint   { font-weight:500; color:#64748b; font-size:13px; margin-top:.75rem; font-style:italic; display:flex; align-items:flex-start; gap:6px; line-height:1.6; word-wrap:break-word; }
         .input-hint i { flex-shrink:0; margin-top:2px; }
         @media (max-width:768px) { .input-hint { font-size:11px; margin-top:.5rem; gap:4px; } .input-label { font-size:14px; } .input-field { font-size:16px; padding:12px 14px; } .notes-textarea { font-size:14px; padding:12px 14px; } }
+    @keyframes pulseRed {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+/* For proper button container layout */
+#videoModeCameraSection .flex.flex-wrap.gap-3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+    #videoModeCameraSection .flex.flex-wrap.gap-3 {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #recordingTimerContainer {
+        margin-left: 0 !important;
+        margin-top: 0.5rem;
+        justify-content: center;
+    }
+}
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -514,30 +537,41 @@
             hint.style.display = visible ? 'block' : 'none';
         }
 
-        function clearSelectedVideo() {
-            try {
-                selectedVideoBlob = null;
-                if (selectedVideoObjectUrl) {
-                    try { URL.revokeObjectURL(selectedVideoObjectUrl); } catch (_) {}
-                }
-                selectedVideoObjectUrl = null;
+ function clearSelectedVideo() {
+    try {
+        selectedVideoBlob = null;
+        if (selectedVideoObjectUrl) {
+            try { URL.revokeObjectURL(selectedVideoObjectUrl); } catch (_) {}
+        }
+        selectedVideoObjectUrl = null;
 
-                const el = document.getElementById('videoPreviewEl');
-                if (el) {
-                    el.pause();
-                    el.removeAttribute('src');
-                    el.load();
-                    el.controls = true;
-                }
-
-                setVideoPreviewEmptyHintVisible(true);
-                setVideoStatusPill('No video yet', 'neutral');
-            } catch (e) {
-                // Never block page load due to video UI issues.
-                console.warn('clearSelectedVideo failed:', e);
-            }
+        const el = document.getElementById('videoPreviewEl');
+        if (el) {
+            el.pause();
+            el.removeAttribute('src');
+            el.load();
+            el.controls = true;
         }
 
+        // Remove recording badge from video preview
+        const badge = document.getElementById('recBadge');
+        if (badge) badge.remove();
+        
+        // Hide timer container
+        const timerContainer = document.getElementById('recordingTimerContainer');
+        if (timerContainer) {
+            timerContainer.style.display = 'none';
+            timerContainer.style.opacity = '1';
+            const timerDisplay = document.getElementById('recordingTimerDisplay');
+            if (timerDisplay) timerDisplay.textContent = '00:00';
+        }
+
+        setVideoPreviewEmptyHintVisible(true);
+        setVideoStatusPill('No video yet', 'neutral');
+    } catch (e) {
+        console.warn('clearSelectedVideo failed:', e);
+    }
+}
         function cleanupCamera() {
             if (cameraStream) {
                 try {
@@ -546,100 +580,192 @@
             }
             cameraStream = null;
         }
+async function startCameraRecording() {
+    if (isRecordingVideo) return;
+    if (videoMode !== 'camera') return;
 
-        async function startCameraRecording() {
-            if (isRecordingVideo) return;
-            if (videoMode !== 'camera') return;
+    clearSelectedVideo();
 
-            clearSelectedVideo();
+    const previewEl = document.getElementById('videoPreviewEl');
+    if (!previewEl) return;
 
-            const previewEl = document.getElementById('videoPreviewEl');
-            if (!previewEl) return;
+    setVideoStatusPill('Requesting camera...', 'neutral');
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch (e) {
+        setVideoStatusPill('Camera access denied', 'error');
+        showErrorPopup('Cannot access camera. Please allow camera permission or upload a video file instead.', 'Camera Error');
+        return;
+    }
 
-            setVideoStatusPill('Requesting camera...', 'neutral');
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            } catch (e) {
-                setVideoStatusPill('Camera access denied', 'error');
-                showErrorPopup('Cannot access camera. Please allow camera permission or upload a video file instead.', 'Camera Error');
-                return;
+    recordedChunks = [];
+
+    const preferredMimeTypes = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm',
+    ];
+    const mimeType = preferredMimeTypes.find(t => (window.MediaRecorder && window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(t))) || '';
+
+    try {
+        mediaRecorder = new MediaRecorder(cameraStream, mimeType ? { mimeType } : undefined);
+    } catch (e) {
+        cleanupCamera();
+        setVideoStatusPill('Recording not supported', 'error');
+        showErrorPopup('Your browser does not support in-page camera recording. Please use Upload Video.', 'Recording Unsupported');
+        return;
+    }
+
+    mediaRecorder.ondataavailable = e => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    // Timer variables
+    let recordingStartTime = null;
+    let recordingTimerInterval = null;
+
+    function updateRecordingTimerDisplay() {
+        if (!recordingStartTime) return;
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        const timerEl = document.getElementById('recordingTimerDisplay');
+        if (timerEl) {
+            timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
+    function startRecordingTimer() {
+        recordingStartTime = Date.now();
+        if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+        recordingTimerInterval = setInterval(updateRecordingTimerDisplay, 1000);
+        updateRecordingTimerDisplay();
+    }
+
+    function stopRecordingTimer() {
+        if (recordingTimerInterval) {
+            clearInterval(recordingTimerInterval);
+            recordingTimerInterval = null;
+        }
+        recordingStartTime = null;
+        // Don't reset the timer display - keep showing the final time
+        // The timer container will be hidden instead
+    }
+
+    mediaRecorder.onstop = () => {
+        stopRecordingTimer();
+        cleanupCamera();
+        isRecordingVideo = false;
+        // Remove the recording badge from video preview
+        const badge = document.getElementById('recBadge');
+        if (badge) badge.remove();
+        
+        if (pendingVideoFinalize) {
+            pendingVideoFinalize = false;
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+        const stopBtn = document.getElementById('recordStopBtn');
+        const startBtn = document.getElementById('recordStartBtn');
+        if (startBtn) startBtn.disabled = false;
+        if (stopBtn) stopBtn.disabled = true;
+
+        const blobType = mediaRecorder?.mimeType || 'video/webm';
+        const blob = new Blob(recordedChunks, { type: blobType });
+        selectedVideoBlob = blob;
+        selectedVideoObjectUrl = URL.createObjectURL(blob);
+
+        previewEl.srcObject = null;
+        previewEl.src = selectedVideoObjectUrl;
+        previewEl.controls = true;
+        setVideoPreviewEmptyHintVisible(false);
+        setVideoStatusPill('Video ready', 'ready');
+    };
+
+    isRecordingVideo = true;
+    const startBtn = document.getElementById('recordStartBtn');
+    const stopBtn = document.getElementById('recordStopBtn');
+    if (startBtn) startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = false;
+
+    previewEl.srcObject = cameraStream;
+    previewEl.muted = true;
+    previewEl.autoplay = true;
+    previewEl.controls = false;
+    previewEl.play().catch(() => {});
+
+    try {
+        mediaRecorder.start();
+        startRecordingTimer();
+        setVideoStatusPill('Recording...', 'ready');
+        
+        // Show live recording badge on the video preview element
+        const prevWrap = document.getElementById('videoPreviewEl')?.parentElement;
+        if (prevWrap) {
+            prevWrap.style.position = 'relative';
+            let badge = document.getElementById('recBadge');
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = 'recBadge';
+                badge.style.cssText = 'position:absolute;top:8px;left:8px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;z-index:10;';
+                badge.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#fff;display:inline-block;"></span> REC';
+                prevWrap.appendChild(badge);
             }
-
-            recordedChunks = [];
-
-            const preferredMimeTypes = [
-                'video/webm;codecs=vp9',
-                'video/webm;codecs=vp8',
-                'video/webm',
-            ];
-            const mimeType = preferredMimeTypes.find(t => (window.MediaRecorder && window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(t))) || '';
-
-            try {
-                mediaRecorder = new MediaRecorder(cameraStream, mimeType ? { mimeType } : undefined);
-            } catch (e) {
-                cleanupCamera();
-                setVideoStatusPill('Recording not supported', 'error');
-                showErrorPopup('Your browser does not support in-page camera recording. Please use Upload Video.', 'Recording Unsupported');
-                return;
+        }
+        
+        // Create timer display next to the Stop button (inline with buttons)
+        let timerContainer = document.getElementById('recordingTimerContainer');
+        if (!timerContainer) {
+            // Find the div that contains the buttons
+            const buttonContainer = document.querySelector('#videoModeCameraSection .flex.flex-wrap.gap-3');
+            if (buttonContainer) {
+                timerContainer = document.createElement('div');
+                timerContainer.id = 'recordingTimerContainer';
+                timerContainer.style.marginLeft = 'auto';
+                timerContainer.style.display = 'flex';
+                timerContainer.style.alignItems = 'center';
+                timerContainer.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:8px;background:#fef2f2;padding:6px 14px;border-radius:20px;border:1px solid #fecaca;">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;animation:pulseRed 1s infinite;"></span>
+                        <span style="color:#dc2626;font-weight:700;">Recording:</span>
+                        <span id="recordingTimerDisplay" style="font-family:monospace;font-size:16px;font-weight:700;color:#dc2626;">00:00</span>
+                    </div>
+                `;
+                buttonContainer.appendChild(timerContainer);
             }
-
-            mediaRecorder.ondataavailable = e => {
-                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = () => {
-                cleanupCamera();
-                isRecordingVideo = false;
-                if (pendingVideoFinalize) {
-                    pendingVideoFinalize = false;
-                    const submitBtn = document.getElementById('submitBtn');
-                    if (submitBtn) submitBtn.disabled = false;
+        } else {
+            timerContainer.style.display = 'flex';
+            const timerDisplay = document.getElementById('recordingTimerDisplay');
+            if (timerDisplay) timerDisplay.textContent = '00:00';
+        }
+        
+    } catch (e) {
+        stopRecordingTimer();
+        cleanupCamera();
+        isRecordingVideo = false;
+        setVideoStatusPill('Recording failed', 'error');
+        showErrorPopup('Failed to start recording. Please try again or upload a video file instead.', 'Recording Failed');
+    }
+}
+function stopCameraRecording() {
+    if (!isRecordingVideo) return;
+    try { 
+        mediaRecorder?.stop();
+        // Hide the timer container but keep the final time visible briefly
+        const timerContainer = document.getElementById('recordingTimerContainer');
+        if (timerContainer) {
+            // Fade out effect
+            timerContainer.style.transition = 'opacity 0.5s ease';
+            timerContainer.style.opacity = '0';
+            setTimeout(() => {
+                if (timerContainer) {
+                    timerContainer.style.display = 'none';
+                    timerContainer.style.opacity = '1';
                 }
-                const stopBtn = document.getElementById('recordStopBtn');
-                const startBtn = document.getElementById('recordStartBtn');
-                if (startBtn) startBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = true;
-
-                const blobType = mediaRecorder?.mimeType || 'video/webm';
-                const blob = new Blob(recordedChunks, { type: blobType });
-                selectedVideoBlob = blob;
-                selectedVideoObjectUrl = URL.createObjectURL(blob);
-
-                previewEl.srcObject = null;
-                previewEl.src = selectedVideoObjectUrl;
-                previewEl.controls = true;
-                setVideoPreviewEmptyHintVisible(false);
-                setVideoStatusPill('Video ready', 'ready');
-            };
-
-            isRecordingVideo = true;
-            const startBtn = document.getElementById('recordStartBtn');
-            const stopBtn = document.getElementById('recordStopBtn');
-            if (startBtn) startBtn.disabled = true;
-            if (stopBtn) stopBtn.disabled = false;
-
-previewEl.srcObject = cameraStream;
-previewEl.muted = true;
-previewEl.autoplay = true;
-previewEl.controls = false;
-previewEl.play().catch(() => {});
-
-            try {
-                mediaRecorder.start();
-                setVideoStatusPill('Recording...', 'neutral');
-            } catch (e) {
-                cleanupCamera();
-                isRecordingVideo = false;
-                setVideoStatusPill('Recording failed', 'error');
-                showErrorPopup('Failed to start recording. Please try again or upload a video file instead.', 'Recording Failed');
-            }
+            }, 500);
         }
-
-        function stopCameraRecording() {
-            if (!isRecordingVideo) return;
-            try { mediaRecorder?.stop(); } catch (_) {}
-        }
-
+    } catch (_) {}
+}
         async function handleVideoFile(file) {
             if (!file) return;
             if (!file.type || !file.type.startsWith('video/')) {
@@ -1178,12 +1304,14 @@ function setupNotificationListener() {
 
         // ========== TIMER ==========
 
-        window.startTimer = async function() {
-            if (!isRunning) {
-                window.activeTestId = await createActiveTestDocument();
-                isRunning = true; isPaused = false; startTime = Date.now() - elapsedTime;
-                // Auto-start camera recording for timer-based tests (camera mode only).
-                maybeAutoStartVideoRecording();
+window.startTimer = async function() {
+    if (!isRunning) {
+        window.activeTestId = await createActiveTestDocument();
+        isRunning = true; isPaused = false; startTime = Date.now() - elapsedTime;
+        // Auto-start camera recording when timer starts (if no video recorded yet).
+        if (!selectedVideoBlob && videoMode === 'camera' && !isRecordingVideo) {
+            startCameraRecording().catch(() => {});
+        }
                 if (isStepTest()) {
                     document.getElementById('minutes').textContent = '03';
                     document.getElementById('seconds').textContent = '00';
