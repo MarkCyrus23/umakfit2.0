@@ -666,21 +666,24 @@
         </div>
         <div class="modal-body">
             
+<!-- Course Code -->
+            <div class="form-group">
+                <label class="form-label">Course Code <span class="text-danger">*</span></label>
+                <select class="form-select" id="testCourseCode" required onchange="handleScheduleCourseCodeChange()">
+                    <option value="">Select Course Code</option>
+                </select>
+            </div>
+
             <!-- Test Type -->
             <div class="form-group">
                 <label class="form-label">Test Type <span class="text-danger">*</span></label>
-                    <select class="form-select" id="testType" required onchange="updateAttemptsDisplay();">
-                    <option value="">Select Test Type</option>
-                    <option value="3-Minute Step Test">3-Minute Step Test</option>
-                    <option value="Curl-Up Test">Curl-Up Test</option>
-                    <option value="Push-Up Test">Push-Up Test</option>
-                    <option value="Sit-and-Reach">Sit-and-Reach Test</option>
-                    <option value="Skinfold Caliper">Skinfold Caliper Measurements</option>
+                <select class="form-select" id="testType" required onchange="updateAttemptsDisplay();" disabled>
+                    <option value="">Select Course Code first</option>
                 </select>
             </div>
-                <!-- Video URL -->
-            <div class="form-group">
+     <div id="videoURLSection" class="form-group">
                 <label class="form-label"><i class="fab fa-youtube text-red-500 mr-1"></i> Instruction Video URL (Optional)</label>
+
                 <div class="flex gap-2 mb-2">
                     <select id="videoPresetSelect" class="form-select flex-1" onchange="applyPresetVideo()">
                         <option value="">— Select a preset video —</option>
@@ -710,6 +713,14 @@
                 <input type="hidden" id="videoURLFinal">
             </div>
            
+            <!-- Section -->
+<!-- PE 2 Jumping Jacks Count -->
+            <div class="form-group" id="jumpingJacksCountGroup" style="display:none;">
+                <label class="form-label"><i class="fas fa-hashtag text-blue mr-1"></i> Number of Repetitions <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="jumpingJacksCount" min="1" max="9999" placeholder="e.g. 50" style="max-width:200px;">
+                <small class="text-text-muted text-xs mt-1 block">🏃 How many jumping jacks the student must complete</small>
+            </div>
+
             <!-- Section -->
             <div class="form-group">
                 <label class="form-label">Section <span class="text-danger">*</span></label>
@@ -1040,7 +1051,21 @@ function updateAttemptsDisplay() {
     document.getElementById('attemptsAllowed').value = one ? 1 : 2;
     document.getElementById('attemptsDisplay').value = one ? '1 Attempt' : '2 Attempts';
 
-    // Filter video presets to match selected test type
+    const selectedTest = document.getElementById('testType').value;
+    const presetSelect = document.getElementById('videoPresetSelect');
+    const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
+
+    // For PE 2, PE 3, PE 4 — hide video section entirely, no presets needed
+    const videoSection = document.getElementById('videoURLSection');
+    if (courseCode && courseCode !== 'PE 1') {
+        if (videoSection) videoSection.style.display = 'none';
+        clearVideoURL();
+        return;
+    }
+
+    // PE 1 — show video section
+    if (videoSection) videoSection.style.display = '';
+
     const presetMap = {
         'push-up test': 'Push-Up Test',
         'curl-up test': 'Curl-Up Test',
@@ -1048,12 +1073,8 @@ function updateAttemptsDisplay() {
         'sit-and-reach': 'Sit-and-Reach Test',
         'skinfold caliper': 'Skinfold Caliper',
     };
-
-    const selectedTest = document.getElementById('testType').value;
-    const presetSelect = document.getElementById('videoPresetSelect');
     const matchLabel = presetMap[selectedTest.toLowerCase()] || '';
 
-    // Reset and rebuild options
     presetSelect.innerHTML = '<option value="">— Select a preset video —</option>';
     const allPresets = [
         { value: 'https://www.youtube.com/watch?v=hX45cEWKUO0', label: 'Push-Up Test' },
@@ -1064,29 +1085,97 @@ function updateAttemptsDisplay() {
     ];
 
     if (!selectedTest) {
-        // No test selected — show all
         allPresets.forEach(p => {
             const opt = document.createElement('option');
-            opt.value = p.value;
-            opt.textContent = p.label;
+            opt.value = p.value; opt.textContent = p.label;
             presetSelect.appendChild(opt);
         });
     } else {
-        // Show only matching preset
         const matched = allPresets.find(p => p.label.toLowerCase().includes(matchLabel.toLowerCase().split(' ')[0]));
         if (matched) {
             const opt = document.createElement('option');
-            opt.value = matched.value;
-            opt.textContent = matched.label;
+            opt.value = matched.value; opt.textContent = matched.label;
             presetSelect.appendChild(opt);
-            // Auto-select it and show preview
             presetSelect.value = matched.value;
             document.getElementById('videoURLFinal').value = matched.value;
             showVideoPreview(matched.label, matched.value);
         }
     }
 }
-    function generateReports()    { showInfoModal('Report generation feature coming soon!'); }
+function generateReports()    { showInfoModal('Report generation feature coming soon!'); }
+
+    const _SCHEDULE_TESTS = {
+        'PE 1': ['3-Minute Step Test','Curl-Up Test','Push-Up Test','Sit-and-Reach','Skinfold Caliper'],
+        'PE 2': ['BASIC JUMP — Jumping Rope','SIDE TO SIDE — Jumping Rope','FRONT & BACK — Jumping Rope',
+                 'OPEN & CLOSE — Jumping Rope','CRISS CROSS — Jumping Rope',
+                 'STRADDLE/SCISSORS — Jumping Rope','ALTERNATE — Jumping Rope',
+                 'CROSS ARMS — Jumping Rope','DOUBLE JUMPS — Jumping Rope'],
+        'PE 3': ['Ball Control (Front) — Pingpong','Ball Control (Back) — Pingpong',
+                 'Ball Control (Alternate) — Pingpong'],
+        'PE 4': [],
+    };
+
+    function handleScheduleCourseCodeChange() {
+        const cc = document.getElementById('testCourseCode').value;
+        const testSel = document.getElementById('testType');
+        const container = document.getElementById('testSectionCheckboxes');
+
+        // 1. Update test type options
+        const tests = _SCHEDULE_TESTS[cc] || [];
+        if (!cc || tests.length === 0) {
+            testSel.innerHTML = cc ? '<option value="">No tests defined for ' + cc + ' yet</option>'
+                                   : '<option value="">Select Course Code first</option>';
+            testSel.disabled = true;
+        } else {
+            testSel.innerHTML = '<option value="">Select Test Type</option>' +
+                tests.map(t => `<option value="${t}">${t}</option>`).join('');
+            testSel.disabled = false;
+        }
+testSel.value = '';
+        clearVideoURL();
+        document.getElementById('attemptsAllowed').value = '2';
+        document.getElementById('attemptsDisplay').value = '2 Attempts';
+
+        // Show jumping jacks count input only for PE 2
+        const jjGroup = document.getElementById('jumpingJacksCountGroup');
+        if (jjGroup) {
+            jjGroup.style.display = cc === 'PE 2' ? '' : 'none';
+            const jjInput = document.getElementById('jumpingJacksCount');
+            if (jjInput && cc !== 'PE 2') jjInput.value = '';
+        }
+
+        // 2. Filter section checkboxes by course code
+        container.innerHTML = '';
+        if (!cc) {
+            container.innerHTML = '<p class="text-text-muted text-sm">Select a Course Code first.</p>';
+            return;
+        }
+        const filtered = (window.assignedSections || []).filter(s => s.courseCode === cc);
+        if (!filtered.length) {
+            container.innerHTML = '<p class="text-text-muted text-sm">No sections found for ' + cc + '.</p>';
+            return;
+        }
+        const seen = new Set();
+        filtered.forEach(s => {
+            if (seen.has(s.section)) return; seen.add(s.section);
+            const label = document.createElement('label');
+            label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;transition:background 0.15s;';
+            label.innerHTML = `<input type="checkbox" value="${s.section}" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+                <span>
+                    <strong>${s.section}</strong>
+                    <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:4px;">${s.courseCode}</span>
+                    <span style="color:#8a98ae;font-size:12px;"> (${s.students} students) — ${s.time||'TBA'} / ${s.day||'TBA'}</span>
+                </span>`;
+            label.addEventListener('mouseenter', () => label.style.background = '#f3f4f6');
+            label.addEventListener('mouseleave', () => { const cb = label.querySelector('input'); label.style.background = cb.checked ? '#eff6ff' : 'white'; });
+            label.querySelector('input').addEventListener('change', function() {
+                label.style.background = this.checked ? '#eff6ff' : 'white';
+                document.getElementById('testSectionError').style.display = 'none';
+            });
+            container.appendChild(label);
+        });
+    }
+    window.handleScheduleCourseCodeChange = handleScheduleCourseCodeChange;
     function filterResultsTable() { window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
     function clearResultFilters() { document.getElementById('searchResults').value=''; document.getElementById('filterSection').value=''; window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
     window.filterScheduleTable = function() { window._scheduleCurrentPage=1; if(window.allScheduledTests?.length&&window.renderScheduleTable) window.renderScheduleTable(window.allScheduledTests, window._enabledTestsMap||new Map()); };
@@ -1095,8 +1184,14 @@ function updateAttemptsDisplay() {
     // clear checkboxes
     document.querySelectorAll('#testSectionCheckboxes input[type="checkbox"]').forEach(cb => { cb.checked = false; cb.closest('label').style.background = 'white'; });
     document.getElementById('testSectionError').style.display = 'none';
-    ['testType', 'testDate', 'testDeadline'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    document.getElementById('testDeadlineTime').value = '23:59';
+['testType', 'testDate', 'testDeadline'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+const ccEl = document.getElementById('testCourseCode'); if (ccEl) ccEl.value = '';
+    document.getElementById('testType').disabled = true;
+    document.getElementById('testType').innerHTML = '<option value="">Select Course Code first</option>';
+    const jjGroup = document.getElementById('jumpingJacksCountGroup');
+    if (jjGroup) { jjGroup.style.display = 'none'; document.getElementById('jumpingJacksCount').value = ''; }
+
+        document.getElementById('testDeadlineTime').value = '23:59';
     document.getElementById('testTime').value = '00:00';
     document.getElementById('attemptsAllowed').value = '1';
     clearVideoURL();
@@ -2447,8 +2542,24 @@ window.closeManageStudentsModal = function() {
 
 // ── Schedule New Test ─────────────────────────────────────────────
 window.showScheduleTestModal = function() {
-    const container = document.getElementById('testSectionCheckboxes');
+const container = document.getElementById('testSectionCheckboxes');
     container.innerHTML = '';
+
+    // Populate course code dropdown from assignedSections
+    const ccDropdown = document.getElementById('testCourseCode');
+    const ccSet = new Set();
+    (window.assignedSections || []).forEach(s => { if (s.courseCode) ccSet.add(s.courseCode); });
+    ccDropdown.innerHTML = '<option value="">Select Course Code</option>';
+    [...ccSet].sort().forEach(cc => {
+        const o = document.createElement('option'); o.value = cc; o.textContent = cc;
+        ccDropdown.appendChild(o);
+    });
+
+    // Reset test type and section list until course code is chosen
+    document.getElementById('testType').innerHTML = '<option value="">Select Course Code first</option>';
+    document.getElementById('testType').disabled = true;
+    container.innerHTML = '<p class="text-text-muted text-sm">Select a Course Code first.</p>';
+
     if (!window.assignedSections?.length) {
         container.innerHTML = '<p class="text-text-muted text-sm">No sections assigned.</p>';
     } else {
@@ -2496,8 +2607,14 @@ window.scheduleTest = async function() {
     const checkedBoxes = document.querySelectorAll('#testSectionCheckboxes input[type="checkbox"]:checked');
     const selectedSections = Array.from(checkedBoxes).map(cb => cb.value);
 
+const courseCode = document.getElementById('testCourseCode')?.value || '';
+    const jumpingJacksCount = parseInt(document.getElementById('jumpingJacksCount')?.value || '0');
+
     if (!testType || !testDate || !testTime || !testDeadline || !testDeadlineTime) {
         showWarningModal('Please fill in all required fields.', () => {}, () => {}); return;
+    }
+    if (courseCode === 'PE 2' && (!jumpingJacksCount || jumpingJacksCount < 1)) {
+        showErrorModal('❌ Please enter the number of repetitions for this Jumping Jacks test.'); return;
     }
     if (selectedSections.length === 0) {
         document.getElementById('testSectionError').style.display = 'block'; return;
@@ -2535,8 +2652,9 @@ window.scheduleTest = async function() {
                 status, totalStudents: allEmails.length, completedStudents: 0, selectedStudents: allEmails,
                 sectionTime: secInfo?.time || 'Not Set', sectionDay: secInfo?.day || 'Not Set', sectionRoom: secInfo?.room || 'Not Set',
                 courseCode: secInfo?.courseCode || 'PE 3', createdAt: serverTimestamp(), isVisible: true, isActive: true, visibleToStudents: true,
-                videoURL: videoURL || '',
-                customNorms: null
+videoURL: videoURL || '',
+                customNorms: null,
+                targetRepetitions: courseCode === 'PE 2' ? jumpingJacksCount : null,
             };
             const docRef = await addDoc(collection(db, 'scheduledTests'), testData);
             
