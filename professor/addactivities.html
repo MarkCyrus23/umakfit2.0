@@ -1390,8 +1390,32 @@ async function classifyResult({ resultId, savedScore, testName, result, studentE
         return 'Average';
     }
 
-    // 1️⃣ Saved score — cheapest path
-    if (savedScore && savedScore !== '') return savedScore;
+    // 1️⃣ Professor target-based classification (must match student performance logic)
+    const numericValue = extractNumericResult(result);
+    const targetCandidates = [
+        testData?.targetRepetitions,
+        testData?.testTarget,
+        result?.targetRepetitions,
+        result?.testTarget
+    ];
+    let professorTarget = 0;
+    for (const candidate of targetCandidates) {
+        const parsed = Number(candidate);
+        if (!Number.isNaN(parsed) && parsed > 0) {
+            professorTarget = parsed;
+            break;
+        }
+    }
+    if (professorTarget > 0 && numericValue > 0) {
+        const n = (testName || '').toLowerCase();
+        const lowerIsBetter = n.includes('mile') || n.includes('run') || n.includes('step');
+        const pct = lowerIsBetter ? (professorTarget / numericValue) * 100 : (numericValue / professorTarget) * 100;
+        if (pct >= 100) return 'Excellent';
+        if (pct >= 80) return 'Good';
+        if (pct >= 60) return 'Average';
+        if (pct >= 40) return 'Below Average';
+        return 'Poor';
+    }
 
     // Build a deterministic cache key
     const cacheKey = resultId ? `result_${resultId}` : `${studentEmail}|${testName}|${extractNumericResult(result)}`;
@@ -1408,7 +1432,11 @@ async function classifyResult({ resultId, savedScore, testName, result, studentE
     const res = await normLookupGetCategory(db, { testName, result, studentEmail, gender, age });
     const cat = res?.category || 'Average';
     _normCache.set(cacheKey, cat);
-    return cat;
+    if (cat) return cat;
+
+    // 4️⃣ Saved score fallback only when no better source is available
+    if (savedScore && savedScore !== '') return savedScore;
+    return 'Average';
 }
 
 // ── Auth ──────────────────────────────────────────────────────────
