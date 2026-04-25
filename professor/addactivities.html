@@ -716,10 +716,10 @@
             <!-- Section -->
 <!-- PE 2 Jumping Jacks Count -->
             <div class="form-group" id="jumpingJacksCountGroup" style="display:none;">
-                <label class="form-label"><i class="fas fa-hashtag text-blue mr-1"></i> Number of Repetitions <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" id="jumpingJacksCount" min="1" max="9999" placeholder="e.g. 50" style="max-width:200px;">
-                <small class="text-text-muted text-xs mt-1 block">🏃 How many jumping jacks the student must complete</small>
-            </div>
+            <label class="form-label"><i class="fas fa-hashtag text-blue mr-1"></i> Number of Repetitions <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" id="jumpingJacksCount" min="1" max="9999" placeholder="e.g. 50" style="max-width:200px;">
+            <small class="text-text-muted text-xs mt-1 block">⭕ How many repetitions the student must complete</small>
+        </div>
 
             <!-- Section -->
             <div class="form-group">
@@ -993,9 +993,16 @@
 
     // ── Video helpers ──
     function toggleCustomURLInput() {
-    const preset = document.getElementById('videoPresetSelect').value;
+    const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
+    
+    // For PE 2, this button is hidden anyway, but just in case
+    if (courseCode === 'PE 2') return;
+    
     const w = document.getElementById('customURLWrapper');
     const errEl = document.getElementById('videoChangeError');
+    
+    // For PE 1, check if a preset is selected before showing custom input
+    const preset = document.getElementById('videoPresetSelect').value;
     if (!preset) {
         if (errEl) { errEl.style.display = 'block'; }
         return;
@@ -1005,19 +1012,123 @@
     if (!w.classList.contains('hidden')) document.getElementById('videoURL').focus();
 }
     function closeCustomURLInput()   { document.getElementById('customURLWrapper').classList.add('hidden'); document.getElementById('videoURL').value=''; }
-function applyPresetVideo() {
-    const s = document.getElementById('videoPresetSelect'), v = s.value;
-    const errEl = document.getElementById('videoChangeError');
-    if (errEl) errEl.style.display = 'none';
-    if (!v) { clearVideoURL(); return; }
-    document.getElementById('videoURLFinal').value = v;
-    showVideoPreview(s.options[s.selectedIndex].text, v);
-    closeCustomURLInput();
-    }    
-    function applyCustomVideo()      { const v=document.getElementById('videoURL').value.trim(); if(!v){showErrorModal('Please paste a YouTube URL first.');return;} if(!_isYT(v)){showErrorModal('Please enter a valid YouTube URL.');return;} document.getElementById('videoURLFinal').value=v; showVideoPreview('Custom Video',v); closeCustomURLInput(); }
-        function showVideoPreview(l,u)   { document.getElementById('videoPreviewLabel').textContent=l+' — '+u; document.getElementById('videoPreview').classList.remove('hidden'); }
-        function clearVideoURL()         { document.getElementById('videoURLFinal').value=''; document.getElementById('videoURL').value=''; document.getElementById('videoPresetSelect').value=''; document.getElementById('videoPreview').classList.add('hidden'); document.getElementById('videoPreviewLabel').textContent=''; closeCustomURLInput(); }
-        function _isYT(v)                { return v.includes('youtube.com/watch?v=')||v.includes('youtu.be/')||v.includes('youtube.com/embed/'); }
+    function applyPresetVideo() {
+        const s = document.getElementById('videoPresetSelect'), v = s.value;
+        const errEl = document.getElementById('videoChangeError');
+        if (errEl) errEl.style.display = 'none';
+        if (!v) { clearVideoURL(); return; }
+        document.getElementById('videoURLFinal').value = v;
+        showVideoPreview(s.options[s.selectedIndex].text, v);
+        closeCustomURLInput();
+        }    
+        function updateButtonState() {
+        const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
+        if (courseCode !== 'PE 2') return;
+        
+        const applyBtn = document.querySelector('#customURLWrapper .bg-success');
+        const currentURL = document.getElementById('videoURLFinal').value;
+        
+        if (applyBtn) {
+            if (currentURL) {
+                applyBtn.innerHTML = '<i class="fas fa-pencil-alt"></i> Change';
+                applyBtn.onclick = function() { toggleChangeMode(); };
+                applyBtn.classList.remove('bg-success');
+                applyBtn.classList.add('bg-blue');
+            } else {
+                applyBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                applyBtn.onclick = function() { applyCustomVideo(); };
+                applyBtn.classList.remove('bg-blue');
+                applyBtn.classList.add('bg-success');
+            }
+        }
+    }
+
+    function toggleChangeMode() {
+        const videoURLInput = document.getElementById('videoURL');
+        const currentURL = document.getElementById('videoURLFinal').value;
+        
+        // Show the input with current URL
+        videoURLInput.value = currentURL;
+        videoURLInput.focus();
+        
+        // Change the button to "Apply" mode temporarily
+        const applyBtn = document.querySelector('#customURLWrapper .bg-blue');
+        if (applyBtn) {
+            applyBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+            applyBtn.onclick = function() { applyCustomVideo(); };
+            applyBtn.classList.remove('bg-blue');
+            applyBtn.classList.add('bg-success');
+        }
+        
+        // Hide preview while editing
+        const videoPreview = document.getElementById('videoPreview');
+        if (videoPreview) videoPreview.classList.add('hidden');
+    }
+
+    function applyCustomVideo() {
+        const v = document.getElementById('videoURL').value.trim();
+        const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
+        
+        if (!v) {
+            showErrorModal('Please paste a YouTube URL first.');
+            return;
+        }
+        if (!_isYT(v)) {
+            showErrorModal('Please enter a valid YouTube URL.');
+            return;
+        }
+        
+        document.getElementById('videoURLFinal').value = v;
+        showVideoPreview('Custom Video', v);
+        document.getElementById('videoURL').value = '';
+        
+        // Close the custom wrapper and update button state
+        const customWrapper = document.getElementById('customURLWrapper');
+        if (courseCode === 'PE 2') {
+            // For PE2, keep wrapper visible but clear input
+            document.getElementById('videoURL').value = '';
+            updateButtonState();
+        } else {
+            closeCustomURLInput();
+        }
+    }
+
+function clearVideoURL() {
+    const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
+    const videoURLFinal = document.getElementById('videoURLFinal');
+    const videoURLInput = document.getElementById('videoURL');
+    const presetSelect = document.getElementById('videoPresetSelect');
+    const videoPreview = document.getElementById('videoPreview');
+    const customWrapper = document.getElementById('customURLWrapper');
+    
+    if (videoURLFinal) videoURLFinal.value = '';
+    if (videoURLInput) videoURLInput.value = '';
+    if (presetSelect) presetSelect.value = '';
+    if (videoPreview) videoPreview.classList.add('hidden');
+    if (videoPreview) {
+        const label = document.getElementById('videoPreviewLabel');
+        if (label) label.textContent = '';
+    }
+    
+    // Only close custom wrapper if not in PE 2 mode
+    if (courseCode !== 'PE 2' && customWrapper) {
+        customWrapper.classList.add('hidden');
+    }
+    
+    // Update button state for PE2
+    if (courseCode === 'PE 2') {
+        updateButtonState();
+    }
+}
+
+    function showVideoPreview(label, url) {
+        document.getElementById('videoPreviewLabel').textContent = label + ' — ' + url;
+        document.getElementById('videoPreview').classList.remove('hidden');
+    }
+
+    function _isYT(v) {
+        return v.includes('youtube.com/watch?v=') || v.includes('youtu.be/') || v.includes('youtube.com/embed/');
+    }
 
         function toggleEditCustomURLInput() {
         const preset = document.getElementById('editVideoPresetSelect').value;
@@ -1040,11 +1151,55 @@ function applyPresetVideo() {
     }
     function closeEditCustomURLInput()  { document.getElementById('editCustomURLWrapper').classList.add('hidden'); document.getElementById('editVideoURL').value=''; }
     function applyEditPresetVideo()     { const s=document.getElementById('editVideoPresetSelect'),v=s.value; if(!v){clearEditVideoURL();return;} document.getElementById('editVideoURLFinal').value=v; showEditVideoPreview(s.options[s.selectedIndex].text,v); closeEditCustomURLInput(); }
-    function applyEditCustomVideo()     { const v=document.getElementById('editVideoURL').value.trim(); if(!v){showErrorModal('Please paste a YouTube URL first.');return;} if(!_isYT(v)){showErrorModal('Please enter a valid YouTube URL.');return;} document.getElementById('editVideoURLFinal').value=v; showEditVideoPreview('Custom Video',v); closeEditCustomURLInput(); }
+    function applyEditCustomVideo() {
+    const v = document.getElementById('editVideoURL').value.trim();
+    if (!v) {
+        showErrorModal('Please paste a YouTube URL first.');
+        return;
+    }
+    if (!_isYT(v)) {
+        showErrorModal('Please enter a valid YouTube URL.');
+        return;
+    }
+    
+    document.getElementById('editVideoURLFinal').value = v;
+    showEditVideoPreview('Custom Video', v);
+    document.getElementById('editVideoURL').value = '';
+    closeEditCustomURLInput();
+    
+    // Update button to "Change" after applying
+    const applyBtn = document.querySelector('#editCustomURLWrapper .bg-success');
+    if (applyBtn) {
+        applyBtn.innerHTML = '<i class="fas fa-pencil-alt"></i> Change';
+        applyBtn.onclick = function() { toggleEditChangeMode(); };
+        applyBtn.classList.remove('bg-success');
+        applyBtn.classList.add('bg-blue');
+    }
+}
+        function toggleEditChangeMode() {
+    const videoURLInput = document.getElementById('editVideoURL');
+    const currentURL = document.getElementById('editVideoURLFinal').value;
+    
+    // Show the input with current URL
+    videoURLInput.value = currentURL;
+    videoURLInput.focus();
+    
+    // Change the button back to "Apply" mode temporarily
+    const applyBtn = document.querySelector('#editCustomURLWrapper .bg-blue');
+    if (applyBtn) {
+        applyBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+        applyBtn.onclick = function() { applyEditCustomVideo(); };
+        applyBtn.classList.remove('bg-blue');
+        applyBtn.classList.add('bg-success');
+    }
+    
+    // Hide preview while editing
+    const videoPreview = document.getElementById('editVideoPreview');
+    if (videoPreview) videoPreview.classList.add('hidden');
+}
     function showEditVideoPreview(l,u)  { document.getElementById('editVideoPreviewLabel').textContent=l+' — '+u; document.getElementById('editVideoPreview').classList.remove('hidden'); }
     function clearEditVideoURL()        { document.getElementById('editVideoURLFinal').value=''; document.getElementById('editVideoURL').value=''; document.getElementById('editVideoPresetSelect').value=''; document.getElementById('editVideoPreview').classList.add('hidden'); document.getElementById('editVideoPreviewLabel').textContent=''; closeEditCustomURLInput(); }
 
-    // REPLACE the existing updateAttemptsDisplay function with this:
 function updateAttemptsDisplay() {
     const t = (document.getElementById('testType').value || '').toLowerCase();
     const one = t.includes('skinfold') || t.includes('step test') || t.includes('3-minute');
@@ -1052,54 +1207,120 @@ function updateAttemptsDisplay() {
     document.getElementById('attemptsDisplay').value = one ? '1 Attempt' : '2 Attempts';
 
     const selectedTest = document.getElementById('testType').value;
-    const presetSelect = document.getElementById('videoPresetSelect');
     const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
-
-    // For PE 2, PE 3, PE 4 — hide video section entirely, no presets needed
     const videoSection = document.getElementById('videoURLSection');
-    if (courseCode && courseCode !== 'PE 1') {
+    const presetSelect = document.getElementById('videoPresetSelect');
+    const customWrapper = document.getElementById('customURLWrapper');
+    const presetRow = document.querySelector('#videoURLSection .flex.gap-2.mb-2');
+    const videoPreview = document.getElementById('videoPreview');
+
+    // No course code selected yet — hide video section entirely
+    if (!courseCode) {
         if (videoSection) videoSection.style.display = 'none';
         clearVideoURL();
         return;
     }
 
-    // PE 1 — show video section
-    if (videoSection) videoSection.style.display = '';
+    // PE 3, PE 4 — hide video section entirely
+    if (courseCode !== 'PE 1' && courseCode !== 'PE 2') {
+        if (videoSection) videoSection.style.display = 'none';
+        clearVideoURL();
+        return;
+    }
 
-    const presetMap = {
-        'push-up test': 'Push-Up Test',
-        'curl-up test': 'Curl-Up Test',
-        '3-minute step test': 'Step Test',
-        'sit-and-reach': 'Sit-and-Reach Test',
-        'skinfold caliper': 'Skinfold Caliper',
-    };
-    const matchLabel = presetMap[selectedTest.toLowerCase()] || '';
-
-    presetSelect.innerHTML = '<option value="">— Select a preset video —</option>';
-    const allPresets = [
-        { value: 'https://www.youtube.com/watch?v=hX45cEWKUO0', label: 'Push-Up Test' },
-        { value: 'https://www.youtube.com/watch?v=gVTvCaScQx4', label: 'Curl-Up Test' },
-        { value: 'https://www.youtube.com/watch?v=RE2zONJbfYI', label: '3-Minute Step Test' },
-        { value: 'https://www.youtube.com/watch?v=vOH16gNAFxE', label: 'Sit-and-Reach Test' },
-        { value: 'https://www.youtube.com/watch?v=2243TPIBOI8', label: 'Skinfold Caliper' },
-    ];
-
-    if (!selectedTest) {
-        allPresets.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.value; opt.textContent = p.label;
-            presetSelect.appendChild(opt);
-        });
-    } else {
-        const matched = allPresets.find(p => p.label.toLowerCase().includes(matchLabel.toLowerCase().split(' ')[0]));
-        if (matched) {
-            const opt = document.createElement('option');
-            opt.value = matched.value; opt.textContent = matched.label;
-            presetSelect.appendChild(opt);
-            presetSelect.value = matched.value;
-            document.getElementById('videoURLFinal').value = matched.value;
-            showVideoPreview(matched.label, matched.value);
+    // PE 2 — show video section with ONLY the URL input (no preset dropdown)
+    if (courseCode === 'PE 2') {
+        if (videoSection) videoSection.style.display = '';
+        
+        // HIDE the entire preset select row
+        if (presetRow) presetRow.style.display = 'none';
+        
+        // Show the custom URL wrapper
+        if (customWrapper) {
+            customWrapper.classList.remove('hidden');
+            customWrapper.style.display = 'block';
+            customWrapper.style.marginTop = '0';
         }
+        
+        // Reset video preview and ensure clean state
+        if (videoPreview) videoPreview.classList.add('hidden');
+        
+        // Update button state based on existing URL
+        updateButtonState();
+        
+        // Clear input field but keep existing URL if any
+        const videoURLInput = document.getElementById('videoURL');
+        if (videoURLInput) videoURLInput.value = '';
+        
+        return;
+    }
+
+    // PE 1 — show video section with presets enabled
+    if (courseCode === 'PE 1') {
+        if (videoSection) videoSection.style.display = '';
+        
+        // SHOW the preset select row
+        if (presetRow) presetRow.style.display = 'flex';
+        
+        // Hide custom wrapper and reset it for PE1
+        if (customWrapper) {
+            customWrapper.classList.add('hidden');
+            customWrapper.style.display = 'none';
+        }
+        
+        // Reset custom URL input field
+        const videoURLInput = document.getElementById('videoURL');
+        if (videoURLInput) videoURLInput.value = '';
+        
+        presetSelect.disabled = false;
+        presetSelect.style.opacity = '';
+        presetSelect.style.cursor = 'pointer';
+
+        const presetMap = {
+            'push-up test': 'Push-Up Test',
+            'curl-up test': 'Curl-Up Test',
+            '3-minute step test': 'Step Test',
+            'sit-and-reach': 'Sit-and-Reach Test',
+            'skinfold caliper': 'Skinfold Caliper',
+        };
+        const matchLabel = presetMap[selectedTest.toLowerCase()] || '';
+
+        // Rebuild preset select options
+        presetSelect.innerHTML = '<option value="">— Select a preset video —</option>';
+        const allPresets = [
+            { value: 'https://www.youtube.com/watch?v=hX45cEWKUO0', label: 'Push-Up Test' },
+            { value: 'https://www.youtube.com/watch?v=gVTvCaScQx4', label: 'Curl-Up Test' },
+            { value: 'https://www.youtube.com/watch?v=RE2zONJbfYI', label: '3-Minute Step Test' },
+            { value: 'https://www.youtube.com/watch?v=vOH16gNAFxE', label: 'Sit-and-Reach Test' },
+            { value: 'https://www.youtube.com/watch?v=2243TPIBOI8', label: 'Skinfold Caliper' },
+        ];
+
+        if (!selectedTest) {
+            allPresets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.value; opt.textContent = p.label;
+                presetSelect.appendChild(opt);
+            });
+        } else {
+            const matched = allPresets.find(p => p.label.toLowerCase().includes(matchLabel.toLowerCase().split(' ')[0]));
+            if (matched) {
+                const opt = document.createElement('option');
+                opt.value = matched.value; opt.textContent = matched.label;
+                presetSelect.appendChild(opt);
+                presetSelect.value = matched.value;
+                document.getElementById('videoURLFinal').value = matched.value;
+                showVideoPreview(matched.label, matched.value);
+            } else {
+                presetSelect.value = '';
+                clearVideoURL();
+            }
+        }
+        
+        // Reset any error messages
+        const errEl = document.getElementById('videoChangeError');
+        if (errEl) errEl.style.display = 'none';
+        
+        return;
     }
 }
 function generateReports()    { showInfoModal('Report generation feature coming soon!'); }
@@ -1116,65 +1337,74 @@ function generateReports()    { showInfoModal('Report generation feature coming 
     };
 
     function handleScheduleCourseCodeChange() {
-        const cc = document.getElementById('testCourseCode').value;
-        const testSel = document.getElementById('testType');
-        const container = document.getElementById('testSectionCheckboxes');
+    const cc = document.getElementById('testCourseCode').value;
+    const testSel = document.getElementById('testType');
+    const container = document.getElementById('testSectionCheckboxes');
 
-        // 1. Update test type options
-        const tests = _SCHEDULE_TESTS[cc] || [];
-        if (!cc || tests.length === 0) {
-            testSel.innerHTML = cc ? '<option value="">No tests defined for ' + cc + ' yet</option>'
-                                   : '<option value="">Select Course Code first</option>';
-            testSel.disabled = true;
-        } else {
-            testSel.innerHTML = '<option value="">Select Test Type</option>' +
-                tests.map(t => `<option value="${t}">${t}</option>`).join('');
-            testSel.disabled = false;
-        }
-testSel.value = '';
-        clearVideoURL();
-        document.getElementById('attemptsAllowed').value = '2';
-        document.getElementById('attemptsDisplay').value = '2 Attempts';
-
-        // Show jumping jacks count input only for PE 2
-        const jjGroup = document.getElementById('jumpingJacksCountGroup');
-        if (jjGroup) {
-            jjGroup.style.display = cc === 'PE 2' ? '' : 'none';
-            const jjInput = document.getElementById('jumpingJacksCount');
-            if (jjInput && cc !== 'PE 2') jjInput.value = '';
-        }
-
-        // 2. Filter section checkboxes by course code
-        container.innerHTML = '';
-        if (!cc) {
-            container.innerHTML = '<p class="text-text-muted text-sm">Select a Course Code first.</p>';
-            return;
-        }
-        const filtered = (window.assignedSections || []).filter(s => s.courseCode === cc);
-        if (!filtered.length) {
-            container.innerHTML = '<p class="text-text-muted text-sm">No sections found for ' + cc + '.</p>';
-            return;
-        }
-        const seen = new Set();
-        filtered.forEach(s => {
-            if (seen.has(s.section)) return; seen.add(s.section);
-            const label = document.createElement('label');
-            label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;transition:background 0.15s;';
-            label.innerHTML = `<input type="checkbox" value="${s.section}" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
-                <span>
-                    <strong>${s.section}</strong>
-                    <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:4px;">${s.courseCode}</span>
-                    <span style="color:#8a98ae;font-size:12px;"> (${s.students} students) — ${s.time||'TBA'} / ${s.day||'TBA'}</span>
-                </span>`;
-            label.addEventListener('mouseenter', () => label.style.background = '#f3f4f6');
-            label.addEventListener('mouseleave', () => { const cb = label.querySelector('input'); label.style.background = cb.checked ? '#eff6ff' : 'white'; });
-            label.querySelector('input').addEventListener('change', function() {
-                label.style.background = this.checked ? '#eff6ff' : 'white';
-                document.getElementById('testSectionError').style.display = 'none';
-            });
-            container.appendChild(label);
-        });
+    // 1. Update test type options
+    const tests = _SCHEDULE_TESTS[cc] || [];
+    if (!cc || tests.length === 0) {
+        testSel.innerHTML = cc ? '<option value="">No tests defined for ' + cc + ' yet</option>'
+                               : '<option value="">Select Course Code first</option>';
+        testSel.disabled = true;
+    } else {
+        testSel.innerHTML = '<option value="">Select Test Type</option>' +
+            tests.map(t => `<option value="${t}">${t}</option>`).join('');
+        testSel.disabled = false;
     }
+    testSel.value = '';
+    clearVideoURL();
+    // Reset preset select state
+    const presetSelect = document.getElementById('videoPresetSelect');
+    presetSelect.disabled = false;
+    presetSelect.style.opacity = '';
+    document.getElementById('customURLWrapper').classList.add('hidden');
+    document.getElementById('attemptsAllowed').value = '2';
+    document.getElementById('attemptsDisplay').value = '2 Attempts';
+    
+    // Trigger video section visibility based on newly selected course code
+    updateAttemptsDisplay();
+
+    // Show jumping jacks count input only for PE 2
+    const jjGroup = document.getElementById('jumpingJacksCountGroup');
+    if (jjGroup) {
+        jjGroup.style.display = cc === 'PE 2' ? '' : 'none';
+        const jjInput = document.getElementById('jumpingJacksCount');
+        if (jjInput && cc !== 'PE 2') jjInput.value = '';
+    }
+
+    // 2. Filter section checkboxes by course code
+    container.innerHTML = '';
+    if (!cc) {
+        container.innerHTML = '<p class="text-text-muted text-sm">Select a Course Code first.</p>';
+        return;
+    }
+    const filtered = (window.assignedSections || []).filter(s => s.courseCode === cc);
+    if (!filtered.length) {
+        container.innerHTML = '<p class="text-text-muted text-sm">No sections found for ' + cc + '.</p>';
+        return;
+    }
+    const seen = new Set();
+    filtered.forEach(s => {
+        if (seen.has(s.section)) return; seen.add(s.section);
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;transition:background 0.15s;';
+        label.innerHTML = `<input type="checkbox" value="${s.section}" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;">
+            <span>
+                <strong>${s.section}</strong>
+                <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:4px;">${s.courseCode}</span>
+                <span style="color:#8a98ae;font-size:12px;"> (${s.students} students) — ${s.time||'TBA'} / ${s.day||'TBA'}</span>
+            </span>`;
+        label.addEventListener('mouseenter', () => label.style.background = '#f3f4f6');
+        label.addEventListener('mouseleave', () => { const cb = label.querySelector('input'); label.style.background = cb.checked ? '#eff6ff' : 'white'; });
+        label.querySelector('input').addEventListener('change', function() {
+            label.style.background = this.checked ? '#eff6ff' : 'white';
+            document.getElementById('testSectionError').style.display = 'none';
+        });
+        container.appendChild(label);
+    });
+}
+window.handleScheduleCourseCodeChange = handleScheduleCourseCodeChange;
     window.handleScheduleCourseCodeChange = handleScheduleCourseCodeChange;
     function filterResultsTable() { window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
     function clearResultFilters() { document.getElementById('searchResults').value=''; document.getElementById('filterSection').value=''; window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
@@ -1195,6 +1425,10 @@ const ccEl = document.getElementById('testCourseCode'); if (ccEl) ccEl.value = '
     document.getElementById('testTime').value = '00:00';
     document.getElementById('attemptsAllowed').value = '1';
     clearVideoURL();
+    // Reset preset select state
+    const presetSelect = document.getElementById('videoPresetSelect');
+    if (presetSelect) { presetSelect.disabled = false; presetSelect.style.opacity = ''; }
+    document.getElementById('customURLWrapper')?.classList.add('hidden');
     const sb = document.querySelector('#scheduleTestModal .modal-footer button:last-child');
     if (sb) { sb.disabled = false; sb.textContent = 'Schedule Test'; }
     if (window.currentUser) window.loadScheduledTests(window.currentUser.email, window.currentUser.uid);
@@ -2542,7 +2776,7 @@ window.closeManageStudentsModal = function() {
 
 // ── Schedule New Test ─────────────────────────────────────────────
 window.showScheduleTestModal = function() {
-const container = document.getElementById('testSectionCheckboxes');
+    const container = document.getElementById('testSectionCheckboxes');
     container.innerHTML = '';
 
     // Populate course code dropdown from assignedSections
@@ -2559,6 +2793,24 @@ const container = document.getElementById('testSectionCheckboxes');
     document.getElementById('testType').innerHTML = '<option value="">Select Course Code first</option>';
     document.getElementById('testType').disabled = true;
     container.innerHTML = '<p class="text-text-muted text-sm">Select a Course Code first.</p>';
+    
+    // Hide video URL section initially
+    const videoSection = document.getElementById('videoURLSection');
+    if (videoSection) videoSection.style.display = 'none';
+    
+    // Reset video related elements
+    clearVideoURL();
+    
+    // Reset custom wrapper state
+    const customWrapper = document.getElementById('customURLWrapper');
+    if (customWrapper) {
+        customWrapper.classList.add('hidden');
+        customWrapper.style.display = 'none';
+    }
+    
+    // Reset preset row visibility
+    const presetRow = document.querySelector('#videoURLSection .flex.gap-2.mb-2');
+    if (presetRow) presetRow.style.display = 'flex';
 
     if (!window.assignedSections?.length) {
         container.innerHTML = '<p class="text-text-muted text-sm">No sections assigned.</p>';
@@ -2577,8 +2829,8 @@ const container = document.getElementById('testSectionCheckboxes');
         });
     }
     document.getElementById('testType').value = '';
-    clearVideoURL();
-    updateAttemptsDisplay();
+    const presetSelect = document.getElementById('videoPresetSelect');
+    if (presetSelect) { presetSelect.disabled = false; presetSelect.style.opacity = ''; }
     document.getElementById('attemptsAllowed').value = '2';
     document.getElementById('attemptsDisplay').value = '2 Attempts';
     updateAttemptsDisplay();
@@ -2776,26 +3028,189 @@ window.deleteTest = testId => {
 window.editTest = async function(testId) {
     try {
         document.getElementById('editTestModal').style.display='flex';
-        const ds=await getDoc(doc(db,'scheduledTests',testId)); if(!ds.exists()){showErrorModal('Test not found');return;}
-        const td=ds.data();
-        document.getElementById('editTestName').value         = td.testName||'';
-        document.getElementById('editTestSection').value      = td.section||'';
-        document.getElementById('editTestDate').value         = td.date||'';
-        document.getElementById('editTestTime').value         = td.time||'00:00';
-        document.getElementById('editTestDeadline').value     = td.deadline||'';
-        document.getElementById('editTestDeadlineTime').value = td.deadlineTime||'23:59';
-        document.getElementById('editAttemptsAllowed').value  = `${td.attemptsAllowed||1} Attempt(s)`;
-        document.getElementById('editTestId').value           = testId;
-        const ev=td.videoURL||'';
-        document.getElementById('editVideoURLFinal').value=ev;
-        if (ev) { const ps=document.getElementById('editVideoPresetSelect'); let m=false; for(let i=0;i<ps.options.length;i++){if(ps.options[i].value===ev){ps.value=ev;showEditVideoPreview(ps.options[i].text,ev);m=true;break;}} if(!m){ps.value='';showEditVideoPreview('Custom Video',ev);} }
-        else clearEditVideoURL();
+        const ds = await getDoc(doc(db, 'scheduledTests', testId));
+        if (!ds.exists()) {
+            showErrorModal('Test not found');
+            return;
+        }
+        const td = ds.data();
+        
+        // Basic test info
+        document.getElementById('editTestName').value = td.testName || '';
+        document.getElementById('editTestSection').value = td.section || '';
+        document.getElementById('editTestDate').value = td.date || '';
+        document.getElementById('editTestTime').value = td.time || '00:00';
+        document.getElementById('editTestDeadline').value = td.deadline || '';
+        document.getElementById('editTestDeadlineTime').value = td.deadlineTime || '23:59';
+        document.getElementById('editAttemptsAllowed').value = `${td.attemptsAllowed || 1} Attempt(s)`;
+        document.getElementById('editTestId').value = testId;
+        
+        const courseCode = td.courseCode || '';
+        const existingVideoURL = td.videoURL || '';
+        
+        console.log('Loading test with URL:', existingVideoURL); // Debugging
+        console.log('Course Code:', courseCode);
+        
+        // Set the hidden input value
+        document.getElementById('editVideoURLFinal').value = existingVideoURL;
+        
+        const presetRow = document.querySelector('#editTestModal .flex.gap-2.mb-2');
+        const customWrapper = document.getElementById('editCustomURLWrapper');
+        const presetSelect = document.getElementById('editVideoPresetSelect');
+        
+        if (courseCode === 'PE 2') {
+            // Hide preset dropdown for PE 2
+            if (presetRow) presetRow.style.display = 'none';
+            if (customWrapper) {
+                customWrapper.classList.remove('hidden');
+                customWrapper.style.display = 'block';
+                customWrapper.style.marginTop = '0';
+            }
+            
+            // Show the existing URL if there is one
+            if (existingVideoURL) {
+                // Show preview
+                showEditVideoPreview('Current Video', existingVideoURL);
+                
+                // Change button to "Change" mode
+                const applyBtn = document.querySelector('#editCustomURLWrapper .bg-success');
+                if (applyBtn) {
+                    applyBtn.innerHTML = '<i class="fas fa-pencil-alt"></i> Change';
+                    applyBtn.onclick = function() { toggleEditChangeMode(); };
+                    applyBtn.classList.remove('bg-success');
+                    applyBtn.classList.add('bg-blue');
+                }
+            } else {
+                // No URL, button shows "Apply"
+                const applyBtn = document.querySelector('#editCustomURLWrapper .bg-success');
+                if (applyBtn) {
+                    applyBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                    applyBtn.onclick = function() { applyEditCustomVideo(); };
+                    applyBtn.classList.remove('bg-blue');
+                    applyBtn.classList.add('bg-success');
+                }
+                clearEditVideoURL();
+            }
+        } else {
+            // For PE 1 - show preset dropdown
+            if (presetRow) presetRow.style.display = 'flex';
+            if (customWrapper) customWrapper.classList.add('hidden');
+            
+            if (existingVideoURL && presetSelect) {
+                let matched = false;
+                for (let i = 0; i < presetSelect.options.length; i++) {
+                    if (presetSelect.options[i].value === existingVideoURL) {
+                        presetSelect.value = existingVideoURL;
+                        showEditVideoPreview(presetSelect.options[i].text, existingVideoURL);
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) {
+                    presetSelect.value = '';
+                    showEditVideoPreview('Custom Video', existingVideoURL);
+                }
+            } else {
+                clearEditVideoURL();
+            }
+        }
+        
         await loadEditNormPanel(td);
-        const sb=document.querySelector('#editTestModal .modal-footer button:last-child');
-        if(sb){sb.disabled=false;sb.textContent='Save Changes';}
-    } catch(e) { showErrorModal('Error loading test: '+e.message); }
+        const sb = document.querySelector('#editTestModal .modal-footer button:last-child');
+        if (sb) {
+            sb.disabled = false;
+            sb.textContent = 'Save Changes';
+        }
+    } catch(e) { 
+        showErrorModal('Error loading test: ' + e.message);
+    }
 };
+        function updateEditVideoSection(courseCode, currentVideoURL) {
+    const editVideoSection = document.querySelector('#editTestModal .form-group:first-child');
+    const presetRow = document.querySelector('#editTestModal .flex.gap-2.mb-2');
+    const customWrapper = document.getElementById('editCustomURLWrapper');
+    const presetSelect = document.getElementById('editVideoPresetSelect');
+    const changeButton = document.querySelector('#editTestModal .flex.gap-2.mb-2 .bg-blue');
+    
+    if (!editVideoSection) return;
+    
+    // For PE 2 - hide preset dropdown, show only custom URL input
+    if (courseCode === 'PE 2') {
+        // Hide the preset select row entirely
+        if (presetRow) presetRow.style.display = 'none';
+        
+        // Show and prepare custom URL wrapper
+        if (customWrapper) {
+            customWrapper.classList.remove('hidden');
+            customWrapper.style.display = 'block';
+            customWrapper.style.marginTop = '0';
+        }
+        
+        // Update the button in custom wrapper to show "Change" if URL exists
+        const applyBtn = document.querySelector('#editCustomURLWrapper .bg-success');
+        if (applyBtn) {
+            if (currentVideoURL) {
+                applyBtn.innerHTML = '<i class="fas fa-pencil-alt"></i> Change';
+                applyBtn.onclick = function() { toggleEditChangeMode(); };
+                applyBtn.classList.remove('bg-success');
+                applyBtn.classList.add('bg-blue');
+                // Show preview
+                showEditVideoPreview('Custom Video', currentVideoURL);
+            } else {
+                applyBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                applyBtn.onclick = function() { applyEditCustomVideo(); };
+                applyBtn.classList.remove('bg-blue');
+                applyBtn.classList.add('bg-success');
+            }
+        }
+        
+        // Clear any preset selection
+        if (presetSelect) presetSelect.value = '';
+    } else {
+        // For PE 1 - show preset dropdown normally
+        if (presetRow) presetRow.style.display = 'flex';
+        if (customWrapper) customWrapper.classList.add('hidden');
+        
+        // Populate preset if video URL matches a preset
+        if (currentVideoURL && presetSelect) {
+            let matched = false;
+            for (let i = 0; i < presetSelect.options.length; i++) {
+                if (presetSelect.options[i].value === currentVideoURL) {
+                    presetSelect.value = currentVideoURL;
+                    showEditVideoPreview(presetSelect.options[i].text, currentVideoURL);
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                presetSelect.value = '';
+                showEditVideoPreview('Custom Video', currentVideoURL);
+            }
+        }
+    }
+}
 
+function toggleEditChangeMode() {
+    const videoURLInput = document.getElementById('editVideoURL');
+    const currentURL = document.getElementById('editVideoURLFinal').value;
+    
+    // Show the input with current URL
+    videoURLInput.value = currentURL;
+    videoURLInput.focus();
+    
+    // Change the button to "Apply" mode temporarily
+    const applyBtn = document.querySelector('#editCustomURLWrapper .bg-blue');
+    if (applyBtn) {
+        applyBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+        applyBtn.onclick = function() { applyEditCustomVideo(); };
+        applyBtn.classList.remove('bg-blue');
+        applyBtn.classList.add('bg-success');
+    }
+    
+    // Hide preview while editing
+    const videoPreview = document.getElementById('editVideoPreview');
+    if (videoPreview) videoPreview.classList.add('hidden');
+}
 window.closeEditTestModal = () => {
     document.getElementById('editTestModal').style.display = 'none';
     // Always wipe norm state so it doesn't bleed into the next edit session
@@ -2804,32 +3219,69 @@ window.closeEditTestModal = () => {
 };
 
 window.saveEditTest = async function() {
-    const testId=document.getElementById('editTestId').value;
-    const nd=document.getElementById('editTestDate').value, nt=document.getElementById('editTestTime').value;
-    const ndd=document.getElementById('editTestDeadline').value, nddt=document.getElementById('editTestDeadlineTime').value;
-    const nv=document.getElementById('editVideoURLFinal').value, norm=readEditNorms();
-    if (!nd||!nt||!ndd||!nddt) { showWarningModal('Please fill in all required fields.',()=>{},()=>{}); return; }
-    if (nv && !_isYT(nv)) { showErrorModal('Please provide a valid YouTube URL.'); return; }
-    const tdt=new Date(`${nd}T${nt}`), ddt=new Date(`${ndd}T${nddt}`);
-    if (ddt<=tdt) { showErrorModal('❌ Deadline must be after test date/time.'); return; }
-    const sb=document.querySelector('#editTestModal .modal-footer button:last-child');
-    const cb=document.querySelector('#editTestModal .modal-footer button:first-child');
-    const orig=sb?.textContent||'Save Changes';
+    const testId = document.getElementById('editTestId').value;
+    const nd = document.getElementById('editTestDate').value;
+    const nt = document.getElementById('editTestTime').value;
+    const ndd = document.getElementById('editTestDeadline').value;
+    const nddt = document.getElementById('editTestDeadlineTime').value;
+    const nv = document.getElementById('editVideoURLFinal').value;
+    const norm = readEditNorms();
+    
+    if (!nd || !nt || !ndd || !nddt) { 
+        showWarningModal('Please fill in all required fields.', () => {}, () => {}); 
+        return; 
+    }
+    if (nv && !_isYT(nv)) { 
+        showErrorModal('Please provide a valid YouTube URL.'); 
+        return; 
+    }
+    
+    const tdt = new Date(`${nd}T${nt}`);
+    const ddt = new Date(`${ndd}T${nddt}`);
+    if (ddt <= tdt) { 
+        showErrorModal('❌ Deadline must be after test date/time.'); 
+        return; 
+    }
+    
+    const sb = document.querySelector('#editTestModal .modal-footer button:last-child');
+    const cb = document.querySelector('#editTestModal .modal-footer button:first-child');
+    const orig = sb?.textContent || 'Save Changes';
+    
     try {
-        if(sb){sb.disabled=true;sb.textContent='Saving...';} if(cb) cb.disabled=true;
-        const now=new Date();
-        await updateDoc(doc(db,'scheduledTests',testId),{
-            date:nd, time:nt, dateTime:tdt.toISOString(), deadline:ndd, deadlineTime:nddt, deadlineDateTime:ddt.toISOString(), videoURL:nv,
-            customNorms:norm?{thresholds:norm.thresholds,lowerIsBetter:norm.lowerIsBetter,source:norm.source,setAt:new Date().toISOString()}:null,
-            status:tdt<=now&&ddt>=now?'active':ddt<now?'completed':'scheduled', updatedAt:serverTimestamp()
+        if(sb) { sb.disabled = true; sb.textContent = 'Saving...'; }
+        if(cb) cb.disabled = true;
+        
+        const now = new Date();
+        await updateDoc(doc(db, 'scheduledTests', testId), {
+            date: nd,
+            time: nt,
+            dateTime: tdt.toISOString(),
+            deadline: ndd,
+            deadlineTime: nddt,
+            deadlineDateTime: ddt.toISOString(),
+            videoURL: nv || '',  // Save the URL (can be empty)
+            customNorms: norm ? {
+                thresholds: norm.thresholds,
+                lowerIsBetter: norm.lowerIsBetter,
+                source: norm.source,
+                setAt: new Date().toISOString()
+            } : null,
+            status: tdt <= now && ddt >= now ? 'active' : ddt < now ? 'completed' : 'scheduled',
+            updatedAt: serverTimestamp()
         });
-        if(sb){sb.disabled=false;sb.textContent=orig;} if(cb) cb.disabled=false;
+        
+        if(sb) { sb.disabled = false; sb.textContent = orig; }
+        if(cb) cb.disabled = false;
+        
         window.closeEditTestModal();
-        showSuccessModal('✅ Test updated!');
+        showSuccessModal('✅ Test updated successfully!');
+        
+        // Refresh the schedule table
         await loadScheduledTests(window.currentUser.email, window.currentUser.uid);
     } catch(e) {
-        showErrorModal('Error: '+e.message);
-        if(sb){sb.disabled=false;sb.textContent=orig;} if(cb) cb.disabled=false;
+        showErrorModal('Error: ' + e.message);
+        if(sb) { sb.disabled = false; sb.textContent = orig; }
+        if(cb) cb.disabled = false;
     }
 };
 
