@@ -355,11 +355,36 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
         function cleanupAllListeners() { activeListeners.forEach(fn => { try { fn(); } catch (_) {} }); activeListeners.length = 0; }
 
         const testCategories = {
-            'Cardiorespiratory Endurance': { tests: ['3-Minute Step Test', 'step test'], icon: '❤️' },
-            'Muscular Strength and Endurance': { tests: ['Curl-Up Test', 'curl-up', 'Push-Up Test', 'push-up'], icon: '💪' },
-            'Flexibility': { tests: ['Sit-and-Reach', 'sit and reach'], icon: '🤸' },
-            'Body Composition': { tests: ['Skinfold Caliper Measurements', 'skinfold'], icon: '⚖️' }
+            'Cardiorespiratory Endurance': { tests: ['3-Minute Step Test'], icon: '❤️' },
+            'Muscular Strength and Endurance': { tests: ['Curl-Up Test', 'Push-Up Test'], icon: '💪' },
+            'Flexibility': { tests: ['Sit-and-Reach'], icon: '🤸' },
+            'Body Composition': { tests: ['Skinfold Caliper Measurements'], icon: '⚖️' }
         };
+function getPECategory(courseCode) {
+    const code = (courseCode || 'PE2').toUpperCase();
+    return { [`${code} Activities`]: { tests: [], icon: '🏃' } };
+}
+
+function normalizeCourseCode(value) {
+    const normalized = String(value || '').toUpperCase().replace(/\s+/g, '');
+    if (normalized === 'PE1') return 'PE1';
+    if (normalized.startsWith('PE')) return normalized; // PE2, PE3, PE4, etc.
+    return 'PE1';
+}
+
+        async function resolveCourseCodeFromSection(sectionName, fallbackCode) {
+            const section = String(sectionName || '').trim();
+            if (section && section !== 'Not Assigned') {
+                try {
+                    const sectionSnap = await getDocs(query(collection(db, 'sections'), where('name', '==', section)));
+                    if (!sectionSnap.empty) {
+                        const sectionData = sectionSnap.docs[0].data();
+                        if (sectionData?.courseCode) return normalizeCourseCode(sectionData.courseCode);
+                    }
+                } catch (_) {}
+            }
+            return normalizeCourseCode(fallbackCode);
+        }
 
         // ========== NORM HELPERS ==========
 
@@ -401,7 +426,9 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
             return 'Poor';
         }
 
-        function getCategoryForTest(testName) {
+function getCategoryForTest(testName) {
+    const course = (studentData?.courseCode || 'PE1').toUpperCase();
+    if (course !== 'PE1') return `${course} Activities`;
             for (const [category, data] of Object.entries(testCategories)) {
                 if (data.tests.some(t => { const tl = testName.toLowerCase(); const cl = t.toLowerCase(); return tl.includes(cl) || cl.includes(tl); })) return category;
             }
@@ -510,19 +537,24 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
             return 0;
         }
 
-        function isPeNoNormCourse(result = {}) {
-            const candidates = [
-                result?.courseCode,
-                result?.result?.courseCode,
-                result?.resultData?.courseCode
-            ];
-            const scheduledId = result?.testId || result?.scheduledTestId;
-            if (scheduledId) {
-                const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
-                candidates.push(scheduledData?.courseCode);
-            }
-            return candidates.some(code => /^pe\s*[234]$/i.test(String(code || '').trim()));
-        }
+ function isPeNoNormCourse(result = {}) {
+    // Primary: use student's own course code (most reliable)
+    const studentCourse = (studentData?.courseCode || '').toUpperCase().replace(/\s+/g, '');
+    if (studentCourse && studentCourse !== 'PE1') return true;
+
+    // Fallback: check result document fields (for legacy data)
+    const candidates = [
+        result?.courseCode,
+        result?.result?.courseCode,
+        result?.resultData?.courseCode
+    ];
+    const scheduledId = result?.testId || result?.scheduledTestId;
+    if (scheduledId) {
+        const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
+        candidates.push(scheduledData?.courseCode);
+    }
+    return candidates.some(code => /^pe\s*[2-9](\d+)?$/i.test(String(code || '').trim()));
+}
 
         function getFallbackScore(testName, result) {
             const rawValue = extractNumericResult(result?.resultData ?? result?.result);
@@ -811,17 +843,20 @@ if (!snap1.empty) {
         rawStudent = snap2.docs[0].data();
         studentDocId = snap2.docs[0].id;
     }
-}            studentData = rawStudent ? {
+}
+            const resolvedCourseCode = await resolveCourseCodeFromSection(rawStudent?.section, rawStudent?.courseCode || rawStudent?.course);
+            studentData = rawStudent ? {
                 displayName: `${rawStudent.firstName || ''} ${rawStudent.lastName || ''}`.trim() || user.displayName || user.email.split('@')[0],
                 email: rawStudent.email || user.email,
                 section: rawStudent.section || 'Not Assigned',
                 gender: rawStudent.gender || '',
                 age: rawStudent.age || 0,
                 birthday: rawStudent.birthday || null,
-                ...rawStudent
+                ...rawStudent,
+                courseCode: resolvedCourseCode
             } : {
                 displayName: user.displayName || user.email.split('@')[0],
-                email: user.email, section: 'Not Assigned'
+                email: user.email, section: 'Not Assigned', courseCode: 'PE1'
             };
 
             updateProfileUI();
@@ -879,8 +914,10 @@ function processAndRender(rawResults, assignedCount) {
             const testResults = Object.values(testGroups);
 
             // Build category data
+const course = (studentData?.courseCode || 'PE1').toUpperCase();
+const categoriesSource = course === 'PE1' ? testCategories : getPECategory(course);
             const categoryData = {};
-            Object.keys(testCategories).forEach(cat => { categoryData[cat] = { categories: [], tests: [], scores: [] }; });
+            Object.keys(categoriesSource).forEach(cat => { categoryData[cat] = { categories: [], tests: [], scores: [] }; });
             const overallCategories = [];
 
             testResults.forEach(result => {
@@ -893,9 +930,9 @@ function processAndRender(rawResults, assignedCount) {
                 categoryData[result.category].scores.push(numericScore);
             }
             // Tag kung PE 2 ang result
-            if (isPeNoNormCourse(result)) {
-                categoryData[result.category].isPe2 = true;
-            }
+if (isPeNoNormCourse(result)) {
+    categoryData[result.category].isNonPE1 = true;
+}
         }
         categoryData[result.category].tests.push({ name: result.testName, normCategory: result.normCategory });
     }
@@ -906,30 +943,29 @@ function processAndRender(rawResults, assignedCount) {
             const overallNoteEl = document.getElementById('overallNote');
 
             // Collect all numeric scores across every completed test (deduped by testId above)
-            const pe2Results = testResults.filter(r => isPeNoNormCourse(r));
-            const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
-            let overallCat = null;
+const nonPE1Results = testResults.filter(r => isPeNoNormCourse(r));
+const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
+let overallCat = null;
 
-            if (pe2Results.length > 0 && pe1Results.length === 0) {
-                // Pure PE 2 — pct-based score average
-                const pe2Scores = pe2Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s >= 0);
-                if (pe2Scores.length > 0) {
-                    const avgScore = pe2Scores.reduce((a, b) => a + b, 0) / pe2Scores.length;
-                    overallCat = scoreToCategory(avgScore);
-                }
-            } else if (pe1Results.length > 0 && pe2Results.length === 0) {
-                // Pure PE 1 — norm category rank average (respects professor-edited norms)
-                const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
-                if (pe1Categories.length > 0) {
-                    const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
-                    overallCat = rankToCategory(avgRank);
-                }
-            } else if (overallCategories.length > 0) {
-                // Mixed fallback
-                const avgRank = overallCategories.map(normCategoryRank).reduce((a, b) => a + b, 0) / overallCategories.length;
-                overallCat = rankToCategory(avgRank);
-            }
-
+if (nonPE1Results.length > 0 && pe1Results.length === 0) {
+    // Pure PE2/PE3/PE4+ — score-based average
+    const scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s >= 0);
+    if (scores.length > 0) {
+        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+        overallCat = scoreToCategory(avgScore);
+    }
+} else if (pe1Results.length > 0 && nonPE1Results.length === 0) {
+    // Pure PE1 — norm category rank average
+    const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
+    if (pe1Categories.length > 0) {
+        const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
+        overallCat = rankToCategory(avgRank);
+    }
+} else if (overallCategories.length > 0) {
+    // Mixed fallback
+    const avgRank = overallCategories.map(normCategoryRank).reduce((a, b) => a + b, 0) / overallCategories.length;
+    overallCat = rankToCategory(avgRank);
+}
             if (overallCat) {
                 overallStandingEl.innerHTML = `<span class="norm-badge ${normCategoryClass(overallCat)} text-sm px-4 py-2"><i class="bi ${normCategoryIcon(overallCat)}"></i> ${overallCat}</span>`;
                 overallNoteEl.textContent = `Based on ${testResults.length} test${testResults.length !== 1 ? 's' : ''} completed`;
@@ -957,8 +993,8 @@ function processAndRender(rawResults, assignedCount) {
                 if (!data.tests.length) return;
                 hasData = true;
                 let dominantCat = null;
-                if (data.isPe2 && data.scores.length > 0) {
-                    const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+if (data.isNonPE1 && data.scores.length > 0) {
+                        const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
                     dominantCat = scoreToCategory(avgScore);
                 } else if (data.categories.length > 0) {
                     const avgRank = data.categories.map(normCategoryRank).reduce((a,b) => a+b, 0) / data.categories.length;

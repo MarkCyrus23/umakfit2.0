@@ -412,12 +412,35 @@
     };
     
     // PE2 uses a single generic category shown for all non-PE1 tests
-    const pe2Category = {
-    'PE2 Activities': {
-        icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png',
-        subtitle: 'Jumping Rope & PE2 fitness activities'
-    }
-};
+function getPECategory(courseCode) {
+    const code = (courseCode || 'PE2').toUpperCase();
+    return {
+        [`${code} Activities`]: {
+            icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png',
+            subtitle: `${code} fitness activities`
+        }
+    };
+}
+function normalizeCourseCode(value) {
+    const normalized = String(value || '').toUpperCase().replace(/\s+/g, '');
+    if (normalized === 'PE1') return 'PE1';
+    if (normalized.startsWith('PE')) return normalized; // PE2, PE3, PE4, etc.
+    return 'PE1';
+}
+
+        async function resolveCourseCodeFromSection(sectionName, fallbackCode) {
+            const section = String(sectionName || '').trim();
+            if (section && section !== 'Not Assigned') {
+                try {
+                    const sectionSnap = await getDocs(query(collection(db, 'sections'), where('name', '==', section)));
+                    if (!sectionSnap.empty) {
+                        const sectionData = sectionSnap.docs[0].data();
+                        if (sectionData?.courseCode) return normalizeCourseCode(sectionData.courseCode);
+                    }
+                } catch (_) {}
+            }
+            return normalizeCourseCode(fallbackCode);
+        }
 
         // ========== NORM HELPERS ==========
         function getStudentAgeForNorms() {
@@ -606,6 +629,7 @@
 
             // Phase 1: student doc (needed for everything else)
             const rawStudent = await fetchStudentDoc(user.email.toLowerCase()) || await fetchStudentDoc(user.email);
+            const resolvedCourseCode = await resolveCourseCodeFromSection(rawStudent?.section, rawStudent?.courseCode || rawStudent?.course);
 
             studentData = {
                 displayName: user.displayName || (rawStudent ? `${rawStudent.firstName || ''} ${rawStudent.lastName || ''}`.trim() : '') || user.email.split('@')[0] || 'Student',
@@ -620,8 +644,8 @@
                 testsDone: rawStudent?.testsDone || 0,
                 overallScore: rawStudent?.overallScore || 0,
                 weekStreak: rawStudent?.weekStreak || 0,
-                courseCode: rawStudent?.courseCode || 'PE1',   // <-- ADD THIS LINE
-                ...(rawStudent || {})
+                ...(rawStudent || {}),
+                courseCode: resolvedCourseCode
             };
             updateProfileUI();
 
@@ -768,14 +792,14 @@ function renderCategoryCards(attemptsMap) {
             html += buildCategoryCardHTML(category, categoryData, tests, attemptsMap);
         }
         container.innerHTML = html;
- 
-    } else {
-        // ── PE2 logic: single category with ALL scheduled tests ─────────────
-        const catData = pe2Category['PE2 Activities'];
-        const html = buildCategoryCardHTML('PE2 Activities', catData, availableTests, attemptsMap);
+} else {
+        // ── PE2/PE3/PE4 logic: single category with ALL scheduled tests ──────
+        const peCategories = getPECategory(course);
+        const catName = Object.keys(peCategories)[0];
+        const catData = peCategories[catName];
+        const html = buildCategoryCardHTML(catName, catData, availableTests, attemptsMap);
         container.innerHTML = html;
     }
- 
     // Restore expanded state
     expandedIds.forEach(id => {
         const el = document.getElementById(id);
@@ -1543,9 +1567,9 @@ function setupOverduePollFallback() {
 }
         // ========== HELPERS ==========
 
-        function getCategoryForTest(testName) {
+function getCategoryForTest(testName) {
     const course = (studentData?.courseCode || 'PE1').toUpperCase();
-    if (course !== 'PE1') return 'PE2 Activities';
+    if (course !== 'PE1') return `${course} Activities`;
 
     for (const [category, data] of Object.entries(testCategories)) {
         if (data.tests.some(t => {
@@ -1618,7 +1642,7 @@ function setupOverduePollFallback() {
     const container = document.getElementById('categoryCardsContainer');
     const course = (studentData?.courseCode || 'PE1').toUpperCase();
     const isPE1 = course === 'PE1';
-    const categoriesToShow = isPE1 ? testCategories : pe2Category;
+    const categoriesToShow = isPE1 ? testCategories : getPECategory(course);
  
     let html = '';
     for (const [category, categoryData] of Object.entries(categoriesToShow)) {

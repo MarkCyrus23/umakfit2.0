@@ -1002,12 +1002,17 @@
     window.showInfoModal  = showInfoModal;
     window.showErrorModal = showErrorModal;
 
+    function isRepetitionCourse(courseCode) {
+        const cc = String(courseCode || '').trim().toUpperCase();
+        return cc === 'PE 2' || cc === 'PE 3';
+    }
+
     // ── Video helpers ──
     function toggleCustomURLInput() {
     const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
     
-    // For PE 2, this button is hidden anyway, but just in case
-    if (courseCode === 'PE 2') return;
+    // For PE 2/PE 3, this button is hidden anyway, but just in case
+    if (isRepetitionCourse(courseCode)) return;
     
     const w = document.getElementById('customURLWrapper');
     const errEl = document.getElementById('videoChangeError');
@@ -1034,7 +1039,7 @@
         }    
         function updateButtonState() {
         const courseCode = (document.getElementById('testCourseCode')?.value || '').trim();
-        if (courseCode !== 'PE 2') return;
+        if (!isRepetitionCourse(courseCode)) return;
         
         const applyBtn = document.querySelector('#customURLWrapper .bg-success');
         const currentURL = document.getElementById('videoURLFinal').value;
@@ -1095,8 +1100,8 @@
         
         // Close the custom wrapper and update button state
         const customWrapper = document.getElementById('customURLWrapper');
-        if (courseCode === 'PE 2') {
-            // For PE2, keep wrapper visible but clear input
+        if (isRepetitionCourse(courseCode)) {
+            // For PE2/PE3, keep wrapper visible but clear input
             document.getElementById('videoURL').value = '';
             updateButtonState();
         } else {
@@ -1121,13 +1126,13 @@ function clearVideoURL() {
         if (label) label.textContent = '';
     }
     
-    // Only close custom wrapper if not in PE 2 mode
-    if (courseCode !== 'PE 2' && customWrapper) {
+    // Only close custom wrapper if not in PE 2/PE 3 mode
+    if (!isRepetitionCourse(courseCode) && customWrapper) {
         customWrapper.classList.add('hidden');
     }
     
-    // Update button state for PE2
-    if (courseCode === 'PE 2') {
+    // Update button state for PE2/PE3
+    if (isRepetitionCourse(courseCode)) {
         updateButtonState();
     }
 }
@@ -1232,15 +1237,15 @@ function updateAttemptsDisplay() {
         return;
     }
 
-    // PE 3, PE 4 — hide video section entirely
-    if (courseCode !== 'PE 1' && courseCode !== 'PE 2') {
+    // Courses outside PE 1/2/3 hide video section entirely
+    if (courseCode !== 'PE 1' && !isRepetitionCourse(courseCode)) {
         if (videoSection) videoSection.style.display = 'none';
         clearVideoURL();
         return;
     }
 
-    // PE 2 — show video section with ONLY the URL input (no preset dropdown)
-    if (courseCode === 'PE 2') {
+    // PE 2 / PE 3 — show video section with ONLY the URL input (no preset dropdown)
+    if (isRepetitionCourse(courseCode)) {
         if (videoSection) videoSection.style.display = '';
         
         // HIDE the entire preset select row
@@ -1376,12 +1381,12 @@ function generateReports()    { showInfoModal('Report generation feature coming 
     // Trigger video section visibility based on newly selected course code
     updateAttemptsDisplay();
 
-    // Show jumping jacks count input only for PE 2
+    // Show repetitions input for PE 2 / PE 3
     const jjGroup = document.getElementById('jumpingJacksCountGroup');
     if (jjGroup) {
-        jjGroup.style.display = cc === 'PE 2' ? '' : 'none';
+        jjGroup.style.display = isRepetitionCourse(cc) ? '' : 'none';
         const jjInput = document.getElementById('jumpingJacksCount');
-        if (jjInput && cc !== 'PE 2') jjInput.value = '';
+        if (jjInput && !isRepetitionCourse(cc)) jjInput.value = '';
     }
 
     // 2. Filter section checkboxes by course code
@@ -2944,8 +2949,8 @@ const courseCode = document.getElementById('testCourseCode')?.value || '';
     if (!testType || !testDate || !testTime || !testDeadline || !testDeadlineTime) {
         showWarningModal('Please fill in all required fields.', () => {}, () => {}); return;
     }
-    if (courseCode === 'PE 2' && (!jumpingJacksCount || jumpingJacksCount < 1)) {
-        showErrorModal('❌ Please enter the number of repetitions for this Jumping Jacks test.'); return;
+    if (isRepetitionCourse(courseCode) && (!jumpingJacksCount || jumpingJacksCount < 1)) {
+        showErrorModal('❌ Please enter the required number of repetitions for this test.'); return;
     }
     if (selectedSections.length === 0) {
         document.getElementById('testSectionError').style.display = 'block'; return;
@@ -2985,7 +2990,7 @@ const courseCode = document.getElementById('testCourseCode')?.value || '';
                 courseCode: secInfo?.courseCode || 'PE 3', createdAt: serverTimestamp(), isVisible: true, isActive: true, visibleToStudents: true,
 videoURL: videoURL || '',
                 customNorms: null,
-                targetRepetitions: courseCode === 'PE 2' ? jumpingJacksCount : null,
+                targetRepetitions: isRepetitionCourse(courseCode) ? jumpingJacksCount : null,
             };
             const docRef = await addDoc(collection(db, 'scheduledTests'), testData);
             
@@ -3137,8 +3142,8 @@ window.editTest = async function(testId) {
         const customWrapper = document.getElementById('editCustomURLWrapper');
         const presetSelect = document.getElementById('editVideoPresetSelect');
         
-        if (courseCode === 'PE 2') {
-            // Hide preset dropdown for PE 2
+        if (isRepetitionCourse(courseCode)) {
+            // Hide preset dropdown for PE 2 / PE 3
             if (presetRow) presetRow.style.display = 'none';
             if (customWrapper) {
                 customWrapper.classList.remove('hidden');
@@ -3195,7 +3200,7 @@ window.editTest = async function(testId) {
         }
             const editJRGroup = document.getElementById('editJumpingRopeCountGroup');
         if (editJRGroup) {
-            if (courseCode === 'PE 2') {
+            if (isRepetitionCourse(courseCode)) {
                 editJRGroup.style.display = '';
                 document.getElementById('editJumpingRopeCount').value = td.targetRepetitions || '';
             } else {
@@ -3222,8 +3227,8 @@ window.editTest = async function(testId) {
     
     if (!editVideoSection) return;
     
-    // For PE 2 - hide preset dropdown, show only custom URL input
-    if (courseCode === 'PE 2') {
+    // For PE 2 / PE 3 - hide preset dropdown, show only custom URL input
+    if (isRepetitionCourse(courseCode)) {
         // Hide the preset select row entirely
         if (presetRow) presetRow.style.display = 'none';
         
@@ -3329,8 +3334,8 @@ window.saveEditTest = async function() {
     const editCourseCode = editTestDoc.data()?.courseCode || '';
     const editJumpingRopeCount = parseInt(document.getElementById('editJumpingRopeCount')?.value || '0');
 
-    if (editCourseCode === 'PE 2' && (!editJumpingRopeCount || editJumpingRopeCount < 1)) {
-        showErrorModal('❌ Please enter the number of repetitions for this Jumping Rope test.'); return;
+    if (isRepetitionCourse(editCourseCode) && (!editJumpingRopeCount || editJumpingRopeCount < 1)) {
+        showErrorModal('❌ Please enter the required number of repetitions for this test.'); return;
     }
     
     
@@ -3358,7 +3363,7 @@ window.saveEditTest = async function() {
             deadlineTime: nddt,
             deadlineDateTime: ddt.toISOString(),
             videoURL: nv || '',
-            targetRepetitions: editCourseCode === 'PE 2' ? editJumpingRopeCount : null,
+            targetRepetitions: isRepetitionCourse(editCourseCode) ? editJumpingRopeCount : null,
             customNorms: norm ? {
                 thresholds: norm.thresholds,
                 lowerIsBetter: norm.lowerIsBetter,

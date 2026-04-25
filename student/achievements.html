@@ -494,9 +494,20 @@ function normCategoryToScore(cat) {
     return map[cat] || 75;
 }
 
+function scoreToCategory(score) {
+    const n = Number(score);
+    if (Number.isNaN(n)) return null;
+    if (n >= 100) return 'Excellent';
+    if (n >= 80) return 'Good';
+    if (n >= 60) return 'Average';
+    if (n >= 40) return 'Below Average';
+    return 'Poor';
+}
+
 // ========== CATEGORY ==========
 
 function getTestCategory(testName) {
+    if (!isPE1Course()) return 'PE2 Activities';
     if (!testName) return 'Other';
     const n = testName.toLowerCase();
     if (n.includes('step') || n.includes('3-minute') || n.includes('run') || n.includes('mile') || n.includes('cardio')) return 'Cardiorespiratory';
@@ -515,11 +526,36 @@ function getWeekNumber(date) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
+function normalizeCourseCode(value) {
+    const normalized = String(value || '').toUpperCase().replace(/\s+/g, '');
+    if (normalized === 'PE1') return 'PE1';
+    if (normalized === 'PE2') return 'PE2';
+    return 'PE1';
+}
+
+function isPE1Course() {
+    return normalizeCourseCode(studentData?.courseCode || studentData?.course) === 'PE1';
+}
+
 // ========== PARALLEL DATA FETCHING ==========
 
 async function fetchStudentDoc(email) {
     const snap = await getDocs(query(collection(db, 'students'), where('email', '==', email)));
     return snap.empty ? null : snap.docs[0].data();
+}
+
+async function resolveCourseCodeFromSection(sectionName, fallbackCode) {
+    const section = String(sectionName || '').trim();
+    if (section && section !== 'Not Assigned') {
+        try {
+            const sectionSnap = await getDocs(query(collection(db, 'sections'), where('name', '==', section)));
+            if (!sectionSnap.empty) {
+                const sectionData = sectionSnap.docs[0].data();
+                if (sectionData?.courseCode) return normalizeCourseCode(sectionData.courseCode);
+            }
+        } catch (_) {}
+    }
+    return normalizeCourseCode(fallbackCode);
 }
 
 async function fetchTestResultsRaw(email) {
@@ -546,6 +582,7 @@ async function loadPage(user) {
 
     // Phase 1: student doc
 const rawStudent = await fetchStudentDoc(user.email.toLowerCase()) || await fetchStudentDoc(user.email);
+    const resolvedCourseCode = await resolveCourseCodeFromSection(rawStudent?.section, rawStudent?.courseCode || rawStudent?.course);
     const displayName = rawStudent
         ? (user.displayName || `${rawStudent.firstName || ''} ${rawStudent.lastName || ''}`.trim() || user.email.split('@')[0])
         : (user.displayName || user.email.split('@')[0]);
@@ -554,6 +591,7 @@ const rawStudent = await fetchStudentDoc(user.email.toLowerCase()) || await fetc
         uid: user.uid, displayName,
         email: rawStudent.email || user.email,
         studentId: rawStudent.umakId || rawStudent.studentId || '000000',
+        courseCode: resolvedCourseCode,
         course: rawStudent.department || rawStudent.course || rawStudent.courseCode || 'Not Assigned',
         section: rawStudent.section || 'Not Assigned',
         firstName: rawStudent.firstName || '', lastName: rawStudent.lastName || '',
@@ -650,15 +688,30 @@ const achievementList = [
     { id: 'complete_all',     title: 'UMakFit Legend',    description: 'Unlock all achievements', category: 'performance', tier: 'platinum', points: 2000, icon: 'bi-crown' }
 ];
 
+const pe2AchievementList = [
+    { id: 'first_test',            title: 'First Step',         description: 'Complete your first PE2 activity test', category: 'tests', tier: 'bronze', points: 100, icon: 'bi-flag' },
+    { id: 'test_master',           title: 'Activity Starter',   description: 'Complete 5 PE2 activity tests', category: 'tests', tier: 'silver', points: 250, icon: 'bi-clipboard-check' },
+    { id: 'pe2_good',              title: 'PE2 Challenger',     description: 'Reach "Good" or above in any PE2 activity', category: 'performance', tier: 'silver', points: 300, icon: 'bi-award' },
+    { id: 'pe2_excellent',         title: 'PE2 Elite',          description: 'Reach "Excellent" in any PE2 activity', category: 'performance', tier: 'gold', points: 500, icon: 'bi-star' },
+    { id: 'pe2_top_performer',     title: 'Top Performer',      description: 'Achieve "Good" or above in all completed PE2 activity tests', category: 'performance', tier: 'gold', points: 400, icon: 'bi-trophy' },
+    { id: 'profile_complete',      title: 'Profile Pioneer',    description: 'Complete your profile with all required information', category: 'profile', tier: 'bronze', points: 50, icon: 'bi-person-check' },
+    { id: 'week_streak',           title: 'Consistency King',   description: 'Complete tests in 3 consecutive weeks', category: 'performance', tier: 'silver', points: 300, icon: 'bi-fire' },
+    { id: 'pe2_activity_complete', title: 'Activity Explorer',  description: 'Complete at least one PE2 activity', category: 'tests', tier: 'bronze', points: 150, icon: 'bi-lightning-charge' },
+    { id: 'pe2_consistent_10',     title: 'PE2 Dedicated',      description: 'Complete 10 PE2 activity tests', category: 'tests', tier: 'platinum', points: 1000, icon: 'bi-award' },
+    { id: 'complete_all',          title: 'UMakFit Legend',     description: 'Unlock all PE2 achievements', category: 'performance', tier: 'platinum', points: 2000, icon: 'bi-crown' }
+];
+
 // ========== CHECK ACHIEVEMENTS (sync — all norm data already cached) ==========
 
 function checkAchievements() {
     const storedUnlocked = localStorage.getItem(`achievements_unlocked_${studentData?.email}`);
     previousUnlockedCount = storedUnlocked ? parseInt(storedUnlocked) : 0;
-    achievements = JSON.parse(JSON.stringify(achievementList));
+    const selectedList = isPE1Course() ? achievementList : pe2AchievementList;
+    achievements = JSON.parse(JSON.stringify(selectedList));
     unlockedAchievements = [];
 
     const normTestResults = testResults.filter(r => r.normCategory);
+    const pe2ScoreResults = testResults.map(r => ({ ...r, resolvedCategory: scoreToCategory(r.score) }));
 
     for (const achievement of achievements) {
         let isUnlocked = false;
@@ -699,6 +752,21 @@ function checkAchievements() {
             case 'all_categories':
                 isUnlocked = testCategoriesCompleted.size >= 4;
                 break;
+            case 'pe2_good':
+                isUnlocked = pe2ScoreResults.some(r => ['Excellent', 'Good'].includes(r.resolvedCategory));
+                break;
+            case 'pe2_excellent':
+                isUnlocked = pe2ScoreResults.some(r => r.resolvedCategory === 'Excellent');
+                break;
+            case 'pe2_top_performer':
+                if (pe2ScoreResults.length > 0) isUnlocked = pe2ScoreResults.every(r => ['Excellent', 'Good'].includes(r.resolvedCategory));
+                break;
+            case 'pe2_activity_complete':
+                isUnlocked = testCategoriesCompleted.has('PE2 Activities');
+                break;
+            case 'pe2_consistent_10':
+                isUnlocked = testResults.length >= 10;
+                break;
             case 'complete_all':
                 break; // handled after loop
         }
@@ -735,6 +803,8 @@ function buildAchievementCard(achievement) {
 
     if (achievement.id === 'test_master') { progressInfo = `(${testResults.length}/5 tests)`; progressValue = testResults.length; progressMax = 5; }
     else if (achievement.id === 'all_categories') { progressInfo = `(${testCategoriesCompleted.size}/4 categories)`; progressValue = testCategoriesCompleted.size; progressMax = 4; }
+    else if (achievement.id === 'pe2_activity_complete') { progressInfo = `(${testCategoriesCompleted.has('PE2 Activities') ? 1 : 0}/1 activity group)`; progressValue = testCategoriesCompleted.has('PE2 Activities') ? 1 : 0; progressMax = 1; }
+    else if (achievement.id === 'pe2_consistent_10') { progressInfo = `(${testResults.length}/10 tests)`; progressValue = testResults.length; progressMax = 10; }
 
     const normTests = testResults.filter(r => r.normCategory);
     if (achievement.id === 'norm_excellent' && normTests.length > 0) {
@@ -746,6 +816,14 @@ function buildAchievementCard(achievement) {
     }
     if (achievement.id === 'norm_average' && normTests.length > 0 && !isUnlocked) {
         progressInfo = `Best so far: ${normTests[0]?.normCategory || '—'}`;
+    }
+    if (achievement.id === 'pe2_excellent' && testResults.length > 0 && !isUnlocked) {
+        const bestScore = Math.max(...testResults.map(r => Number(r.score || 0)));
+        progressInfo = `Best so far: ${scoreToCategory(bestScore) || '—'}`;
+    }
+    if (achievement.id === 'pe2_good' && testResults.length > 0 && !isUnlocked) {
+        const bestScore = Math.max(...testResults.map(r => Number(r.score || 0)));
+        progressInfo = `Best so far: ${scoreToCategory(bestScore) || '—'}`;
     }
 
     return `
