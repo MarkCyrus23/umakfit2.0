@@ -1658,9 +1658,8 @@ window.startTimer = async function() {
             function calculateFallbackCategory(testName, rawResult, testTarget) {
     const nCheck = (testName || '').toLowerCase();
     // PE 2 jump rope: percentage-based on targetRepetitions
-    if (nCheck.includes('jump rope') || nCheck.includes('jumprope') || nCheck.includes('jump-rope') || nCheck.includes('skipping')) {
-        const target = currentTest?.targetRepetitions || testTarget || 0;
-        if (target <= 0) return 'Average';
+if (nCheck.includes('jump rope') || nCheck.includes('jumprope') || nCheck.includes('jump-rope') || nCheck.includes('skipping')) {
+        const target = parseInt(currentTest?.targetRepetitions) || parseInt(testTarget) || 0;        if (target <= 0) return 'Average';
         const val = parseFloat(rawResult) || 0;
         const pct = (val / target) * 100;
         if (pct >= 100) return 'Excellent';
@@ -1669,19 +1668,31 @@ window.startTimer = async function() {
         if (pct >= 40)  return 'Below Average';
         return 'Poor';
     }
-    const effectiveTarget = currentTest?.targetRepetitions || testTarget || 0;
-    const score = calculateScoreWithTarget(testName, rawResult, effectiveTarget);
-    if (score >= 100) return 'Excellent';
-    if (score >= 90)  return 'Good';
-    if (score >= 80)  return 'Average';
-    if (score >= 70)  return 'Below Average';
+const effectiveTarget = parseInt(currentTest?.targetRepetitions) || parseInt(testTarget) || 0;
+
+if (effectiveTarget > 0) {
+    const val = parseFloat(rawResult) || 0;
+    const pct = (val / effectiveTarget) * 100;
+    if (pct >= 100) return 'Excellent';
+    if (pct >= 80)  return 'Good';
+    if (pct >= 60)  return 'Average';
+    if (pct >= 40)  return 'Below Average';
     return 'Poor';
+}
+
+// No target — use score-based fallback (unchanged behavior)
+const score = calculateScoreWithTarget(testName, rawResult, effectiveTarget);
+if (score >= 100) return 'Excellent';
+if (score >= 90)  return 'Good';
+if (score >= 80)  return 'Average';
+if (score >= 70)  return 'Below Average';
+return 'Poor';
 }
         function calculateScoreWithTarget(testName, rawResult, testTarget) {
             const n = testName.toLowerCase(); const v = parseFloat(rawResult);
             if (n.includes('skinfold')) { if (v < 12) return 100; if (v < 18) return 90; if (v < 28) return 75; if (v < 32) return 60; return 50; }
             if (!testTarget || testTarget <= 0) return calculateDefaultScore(n, v);
-            function pct(val, tgt, lower) { const p = lower ? (tgt / val) * 100 : (val / tgt) * 100; if (p >= 100) return 100; if (p >= 90) return 95; if (p >= 80) return 90; if (p >= 70) return 85; if (p >= 60) return 80; if (p >= 50) return 75; if (p >= 40) return 70; return Math.max(50, Math.round(p)); }
+            function pct(val, tgt, lower) { const p = lower ? (tgt / val) * 100 : (val / tgt) * 100; if (p >= 100) return 100; if (p >= 80) return 90; if (p >= 60) return 80; if (p >= 40) return 70; return 60; }
               if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') ||
                 n.includes('curl-up') || n.includes('curl up')) {
                 return pct(v, testTarget, false);
@@ -1786,20 +1797,49 @@ window.startTimer = async function() {
                 document.getElementById('submitBtn').disabled = true;
                 document.getElementById('submitBtn').innerHTML = `<span class="btn-text-one"><i class="bi bi-hourglass-split"></i> Submitting...</span><span class="btn-text-two"><i class="bi bi-hourglass-split"></i> Submitting...</span>`;
 
-               const [normResult, attSnap] = await Promise.all([
-                getNormCategoryWithPriority(currentTest.testName, rawResult, currentTest.id),
-                getDocs(query(collection(db,'testResults'), where('testId','==',currentTest.id), where('studentEmail','==',studentData.email)))
-            ]);
+const professorTarget = parseInt(currentTest.targetRepetitions) || parseInt(currentTest.testTarget) || 0;
+const testNameLower = (currentTest.testName || '').toLowerCase();
+const isJumpRopeTest = !!(testNameLower.match(/jump rope|jumprope|jump-rope|skipping/));
 
-           const rawNormCategory = normResult || calculateFallbackCategory(currentTest.testName, rawResult, currentTest.targetRepetitions || currentTest.testTarget);
-            const calculatedScore = mapNormCategoryToScore(rawNormCategory);
+// Jump rope has no fitness norms — always target-based, skip norm lookup entirely
+const skipNormLookup = isJumpRopeTest || professorTarget > 0;
 
-            const isJumpRope = (currentTest.testName || '').toLowerCase().match(/jump rope|jumprope|jump-rope|skipping/);
-            const normCategory = isJumpRope
-                ? (calculatedScore >= 100 ? 'Excellent' : calculatedScore >= 90 ? 'Good' : calculatedScore >= 80 ? 'Average' : calculatedScore >= 70 ? 'Below Average' : 'Poor')
-                : rawNormCategory;
+const [normResult, attSnap] = await Promise.all([
+    skipNormLookup ? Promise.resolve(null) : getNormCategoryWithPriority(currentTest.testName, rawResult, currentTest.id),
+    getDocs(query(collection(db,'testResults'), where('testId','==',currentTest.id), where('studentEmail','==',studentData.email)))
+]);
+const isJumpRope = isJumpRopeTest; // reuse already-computed flag
 
-                const currentAttempts = attSnap.size;
+let normCategory;
+let calculatedScore;
+
+if (isJumpRope) {
+    const target = parseInt(currentTest.targetRepetitions) || parseInt(currentTest.testTarget) || 0;
+    const val = parseFloat(rawResult) || 0;
+    const pct = target > 0 ? (val / target) * 100 : 0;
+
+    if (target <= 0) {
+        // No target set — default to Average
+        normCategory = 'Average';
+        calculatedScore = 80;
+    } else if (pct >= 100)     { normCategory = 'Excellent';     calculatedScore = 100; }
+    else if (pct >= 80)        { normCategory = 'Good';          calculatedScore = 90;  }
+    else if (pct >= 60)        { normCategory = 'Average';       calculatedScore = 80;  }
+    else if (pct >= 40)        { normCategory = 'Below Average'; calculatedScore = 70;  }
+    else                       { normCategory = 'Poor';          calculatedScore = 60;  }
+
+} else {
+    let rawNormCategory;
+
+    if (professorTarget > 0) {
+        rawNormCategory = calculateFallbackCategory(currentTest.testName, rawResult, professorTarget);
+    } else {
+        rawNormCategory = normResult || calculateFallbackCategory(currentTest.testName, rawResult, 0);
+    }
+
+    calculatedScore = mapNormCategoryToScore(rawNormCategory);
+    normCategory = rawNormCategory;
+}                const currentAttempts = attSnap.size;
                 const isFirst = currentAttempts === 0;
                 const attemptNumber = currentAttempts + 1;
 

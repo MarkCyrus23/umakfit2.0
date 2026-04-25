@@ -437,9 +437,11 @@
         }
             const isLower = n.includes('step test') || n.includes('3-minute');
             const pct = isLower ? (testTarget / val) * 100 : (val / testTarget) * 100;
-            if (pct >= 100) return 100; if (pct >= 90) return 95; if (pct >= 80) return 90;
-            if (pct >= 70) return 85; if (pct >= 60) return 80;
-            return Math.max(50, Math.round(pct));
+            if (pct >= 100) return 100;
+            if (pct >= 80) return 90;
+            if (pct >= 60) return 80;
+            if (pct >= 40) return 70;
+            return 60;
  
         }
 
@@ -877,20 +879,45 @@ const active = allNotifs.filter(n => {
 
             try {
                 // ✅ Fetch result doc and scheduled test doc in parallel
-                const [resultDoc, scheduledTestDoc] = await Promise.all([
+                const [resultDoc, initialScheduledTestDoc] = await Promise.all([
                     getDoc(doc(db,'testResults',resultId)),
                     testId ? getDoc(doc(db,'scheduledTests',testId)) : Promise.resolve(null)
                 ]);
 
                 if (!resultDoc.exists()) { showErrorPopup('Result not found.', () => window.location.href = './test.html'); return; }
 
-                const data = resultDoc.data();
+                let data = resultDoc.data();
                 const scheduledTestId = data.testId || data.scheduledTestId || testId || null;
+                let scheduledTestDoc = initialScheduledTestDoc;
+                if ((!scheduledTestDoc || !scheduledTestDoc.exists()) && scheduledTestId) {
+                    try {
+                        scheduledTestDoc = await getDoc(doc(db, 'scheduledTests', scheduledTestId));
+                    } catch (_) {}
+                }
+
+                // Always open the student's highest attempt for the same test.
+                const compareScore = (candidate, targetRepetitionsValue = 0) => {
+                    const directScore =
+                        Number(candidate?.score) ||
+                        Number(candidate?.result?.score) ||
+                        Number(candidate?.resultData?.score) ||
+                        Number(candidate?.result?.value) ||
+                        Number(candidate?.resultData?.value);
+                    if (!Number.isNaN(directScore) && directScore > 0) return directScore;
+                    return calculateScoreFallback(
+                        candidate?.testName || data.testName,
+                        candidate?.result ?? candidate?.resultData,
+                        candidate?.testTarget ?? candidate?.targetRepetitions ?? data.testTarget,
+                        candidate?.targetRepetitions ?? targetRepetitionsValue
+                    );
+                };
 
                 // ✅ Fetch norm category and attempt count in parallel
                 const [normResult, attemptSnap] = await Promise.all([
                     resolveNormCategory(data.testName, data.result, scheduledTestId),
-                    testId ? getDocs(query(collection(db,'testResults'), where('testId','==',testId), where('studentId','==',data.studentId))) : Promise.resolve(null)
+                    scheduledTestId
+                        ? getDocs(query(collection(db,'testResults'), where('testId','==',scheduledTestId), where('studentId','==',data.studentId)))
+                        : Promise.resolve(null)
                 ]);
 
                 const normCategory = normResult?.category ?? null;
@@ -898,6 +925,74 @@ const active = allNotifs.filter(n => {
                 const targetRepetitions = scheduledTestDoc?.exists()
                     ? (scheduledTestDoc.data().targetRepetitions || 0)
                     : 0;
+
+                // Try to gather all attempts for the same student + test, then pick highest.
+                try {
+                    const studentEmail = data.studentEmail || currentUser?.email || null;
+                    const studentId = data.studentId || studentData?.studentId || null;
+                    const candidates = [{ id: resultDoc.id, ...data }];
+
+                    const relatedSnaps = [];
+                    if (scheduledTestId && studentEmail) {
+                        relatedSnaps.push(
+                            getDocs(query(
+                                collection(db, 'testResults'),
+                                where('testId', '==', scheduledTestId),
+                                where('studentEmail', '==', studentEmail)
+                            ))
+                        );
+                        relatedSnaps.push(
+                            getDocs(query(
+                                collection(db, 'testResults'),
+                                where('scheduledTestId', '==', scheduledTestId),
+                                where('studentEmail', '==', studentEmail)
+                            ))
+                        );
+                    }
+                    if (scheduledTestId && studentId) {
+                        relatedSnaps.push(
+                            getDocs(query(
+                                collection(db, 'testResults'),
+                                where('testId', '==', scheduledTestId),
+                                where('studentId', '==', studentId)
+                            ))
+                        );
+                        relatedSnaps.push(
+                            getDocs(query(
+                                collection(db, 'testResults'),
+                                where('scheduledTestId', '==', scheduledTestId),
+                                where('studentId', '==', studentId)
+                            ))
+                        );
+                    }
+
+                    const snapshots = await Promise.all(relatedSnaps);
+                    snapshots.forEach(snap => {
+                        snap.forEach(d => candidates.push({ id: d.id, ...d.data() }));
+                    });
+
+                    const unique = [];
+                    const seen = new Set();
+                    candidates.forEach(c => {
+                        if (seen.has(c.id)) return;
+                        seen.add(c.id);
+                        unique.push(c);
+                    });
+
+                    if (unique.length > 1) {
+                        unique.sort((a, b) => {
+                            const scoreDiff = compareScore(b, targetRepetitions) - compareScore(a, targetRepetitions);
+                            if (scoreDiff !== 0) return scoreDiff;
+                            const aDate = new Date(a.submittedAt?.seconds ? a.submittedAt.seconds * 1000 : (a.submittedAt || 0)).getTime();
+                            const bDate = new Date(b.submittedAt?.seconds ? b.submittedAt.seconds * 1000 : (b.submittedAt || 0)).getTime();
+                            return bDate - aDate;
+                        });
+                        data = unique[0];
+                    }
+                } catch (_) {
+                    // Fall back to requested resultId if related-attempt lookup fails.
+                }
+
                 const score = normCategory
                     ? mapNormCategoryToScore(normCategory)
                     : calculateScoreFallback(data.testName, data.result, data.testTarget, targetRepetitions);
@@ -1020,7 +1115,7 @@ const active = allNotifs.filter(n => {
                 }
 
                 // ✅ Retry section (uses pre-fetched scheduledTestDoc and attemptSnap)
-                if (testId && scheduledTestDoc?.exists() && score < 100 && attemptSnap) {
+                if (scheduledTestId && scheduledTestDoc?.exists() && score < 100 && attemptSnap) {
                     const tData = scheduledTestDoc.data();
                     const attemptsAllowed = tData.attemptsAllowed || 1;
                     const currentAttempts = attemptSnap.size;
@@ -1033,7 +1128,7 @@ const active = allNotifs.filter(n => {
                                 You have used <strong>${currentAttempts}</strong> out of <strong>${attemptsAllowed}</strong> attempts.<br>
                                 You can take this test again to try for a higher score!
                             </p>
-                            <button onclick="retryTest('${testId}')"
+                            <button onclick="retryTest('${scheduledTestId}')"
                                     class="bg-gradient-to-r from-amber-400 to-amber-500 text-white px-8 py-3 rounded-xl font-bold text-sm cursor-pointer border-0 hover:from-amber-500 hover:to-amber-600 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
                                 🎯 Take Attempt ${currentAttempts + 1}/${attemptsAllowed}
                             </button>`;

@@ -527,12 +527,114 @@
         return'Poor';
     }
 
-    async function classifyResult(testName,rawResult,testId,studentEmail,studentGender,studentAge){
+    function _classifyByProfessorTarget(testName, rawResult, testData = null, resultDoc = null){
+        const value=typeof rawResult==='number'?rawResult:extractNumericResult(rawResult);
+        if(!(value>0)) return null;
+        const targetCandidates=[
+            testData?.targetRepetitions,testData?.testTarget,
+            resultDoc?.targetRepetitions,resultDoc?.testTarget,
+            rawResult?.targetRepetitions,rawResult?.testTarget
+        ];
+        let target=0;
+        for(const c of targetCandidates){
+            const n=Number(c);
+            if(!Number.isNaN(n)&&n>0){target=n;break;}
+        }
+        if(!(target>0)) return null;
+        const n=(testName||'').toLowerCase();
+        const lowerIsBetter=n.includes('mile')||n.includes('run')||n.includes('step');
+        const pct=lowerIsBetter?(target/value)*100:(value/target)*100;
+        if(pct>=100) return 'Excellent';
+        if(pct>=80) return 'Good';
+        if(pct>=60) return 'Average';
+        if(pct>=40) return 'Below Average';
+        return 'Poor';
+    }
+
+    function _isPeNoNormCourse(testData = null, rawResult = null){
+        const candidates=[testData?.courseCode,rawResult?.courseCode];
+        return candidates.some(code=>/^pe\s*[234]$/i.test(String(code||'').trim()));
+    }
+
+    function _scoreToCategory(score){
+        const s=Number(score);
+        if(Number.isNaN(s)) return null;
+        if(s>=100) return 'Excellent';
+        if(s>=90) return 'Good';
+        if(s>=80) return 'Average';
+        if(s>=70) return 'Below Average';
+        return 'Poor';
+    }
+
+    function _isValidScore(v){
+        const n=Number(v);
+        return !Number.isNaN(n)&&n>=0&&n<=100;
+    }
+
+    function _isJumpRopeTest(testName=''){
+        const n=String(testName||'').toLowerCase();
+        return n.includes('jumping rope')||n.includes('jump rope')||n.includes('jumprope')||n.includes('jump-rope')||n.includes('skipping');
+    }
+
+    function _resolveProfessorTarget(rawResult=null,testData=null,resultDoc=null){
+        const candidates=[
+            resultDoc?.targetRepetitions,resultDoc?.testTarget,
+            testData?.targetRepetitions,testData?.testTarget,
+            rawResult?.targetRepetitions,rawResult?.testTarget
+        ];
+        for(const c of candidates){
+            const n=Number(c);
+            if(!Number.isNaN(n)&&n>0) return n;
+        }
+        return 0;
+    }
+
+    function _getFallbackScore(testName,rawResult=null,testData=null,resultDoc=null){
+        const rawValue=extractNumericResult(resultDoc?.resultData??resultDoc?.result??rawResult);
+        if(!(rawValue>0)){
+            const scoreCandidates=[
+                resultDoc?.score,rawResult?.score,rawResult?.value,rawResult?.result
+            ];
+            for(const c of scoreCandidates){
+                if(_isValidScore(c)) return Number(c);
+            }
+            return null;
+        }
+        const n=(testName||'').toLowerCase();
+        const target=_resolveProfessorTarget(rawResult,testData,resultDoc);
+        if(target>0){
+            const lowerIsBetter=n.includes('mile')||n.includes('run')||n.includes('step');
+            if(lowerIsBetter&&rawValue<=0) return 60;
+            const pct=lowerIsBetter?(target/rawValue)*100:(rawValue/target)*100;
+            if(pct>=100) return 100;
+            if(pct>=80) return 90;
+            if(pct>=60) return 80;
+            if(pct>=40) return 70;
+            return 60;
+        }
+
+        if(_isJumpRopeTest(n)){
+            if(rawValue>=100) return 100;
+            if(rawValue>=80) return 90;
+            if(rawValue>=60) return 80;
+            if(rawValue>=40) return 70;
+            return 60;
+        }
+        const scoreCandidates=[
+            resultDoc?.score,rawResult?.score,rawResult?.value,rawResult?.result
+        ];
+        for(const c of scoreCandidates){
+            if(_isValidScore(c)) return Number(c);
+        }
+        return 75;
+    }
+
+    async function classifyResult(testName,rawResult,testId,studentEmail,studentGender,studentAge,testData=null,resultDoc=null){
         if(!testName)return'Average';
-        const testKey=resolveTestKey(testName);if(!testKey)return'Average';
+        const testKey=resolveTestKey(testName);
         const gender=_genderKey(studentGender),ageGroup=_ageGroup(studentAge);
         const value=typeof rawResult==='number'?rawResult:extractNumericResult(rawResult);
-        const ck=`${studentEmail}|${testKey}|${gender}|${ageGroup}|${testId||'none'}|${value}`;
+        const ck=`${studentEmail}|${testKey||testName}|${gender}|${ageGroup}|${testId||'none'}|${value}`;
         if(_classifyCache.has(ck))return _classifyCache.get(ck);
         const set=cat=>{_classifyCache.set(ck,cat);return cat;};
         
@@ -570,6 +672,34 @@
                     return set('Obese');
                 }
             }
+            return set('Average');
+        }
+
+        // Jump rope follows target-based scoring, not norms (same as studentgrades).
+        if(_isJumpRopeTest(testName)){
+            const jumpScore=_getFallbackScore(testName,rawResult,testData,resultDoc);
+            const jumpCategory=_scoreToCategory(jumpScore);
+            if(jumpCategory) return set(jumpCategory);
+            return set('Average');
+        }
+
+        // 0.5 Professor target-based scoring (match studentgrades/studentresult)
+        const targetCategory=_classifyByProfessorTarget(testName, rawResult, testData, resultDoc);
+        if(targetCategory) return set(targetCategory);
+
+        // PE 2/3/4 must not use norms.
+        if(_isPeNoNormCourse(testData, rawResult)){
+            const fallbackScore=_getFallbackScore(testName,rawResult,testData,resultDoc);
+            const fromFallback=_scoreToCategory(fallbackScore);
+            if(fromFallback) return set(fromFallback);
+            return set('Average');
+        }
+
+        // If test key is unknown, do not force Average yet; still try score-based fallback first.
+        if(!testKey){
+            const fallbackScore=_getFallbackScore(testName,rawResult,testData,resultDoc);
+            const fromFallback=_scoreToCategory(fallbackScore);
+            if(fromFallback) return set(fromFallback);
             return set('Average');
         }
         
@@ -658,6 +788,16 @@
     async function loadGrades(){
         if(!assignedSections.length)return;
         const sectionNames=assignedSections.map(s=>s.section);
+        // 0. Scheduled tests map (needed for targetRepetitions / testTarget)
+        const testDataMap=new Map();
+        const sec10=[];for(let i=0;i<sectionNames.length;i+=10)sec10.push(sectionNames.slice(i,i+10));
+        await Promise.all(
+            sec10.map(chunk =>
+                getDocs(query(collection(db,'scheduledTests'),where('section','in',chunk)))
+                    .then(snap=>snap.forEach(d=>testDataMap.set(d.id,d.data())))
+                    .catch(()=>{})
+            )
+        );
         // 1. Load students in batched IN query
         const studentsMap=new Map();
         const sc30=[];for(let i=0;i<sectionNames.length;i+=30)sc30.push(sectionNames.slice(i,i+30));
@@ -675,18 +815,30 @@
         const bestPerTest=new Map(); // mk → best entry (for overall calculation)
         for(const ds of unique){
             const data=ds.data();const se=data.studentEmail||'';if(!se)continue;
-            const testId=data.testId||ds.id;const testName=data.testName||'Unknown Activity';
+            const testId=data.testId||data.scheduledTestId||ds.id;const testName=data.testName||'Unknown Activity';
             const mk=`${se}_${testId}`;const student=studentsMap.get(se);
             const sa=_studentAge(student);const sg=student?.gender||data.gender||'male';
-            const isSkinfold=(testName||'').toLowerCase().includes('skinfold');
-            let cat;
-            const stored=data.score||data.category;
-            const VALID_CATS = ['Excellent','Good','Average','Below Average','Poor'];
-            if (stored && VALID_CATS.includes(stored)) {
-                cat = stored;
-            } else {
-                cat = await classifyResult(testName, data.result ?? data.resultData ?? data.repetitions ?? data, testId, se, sg, sa);
+            let testData=testDataMap.get(testId)||null;
+            if(!testData && testId){
+                try{
+                    const sdoc=await getDoc(doc(db,'scheduledTests',testId));
+                    if(sdoc.exists()){
+                        testData=sdoc.data();
+                        testDataMap.set(testId,testData);
+                    }
+                }catch(_){}
             }
+            const isSkinfold=(testName||'').toLowerCase().includes('skinfold');
+            const cat = await classifyResult(
+                testName,
+                data.result ?? data.resultData ?? data.repetitions ?? data,
+                testId,
+                se,
+                sg,
+                sa,
+                testData,
+                data
+            );
             let sd2=new Date();
             if(data.submittedAt){if(typeof data.submittedAt.toDate==='function')sd2=data.submittedAt.toDate();else if(data.submittedAt.seconds)sd2=new Date(data.submittedAt.seconds*1000);else if(typeof data.submittedAt==='string')sd2=new Date(data.submittedAt);}
             const attemptNum = data.attemptNumber || 1;
@@ -729,11 +881,13 @@
                 map[key].uniqueTests.add(`${g.testName}_${g.section}`);
             }
         });
-        // Build overall category from BEST non-skinfold attempts only
+        // Build overall category from BEST non-skinfold attempt per test only
         bestOnly.forEach(g=>{
             const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
             if(!map[key])map[key]={key,name:g.studentName,section:g.section,email:g.studentEmail,categories:[],instances:[],uniqueTests:new Set()};
-            map[key].categories.push(g.category);
+            if(!g.isSkinfold && CATEGORY_ORDER[g.category]){
+                map[key].categories.push(g.category);
+            }
         });
         currentFinalGrades=Object.values(map).map(s=>{
             const overall=s.categories.length?getOverallCategory(s.categories):'No Grades';

@@ -449,6 +449,187 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
             return 'Poor';
         }
 
+        function scoreToCategory(score) {
+            const s = Number(score);
+            if (Number.isNaN(s)) return null;
+            if (s >= 100) return 'Excellent';
+            if (s >= 90) return 'Good';
+            if (s >= 80) return 'Average';
+            if (s >= 70) return 'Below Average';
+            return 'Poor';
+        }
+
+        function mapNormCategoryToScore(cat) {
+            return { Excellent: 100, Good: 90, Average: 80, 'Below Average': 70, Poor: 60 }[cat] ?? 75;
+        }
+
+        function normalizeCategoryLabel(cat) {
+            if (!cat) return null;
+            const raw = String(cat).trim().toLowerCase();
+            if (raw === 'excellent') return 'Excellent';
+            if (raw === 'good') return 'Good';
+            if (raw === 'average') return 'Average';
+            if (raw === 'below average') return 'Below Average';
+            if (raw === 'poor') return 'Poor';
+            return null; // Ignore generic values like "Completed"
+        }
+
+        function isValidScore(v) {
+            const n = Number(v);
+            return !Number.isNaN(n) && n >= 0 && n <= 100;
+        }
+
+        function isJumpRopeTest(testName = '') {
+            const n = String(testName).toLowerCase();
+            return n.includes('jumping rope') || n.includes('jump rope');
+        }
+
+        function resolveProfessorTarget(result = {}) {
+            const directCandidates = [
+                result?.targetRepetitions,
+                result?.testTarget,
+                result?.result?.targetRepetitions,
+                result?.resultData?.targetRepetitions,
+                result?.result?.testTarget,
+                result?.resultData?.testTarget
+            ];
+            for (const candidate of directCandidates) {
+                const value = Number(candidate);
+                if (!Number.isNaN(value) && value > 0) return value;
+            }
+
+            const scheduledId = result?.testId || result?.scheduledTestId;
+            if (scheduledId) {
+                const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
+                const scheduledCandidates = [scheduledData?.targetRepetitions, scheduledData?.testTarget];
+                for (const candidate of scheduledCandidates) {
+                    const value = Number(candidate);
+                    if (!Number.isNaN(value) && value > 0) return value;
+                }
+            }
+            return 0;
+        }
+
+        function isPeNoNormCourse(result = {}) {
+            const candidates = [
+                result?.courseCode,
+                result?.result?.courseCode,
+                result?.resultData?.courseCode
+            ];
+            const scheduledId = result?.testId || result?.scheduledTestId;
+            if (scheduledId) {
+                const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
+                candidates.push(scheduledData?.courseCode);
+            }
+            return candidates.some(code => /^pe\s*[234]$/i.test(String(code || '').trim()));
+        }
+
+        function getFallbackScore(testName, result) {
+            const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+            if (!rawValue) {
+                // Do not force fake defaults for jumping rope; keep null if no value.
+                if (isJumpRopeTest(testName)) return null;
+                const topLevelCandidates = [
+                    result?.score,
+                    result?.result?.score,
+                    result?.resultData?.score,
+                    result?.result?.value,
+                    result?.resultData?.value
+                ];
+                for (const candidate of topLevelCandidates) {
+                    if (isValidScore(candidate)) return Number(candidate);
+                }
+                return null;
+            }
+
+            const n = (testName || '').toLowerCase();
+            const target = resolveProfessorTarget(result);
+            if (target > 0) {
+                const lowerIsBetter = n.includes('mile') || n.includes('run') || n.includes('step');
+                if (lowerIsBetter && rawValue <= 0) return 60;
+                const pct = lowerIsBetter ? (target / rawValue) * 100 : (rawValue / target) * 100;
+                if (pct >= 100) return 100;
+                if (pct >= 80) return 90;
+                if (pct >= 60) return 80;
+                if (pct >= 40) return 70;
+                return 60;
+            }
+
+            // Treat jumping-rope as repetition-based when no target/score is stored.
+            if (n.includes('jumping rope') || n.includes('jump rope')) {
+                if (rawValue >= 100) return 100;
+                if (rawValue >= 80) return 90;
+                if (rawValue >= 60) return 80;
+                if (rawValue >= 40) return 70;
+                return 60;
+            }
+
+            const topLevelCandidates = [
+                result?.score,
+                result?.result?.score,
+                result?.resultData?.score,
+                result?.result?.value,
+                result?.resultData?.value
+            ];
+            for (const candidate of topLevelCandidates) {
+                if (isValidScore(candidate)) return Number(candidate);
+            }
+
+            // Same baseline behavior as studentresult fallback.
+            return 75;
+        }
+
+        function resolveResultScore(result) {
+            const professorTarget = resolveProfessorTarget(result);
+            const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+            if (professorTarget > 0 && rawValue) {
+                return getFallbackScore(result?.testName, result);
+            }
+
+            if (isPeNoNormCourse(result)) {
+                if (isValidScore(result?.score)) return Number(result.score);
+                if (isValidScore(result?.result?.score)) return Number(result.result.score);
+                if (isValidScore(result?.resultData?.score)) return Number(result.resultData.score);
+                return getFallbackScore(result?.testName, result);
+            }
+
+            // Jump rope must be score-based from professor target/result, not norms.
+            if (isJumpRopeTest(result?.testName)) {
+                return getFallbackScore(result?.testName, result);
+            }
+
+            const normCat = getNormCategorySync(result.testName, result.result || result.resultData, result.testId);
+            if (normCat) return mapNormCategoryToScore(normCat);
+
+            if (isValidScore(result?.score)) return Number(result.score);
+            if (isValidScore(result?.result?.score)) return Number(result.result.score);
+            if (isValidScore(result?.resultData?.score)) return Number(result.resultData.score);
+
+            return getFallbackScore(result.testName, result);
+        }
+
+        function getDisplayCategory(result) {
+            // Keep Performance page aligned with View page:
+            // derive category from resolved score/target, not stale saved labels.
+            const professorTarget = resolveProfessorTarget(result);
+            const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+            if (professorTarget > 0 && rawValue) {
+                const resolvedScore = resolveResultScore(result);
+                return scoreToCategory(resolvedScore) || 'Average';
+            }
+
+            if (isPeNoNormCourse(result)) {
+                const resolvedScore = resolveResultScore(result);
+                return scoreToCategory(resolvedScore) || 'Average';
+            }
+
+            const directNormCategory = normalizeCategoryLabel(result?.normCategory);
+            if (directNormCategory && !isJumpRopeTest(result?.testName)) return directNormCategory;
+
+            const resolvedScore = resolveResultScore(result);
+            return scoreToCategory(resolvedScore) || 'Average';
+        }
+
         function toDate(v) {
             if (!v) return null;
             if (typeof v.toDate === 'function') return v.toDate();
@@ -473,6 +654,7 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
                 const testKey = resolveTestKey(r.testName);
                 if (testKey) testKeys.add(testKey);
                 if (r.testId) testIds.add(r.testId);
+                if (r.scheduledTestId) testIds.add(r.scheduledTestId);
             });
 
             const fetchPromises = [];
@@ -675,20 +857,21 @@ function processAndRender(rawResults, assignedCount) {
     const testGroups = {};
     rawResults.forEach(result => {
     const testId = result.testId || result.scheduledTestId || result.testName;
-    const normCat = getNormCategorySync(result.testName, result.result || result.resultData, result.testId);
+    const resolvedScore = resolveResultScore(result);
+    const displayCategory = getDisplayCategory({ ...result, score: resolvedScore });
     const category = getCategoryForTest(result.testName);
     const dateObj = toDate(result.submittedAt) || new Date();
 
     if (!testGroups[testId]) {
-        testGroups[testId] = { ...result, normCategory: normCat, category, submittedAt: dateObj };
+        testGroups[testId] = { ...result, normCategory: displayCategory, score: resolvedScore, category, submittedAt: dateObj };
     } else {
-        const existingRank = NORM_RANK[testGroups[testId].normCategory] ?? 0;
-        const newRank = NORM_RANK[normCat] ?? 0;
-        // Always keep the highest-ranked attempt; if tied, keep the most recent
-        if (newRank > existingRank) {
-            testGroups[testId] = { ...result, normCategory: normCat, category, submittedAt: dateObj };
-        } else if (newRank === existingRank && dateObj > (testGroups[testId].submittedAt || new Date(0))) {
-            testGroups[testId] = { ...result, normCategory: normCat, category, submittedAt: dateObj };
+        const existingScore = Number(testGroups[testId].score ?? 0);
+        const newScore = Number(resolvedScore ?? 0);
+        // Keep highest-scoring attempt per test; if tied, keep most recent.
+        if (newScore > existingScore) {
+            testGroups[testId] = { ...result, normCategory: displayCategory, score: resolvedScore, category, submittedAt: dateObj };
+        } else if (newScore === existingScore && dateObj > (testGroups[testId].submittedAt || new Date(0))) {
+            testGroups[testId] = { ...result, normCategory: displayCategory, score: resolvedScore, category, submittedAt: dateObj };
         }
     }
 });
@@ -697,14 +880,18 @@ function processAndRender(rawResults, assignedCount) {
 
             // Build category data
             const categoryData = {};
-            Object.keys(testCategories).forEach(cat => { categoryData[cat] = { categories: [], tests: [] }; });
-            const allRanks = [];
+            Object.keys(testCategories).forEach(cat => { categoryData[cat] = { categories: [], tests: [], scores: [] }; });
+            const overallCategories = [];
 
             testResults.forEach(result => {
                 if (categoryData[result.category]) {
                     if (result.normCategory) {
                         categoryData[result.category].categories.push(result.normCategory);
-                        allRanks.push(normCategoryRank(result.normCategory));
+                        overallCategories.push(result.normCategory);
+                        if (isValidScore(result.score)) {
+                            const numericScore = Number(result.score);
+                            categoryData[result.category].scores.push(numericScore);
+                        }
                     }
                     categoryData[result.category].tests.push({ name: result.testName, normCategory: result.normCategory });
                 }
@@ -713,11 +900,11 @@ function processAndRender(rawResults, assignedCount) {
             // Overall standing
             const overallStandingEl = document.getElementById('overallStanding');
             const overallNoteEl = document.getElementById('overallNote');
-            if (allRanks.length > 0) {
-                const avgRank = allRanks.reduce((a, b) => a + b, 0) / allRanks.length;
+            if (overallCategories.length > 0) {
+                const avgRank = overallCategories.map(normCategoryRank).reduce((a, b) => a + b, 0) / overallCategories.length;
                 const overallCat = rankToCategory(avgRank);
                 overallStandingEl.innerHTML = `<span class="norm-badge ${normCategoryClass(overallCat)} text-sm px-4 py-2"><i class="bi ${normCategoryIcon(overallCat)}"></i> ${overallCat}</span>`;
-                overallNoteEl.textContent = `Based on ${allRanks.length} completed assessment${allRanks.length !== 1 ? 's' : ''}`;
+                overallNoteEl.textContent = `Based on ${overallCategories.length} best test categor${overallCategories.length !== 1 ? 'ies' : 'y'}`;
             } else {
                 overallStandingEl.innerHTML = `<span class="norm-badge norm-average text-sm px-4 py-2"><i class="bi bi-dash-circle-fill"></i> No data yet</span>`;
                 overallNoteEl.textContent = 'Complete tests to see your standing';
@@ -742,9 +929,12 @@ function processAndRender(rawResults, assignedCount) {
                 if (!data.tests.length) return;
                 hasData = true;
                 let dominantCat = null;
-                if (data.categories.length > 0) {
-                    const avg = data.categories.map(normCategoryRank).reduce((a,b) => a+b, 0) / data.categories.length;
-                    dominantCat = rankToCategory(avg);
+                if (data.scores.length > 0) {
+                    const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+                    dominantCat = scoreToCategory(avgScore);
+                } else if (data.categories.length > 0) {
+                    const avgRank = data.categories.map(normCategoryRank).reduce((a,b) => a+b, 0) / data.categories.length;
+                    dominantCat = rankToCategory(avgRank);
                 }
                 const cls = dominantCat ? normCategoryClass(dominantCat) : 'norm-completion';
                 const ico = dominantCat ? normCategoryIcon(dominantCat) : 'bi-check-circle-fill';
@@ -784,7 +974,7 @@ function processAndRender(rawResults, assignedCount) {
                 const normCat = result.normCategory;
                 const cls = normCat ? normCategoryClass(normCat) : 'norm-completion';
                 const ico = normCat ? normCategoryIcon(normCat) : 'bi-check-circle-fill';
-                const displayCat = normCat || 'Completed';
+                const displayCat = normCat || 'Average';
                 const dateObj = toDate(result.submittedAt);
                 const date = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
                 const isOverdue = result.status === 'overdue' || result.status === 'late';
