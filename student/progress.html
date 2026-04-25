@@ -616,6 +616,10 @@ function getNormCategorySync(testName, result, testId = null) {
 
 // ========== CATEGORY ROUTING ==========
 function getCategoryForTest(testName) {
+    const course = (studentData?.courseCode || studentData?.course || 'PE1').toUpperCase();
+    // PE2 and above — single category
+    if (course !== 'PE1') return 'PE2 Activities';
+
     const n = testName.toLowerCase().trim();
     if (['push-up','pushup','grip','curl-up','curl up','sit-up','situp','plank'].some(k => n.includes(k))) return 'Muscular Strength and Endurance';
     if (n.includes('step') || n.includes('minute') || n.includes('run')) return 'Cardiorespiratory Endurance';
@@ -808,26 +812,70 @@ window.handleModalOverlayClick = function(e) {
 // Build test groups using already-cached norm data (sync, no extra Firestore calls)
 function buildTestGroups(raw) {
     const groups = {};
-    for (const result of raw) {
-        // Group by testId (scheduled test instance), not testName
-        // This keeps different scheduled tests with the same name separate
-        const groupKey = result.testId || result.testName;
+    const course = (studentData?.courseCode || studentData?.course || 'PE1').toUpperCase();
+    const isPE1 = course === 'PE1';
 
+    for (const result of raw) {
+        const groupKey = result.testId || result.testName;
         if (!groups[groupKey]) {
-            groups[groupKey] = { 
-                testName: result.testName, 
-                category: getCategoryForTest(result.testName), 
-                attempts: [] 
+            groups[groupKey] = {
+                testName: result.testName,
+                category: getCategoryForTest(result.testName),
+                attempts: []
             };
         }
 
         const resultValue = result.result ?? result.resultData ?? result.score ?? result.value ?? '';
-        
-        const normCat = getNormCategorySync(
-            result.testName, 
-            resultValue,
-            result.testId
-        ) || 'Completed';
+
+        // Resolve category: professor target first, then norms for PE1
+        let normCat = 'Average';
+
+        const candidates = [
+        result?.targetRepetitions,
+        result?.result?.targetRepetitions,
+        result?.resultData?.targetRepetitions,
+        result?.testTarget,
+        result?.result?.testTarget,
+        result?.resultData?.testTarget
+    ];
+    let professorTarget = 0;
+    for (const c of candidates) {
+        const v = Number(c);
+        if (!Number.isNaN(v) && v > 0) { professorTarget = v; break; }
+    }
+    // Also check normDocsCache for scheduled test doc
+    if (!professorTarget && result?.testId) {
+        const scheduledData = normDocsCache.get(`scheduled:${result.testId}`);
+        const schedTarget = Number(scheduledData?.targetRepetitions || scheduledData?.testTarget || 0);
+        if (!Number.isNaN(schedTarget) && schedTarget > 0) professorTarget = schedTarget;
+    }
+
+        let numericValue = 0;
+        if (typeof resultValue === 'object' && resultValue !== null) {
+            numericValue = parseFloat(resultValue.value ?? resultValue.result ?? resultValue.count ?? resultValue.repetitions ?? resultValue.score ?? 0) || 0;
+        } else if (typeof resultValue === 'string') {
+            const m = resultValue.match(/(\d+\.?\d*)/);
+            numericValue = m ? parseFloat(m[1]) : 0;
+        } else {
+            numericValue = parseFloat(resultValue) || 0;
+        }
+
+        if (professorTarget > 0 && numericValue > 0) {
+            const tNameL = (result.testName || '').toLowerCase();
+            const lowerIsBetter = tNameL.includes('mile') || tNameL.includes('run') || tNameL.includes('step');
+            const pct = lowerIsBetter ? (professorTarget / numericValue) * 100 : (numericValue / professorTarget) * 100;
+            if (pct >= 100) normCat = 'Excellent';
+            else if (pct >= 80) normCat = 'Good';
+            else if (pct >= 60) normCat = 'Average';
+            else if (pct >= 40) normCat = 'Below Average';
+            else normCat = 'Poor';
+        } else if (isPE1) {
+            normCat = getNormCategorySync(result.testName, resultValue, result.testId) || 'Average';
+        } else {
+            const VALID = ['Excellent','Good','Average','Below Average','Poor'];
+            const savedCat = result?.normCategory || result?.category;
+            if (savedCat && VALID.includes(savedCat)) normCat = savedCat;
+        }
 
         let testDate = new Date();
         if (result.submittedAt) {
@@ -841,14 +889,15 @@ function buildTestGroups(raw) {
         }
 
         groups[groupKey].attempts.push({
-            normCat, 
-            rank: normRank(normCat), 
+            normCat,
+            rank: normRank(normCat),
             date: testDate,
             dateStr: testDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}),
             status: result.status,
             rawResult: resultValue
         });
     }
+
     Object.values(groups).forEach(g => g.attempts.sort((a, b) => a.date - b.date));
     return groups;
 }
@@ -1019,18 +1068,45 @@ async function loadProgressData(userEmail) {
             document.getElementById('totalTests').textContent = '0';
             document.getElementById('bestCategory').textContent = '--';
             document.getElementById('lastTestDate').textContent = '--';
-            ['cardioChart','muscularChart','flexibilityChart','bodyCompChart'].forEach(id => renderNormTimeline(id, [], id));
+            const course = (studentData?.courseCode || studentData?.course || 'PE1').toUpperCase();
+            if (course === 'PE1') {
+                ['cardioChart','muscularChart','flexibilityChart','bodyCompChart'].forEach(id => renderNormTimeline(id, [], id));
+            }
             updateImprovementPreview();
             return;
         }
 
         allRawResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Phase 2: Prefetch ALL norm docs in one parallel batch
-        // This replaces dozens of sequential per-result Firestore calls
+        // For PE2: fetch all scheduled test docs to get targetRepetitions
+        const course = (studentData?.courseCode || studentData?.course || 'PE1').toUpperCase();
+        if (course !== 'PE1') {
+            const testIds = [...new Set(allRawResults.map(r => r.testId).filter(Boolean))];
+            if (testIds.length > 0) {
+                const scheduledDocs = await Promise.all(
+                    testIds.map(id => getDoc(doc(db, 'scheduledTests', id)).catch(() => null))
+                );
+                scheduledDocs.forEach(snap => {
+                    if (snap && snap.exists()) {
+                        normDocsCache.set(`scheduled:${snap.id}`, snap.data());
+                    }
+                });
+                // Attach targetRepetitions to each result from the scheduled test doc
+                allRawResults = allRawResults.map(r => {
+                    if (!r.testId) return r;
+                    const scheduledData = normDocsCache.get(`scheduled:${r.testId}`);
+                    if (scheduledData?.targetRepetitions && !r.targetRepetitions) {
+                        return { ...r, targetRepetitions: scheduledData.targetRepetitions };
+                    }
+                    return r;
+                });
+            }
+        }
+
+        // Prefetch norm docs for PE1
         await prefetchNormDocs(allRawResults);
 
-        // Phase 3: Process everything synchronously (no more Firestore calls)
+        // Process everything
         processProgressData();
 
     } catch (error) {
@@ -1042,66 +1118,127 @@ async function loadProgressData(userEmail) {
         });
     }
 }
-
 function processProgressData() {
     const NORM_RANK_MAP = { Excellent:5, Good:4, Average:3, 'Below Average':2, Poor:1, Completed:3 };
+    const course = (studentData?.courseCode || studentData?.course || 'PE1').toUpperCase();
+    const isPE1 = course === 'PE1';
 
-    // Group by testId to get best result per scheduled test instance
-   const latestByTestId = {};
-for (const r of allRawResults) {
-    // Use doc ID as fallback to guarantee uniqueness per result
-    const key = r.testId || `${r.testName}_${r.id}`;
-    let dt = new Date();
-    if (r.submittedAt) {
-        if (r.submittedAt.toDate) dt = r.submittedAt.toDate();
-        else if (r.submittedAt.seconds) dt = new Date(r.submittedAt.seconds * 1000);
-        else dt = new Date(r.submittedAt);
-    }
-    const normCat = r.normCat || getNormCategorySync(r.testName, r.result || r.resultData, r.testId) || 'Completed';
-    const newRank = NORM_RANK_MAP[normCat] ?? 3;
-    const existing = latestByTestId[key];
-    const existingRank = existing ? (NORM_RANK_MAP[existing.normCat] ?? 3) : -1;
-
-    if (!existing || newRank > existingRank || (newRank === existingRank && dt > existing.date)) {
-        latestByTestId[key] = { ...r, date: dt, normCat };
-    }
+    // Helper: resolve category from professor target (PE2) or norms (PE1)
+    function resolveCategory(r) {
+        const candidates = [
+            r?.targetRepetitions,
+            r?.result?.targetRepetitions,
+            r?.resultData?.targetRepetitions,
+            r?.testTarget,
+            r?.result?.testTarget,
+            r?.resultData?.testTarget
+        ];
+        let professorTarget = 0;
+        for (const c of candidates) {
+            const v = Number(c);
+            if (!Number.isNaN(v) && v > 0) { professorTarget = v; break; }
+        }
+        if (!professorTarget && r?.testId) {
+    const scheduledData = normDocsCache.get(`scheduled:${r.testId}`);
+    const schedTarget = Number(scheduledData?.targetRepetitions || scheduledData?.testTarget || 0);
+    if (!Number.isNaN(schedTarget) && schedTarget > 0) professorTarget = schedTarget;
 }
+        const rawResult = r.result ?? r.resultData ?? r.rawResult;
+        let numericValue = 0;
+        if (typeof rawResult === 'object' && rawResult !== null) {
+            numericValue = parseFloat(rawResult.value ?? rawResult.result ?? rawResult.count ?? rawResult.repetitions ?? rawResult.score ?? 0) || 0;
+        } else if (typeof rawResult === 'string') {
+            const m = rawResult.match(/(\d+\.?\d*)/);
+            numericValue = m ? parseFloat(m[1]) : 0;
+        } else {
+            numericValue = parseFloat(rawResult) || 0;
+        }
 
-    const categoryData = {
-        'Cardiorespiratory Endurance': [],
-        'Muscular Strength and Endurance': [],
-        'Flexibility': [],
-        'Body Composition': []
-    };
-    const categoryBestRank = {
-        'Cardiorespiratory Endurance': 0,
-        'Muscular Strength and Endurance': 0,
-        'Flexibility': 0,
-        'Body Composition': 0
-    };
+        if (professorTarget > 0 && numericValue > 0) {
+            const tNameL = (r.testName || '').toLowerCase();
+            const lowerIsBetter = tNameL.includes('mile') || tNameL.includes('run') || tNameL.includes('step');
+            const pct = lowerIsBetter ? (professorTarget / numericValue) * 100 : (numericValue / professorTarget) * 100;
+            if (pct >= 100) return 'Excellent';
+            if (pct >= 80)  return 'Good';
+            if (pct >= 60)  return 'Average';
+            if (pct >= 40)  return 'Below Average';
+            return 'Poor';
+        }
+
+        if (!isPE1) {
+            // PE2 with no target: try saved score/category fields
+            const VALID = ['Excellent','Good','Average','Below Average','Poor'];
+            const savedCat = r?.normCategory || r?.category;
+            if (savedCat && VALID.includes(savedCat)) return savedCat;
+            const scoreVal = r?.result?.score ?? r?.resultData?.score ?? r?.score;
+            if (scoreVal != null && !isNaN(Number(scoreVal))) {
+                const s = Number(scoreVal);
+                if (s >= 100) return 'Excellent';
+                if (s >= 90)  return 'Good';
+                if (s >= 80)  return 'Average';
+                if (s >= 70)  return 'Below Average';
+                return 'Poor';
+            }
+            return 'Average';
+        }
+
+        // PE1: use sync norm lookup
+        return getNormCategorySync(r.testName, r.result || r.resultData, r.testId) || 'Average';
+    }
+
+    // Group by testId — keep best result per scheduled test instance
+    const latestByTestId = {};
+    for (const r of allRawResults) {
+        const key = r.testId || `${r.testName}_${r.id}`;
+        let dt = new Date();
+        if (r.submittedAt) {
+            if (r.submittedAt.toDate) dt = r.submittedAt.toDate();
+            else if (r.submittedAt.seconds) dt = new Date(r.submittedAt.seconds * 1000);
+            else dt = new Date(r.submittedAt);
+        }
+        const normCat = resolveCategory(r) || 'Average';
+        const newRank = NORM_RANK_MAP[normCat] ?? 3;
+        const existing = latestByTestId[key];
+        const existingRank = existing ? (NORM_RANK_MAP[existing.normCat] ?? 3) : -1;
+        if (!existing || newRank > existingRank || (newRank === existingRank && dt > existing.date)) {
+            latestByTestId[key] = { ...r, date: dt, normCat };
+        }
+    }
+
+    // Build category data — PE1 uses 4 categories, PE2 uses 1
+    const categoryKeys = isPE1
+        ? ['Cardiorespiratory Endurance', 'Muscular Strength and Endurance', 'Flexibility', 'Body Composition']
+        : ['PE2 Activities'];
+
+    const categoryData = {};
+    categoryKeys.forEach(k => categoryData[k] = []);
+
+    const categoryBestRank = {};
+    categoryKeys.forEach(k => categoryBestRank[k] = 0);
+
     let latestDate = null, latestTestName = 'No tests taken';
 
     for (const r of Object.values(latestByTestId)) {
-        const normCat  = r.normCat || getNormCategorySync(r.testName, r.result || r.resultData, r.testId) || 'Completed';
+        const normCat  = r.normCat || 'Average';
         const category = getCategoryForTest(r.testName);
         const rank     = normRank(normCat);
-        const dateStr  = r.date.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        const dateStr  = r.date.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 
         if (categoryData[category] !== undefined) {
-            categoryData[category].push({ 
-                testName: r.testName, 
-                normCat, 
+            categoryData[category].push({
+                testName: r.testName,
+                normCat,
                 date: dateStr,
-                dateObj: r.date,      // attach raw Date for time display
-                ts: r.date.getTime() 
+                dateObj: r.date,
+                ts: r.date.getTime()
             });
             if (rank > categoryBestRank[category]) categoryBestRank[category] = rank;
         }
         if (!latestDate || r.date > latestDate) { latestDate = r.date; latestTestName = r.testName; }
     }
 
-    // Sort each category by date ascending so chart flows left→right chronologically
-    Object.keys(categoryData).forEach(cat => categoryData[cat].sort((a, b) => a.ts - b.ts));
+    // Sort each category by date ascending
+    categoryKeys.forEach(cat => categoryData[cat].sort((a, b) => a.ts - b.ts));
 
     const totalTests = Object.keys(latestByTestId).length;
 
@@ -1110,7 +1247,7 @@ for (const r of allRawResults) {
         if (rank > bestCatRank && categoryData[cat].length > 0) {
             bestCatRank = rank;
             bestCatName = cat;
-            const found = Object.entries(NORM_RANKS).find(([k,v]) => v===rank && !['Athletic','Fitness','Essential Fat','Overfat','Obese'].includes(k));
+            const found = Object.entries(NORM_RANK_MAP).find(([k,v]) => v===rank && !['Completed'].includes(k));
             bestCatLabel = found ? found[0] : 'Good';
         }
     });
@@ -1126,10 +1263,26 @@ for (const r of allRawResults) {
     document.getElementById('lastTestName').innerHTML = `<i class="bi bi-clock-history"></i>&nbsp;<span>${latestTestName}</span>`;
 
     // Render charts
-    renderNormTimeline('cardioChart',      categoryData['Cardiorespiratory Endurance'],     'Cardiorespiratory Endurance');
-    renderNormTimeline('muscularChart',    categoryData['Muscular Strength and Endurance'], 'Muscular Strength and Endurance');
-    renderNormTimeline('flexibilityChart', categoryData['Flexibility'],                     'Flexibility');
-    renderNormTimeline('bodyCompChart',    categoryData['Body Composition'],                'Body Composition');
+    if (isPE1) {
+        // Show all 4 PE1 charts
+        document.querySelector('.charts-grid').style.display = '';
+        renderNormTimeline('cardioChart',      categoryData['Cardiorespiratory Endurance'],     'Cardiorespiratory Endurance');
+        renderNormTimeline('muscularChart',    categoryData['Muscular Strength and Endurance'], 'Muscular Strength and Endurance');
+        renderNormTimeline('flexibilityChart', categoryData['Flexibility'],                     'Flexibility');
+        renderNormTimeline('bodyCompChart',    categoryData['Body Composition'],                'Body Composition');
+    } else {
+        // PE2: hide PE1 charts, show single PE2 chart
+        const chartsGrid = document.querySelector('.charts-grid');
+        chartsGrid.innerHTML = `
+            <div class="chart-card" style="grid-column: 1 / -1;">
+                <div class="chart-header">
+                    <div class="chart-icon"><i class="bi bi-activity" style="color:white;font-size:15px;"></i></div>
+                    <h2 class="chart-title">PE2 Activities Progress</h2>
+                </div>
+                <div id="pe2Chart"></div>
+            </div>`;
+        renderNormTimeline('pe2Chart', categoryData['PE2 Activities'], 'PE2 Activities');
+    }
 
     updateImprovementPreview();
 }
@@ -1477,12 +1630,14 @@ const unsubscribeAuth = onAuthStateChanged(auth, async user => {
             const studentSnap = await getDocs(query(collection(db, 'students'), where('email', '==', user.email)));
 
             if (!studentSnap.empty) {
-                const d = studentSnap.docs[0].data();
-                studentData = {
-                    displayName: `${d.firstName||''} ${d.lastName||''}`.trim() || user.email.split('@')[0],
-                    email: user.email, firstName: d.firstName||'', lastName: d.lastName||'',
-                    section: d.section||'Not Assigned', gender: d.gender||'', birthday: d.birthday||null, age: d.age||null
-                };
+    const d = studentSnap.docs[0].data();
+    studentData = {
+        displayName: `${d.firstName||''} ${d.lastName||''}`.trim() || user.email.split('@')[0],
+        email: user.email, firstName: d.firstName||'', lastName: d.lastName||'',
+        section: d.section||'Not Assigned', gender: d.gender||'', birthday: d.birthday||null, age: d.age||null,
+        courseCode: d.courseCode || d.course || 'PE1',
+        course: d.course || d.courseCode || 'PE1'
+    };
 
                 updateDoc(doc(db, 'students', studentSnap.docs[0].id), {
                     previousLogin: d.lastLogin || new Date().toISOString(),

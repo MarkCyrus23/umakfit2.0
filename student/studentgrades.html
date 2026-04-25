@@ -450,14 +450,14 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
         }
 
         function scoreToCategory(score) {
-            const s = Number(score);
-            if (Number.isNaN(s)) return null;
-            if (s >= 100) return 'Excellent';
-            if (s >= 90) return 'Good';
-            if (s >= 80) return 'Average';
-            if (s >= 70) return 'Below Average';
-            return 'Poor';
-        }
+    const s = Number(score);
+    if (Number.isNaN(s)) return null;
+    if (s >= 100) return 'Excellent';
+    if (s >= 80)  return 'Good';
+    if (s >= 60)  return 'Average';
+    if (s >= 40)  return 'Below Average';
+    return 'Poor';
+}
 
         function mapNormCategoryToScore(cat) {
             return { Excellent: 100, Good: 90, Average: 80, 'Below Average': 70, Poor: 60 }[cat] ?? 75;
@@ -884,27 +884,55 @@ function processAndRender(rawResults, assignedCount) {
             const overallCategories = [];
 
             testResults.forEach(result => {
-                if (categoryData[result.category]) {
-                    if (result.normCategory) {
-                        categoryData[result.category].categories.push(result.normCategory);
-                        overallCategories.push(result.normCategory);
-                        if (isValidScore(result.score)) {
-                            const numericScore = Number(result.score);
-                            categoryData[result.category].scores.push(numericScore);
-                        }
-                    }
-                    categoryData[result.category].tests.push({ name: result.testName, normCategory: result.normCategory });
-                }
-            });
+    if (categoryData[result.category]) {
+        if (result.normCategory) {
+            categoryData[result.category].categories.push(result.normCategory);
+            overallCategories.push(result.normCategory);
+            if (isValidScore(result.score)) {
+                const numericScore = Number(result.score);
+                categoryData[result.category].scores.push(numericScore);
+            }
+            // Tag kung PE 2 ang result
+            if (isPeNoNormCourse(result)) {
+                categoryData[result.category].isPe2 = true;
+            }
+        }
+        categoryData[result.category].tests.push({ name: result.testName, normCategory: result.normCategory });
+    }
+});
 
             // Overall standing
             const overallStandingEl = document.getElementById('overallStanding');
             const overallNoteEl = document.getElementById('overallNote');
-            if (overallCategories.length > 0) {
+
+            // Collect all numeric scores across every completed test (deduped by testId above)
+            const pe2Results = testResults.filter(r => isPeNoNormCourse(r));
+            const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
+            let overallCat = null;
+
+            if (pe2Results.length > 0 && pe1Results.length === 0) {
+                // Pure PE 2 — pct-based score average
+                const pe2Scores = pe2Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s >= 0);
+                if (pe2Scores.length > 0) {
+                    const avgScore = pe2Scores.reduce((a, b) => a + b, 0) / pe2Scores.length;
+                    overallCat = scoreToCategory(avgScore);
+                }
+            } else if (pe1Results.length > 0 && pe2Results.length === 0) {
+                // Pure PE 1 — norm category rank average (respects professor-edited norms)
+                const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
+                if (pe1Categories.length > 0) {
+                    const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
+                    overallCat = rankToCategory(avgRank);
+                }
+            } else if (overallCategories.length > 0) {
+                // Mixed fallback
                 const avgRank = overallCategories.map(normCategoryRank).reduce((a, b) => a + b, 0) / overallCategories.length;
-                const overallCat = rankToCategory(avgRank);
+                overallCat = rankToCategory(avgRank);
+            }
+
+            if (overallCat) {
                 overallStandingEl.innerHTML = `<span class="norm-badge ${normCategoryClass(overallCat)} text-sm px-4 py-2"><i class="bi ${normCategoryIcon(overallCat)}"></i> ${overallCat}</span>`;
-                overallNoteEl.textContent = `Based on ${overallCategories.length} best test categor${overallCategories.length !== 1 ? 'ies' : 'y'}`;
+                overallNoteEl.textContent = `Based on ${testResults.length} test${testResults.length !== 1 ? 's' : ''} completed`;
             } else {
                 overallStandingEl.innerHTML = `<span class="norm-badge norm-average text-sm px-4 py-2"><i class="bi bi-dash-circle-fill"></i> No data yet</span>`;
                 overallNoteEl.textContent = 'Complete tests to see your standing';
@@ -929,7 +957,7 @@ function processAndRender(rawResults, assignedCount) {
                 if (!data.tests.length) return;
                 hasData = true;
                 let dominantCat = null;
-                if (data.scores.length > 0) {
+                if (data.isPe2 && data.scores.length > 0) {
                     const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
                     dominantCat = scoreToCategory(avgScore);
                 } else if (data.categories.length > 0) {

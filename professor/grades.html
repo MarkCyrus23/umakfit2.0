@@ -509,16 +509,16 @@
     }
 
     function getOverallCategory(cats){
-        if(!cats || !cats.length) return 'No Grades';
-        let total = 0;
-        cats.forEach(c => total += CATEGORY_ORDER[c] || 3);
-        const avg = total / cats.length;
-        if (avg >= 4.5) return 'Excellent';
-        if (avg >= 3.5) return 'Good';
-        if (avg >= 2.5) return 'Average';
-        if (avg >= 1.5) return 'Below Average';
-        return 'Poor';
-    }
+    if(!cats || !cats.length) return 'No Grades';
+    let total = 0;
+    cats.forEach(c => total += CATEGORY_ORDER[c] || 3);
+    const avg = total / cats.length;
+    if(avg >= 4.5) return 'Excellent';
+    if(avg >= 3.5) return 'Good';
+    if(avg >= 2.5) return 'Average';
+    if(avg >= 1.5) return 'Below Average';
+    return 'Poor';
+}
 
     function _applyThresholds(nd,value){
         if(!nd)return null;
@@ -849,10 +849,34 @@
             }
             // Track best per test (for overall — skip skinfold)
             if(!isSkinfold){
-                const cs=CATEGORY_ORDER[cat]||3;
-                const ex=bestPerTest.get(mk);
-                if(!ex||cs>(CATEGORY_ORDER[ex.category]||0))bestPerTest.set(mk,entry);
-            }
+    const cs=CATEGORY_ORDER[cat]||3;
+    const ex=bestPerTest.get(mk);
+    const isPe2Entry=/^pe\s*2$/i.test(String(testData?.courseCode||'').trim());
+    // ✅ Resolve actual numeric score (same as studentgrades resolveResultScore)
+    let numericScore = null;
+    if(isPe2Entry){
+        const target=_resolveProfessorTarget(
+            data.result??data.resultData??data,
+            testData,
+            data
+        );
+        const rawVal=extractNumericResult(data.result??data.resultData??data);
+        if(target>0 && rawVal>0){
+            const pct=(rawVal/target)*100;
+            if(pct>=100) numericScore=100;
+            else if(pct>=80) numericScore=90;
+            else if(pct>=60) numericScore=80;
+            else if(pct>=40) numericScore=70;
+            else numericScore=60;
+        } else {
+            // fallback: use saved score field
+            const s=Number(data.score??data.result?.score??data.resultData?.score);
+            if(!isNaN(s)&&s>=0&&s<=100) numericScore=s;
+        }
+    }
+    const entryWithFlag={...entry, isPe2:isPe2Entry, numericScore};
+    if(!ex||cs>(CATEGORY_ORDER[ex.category]||0))bestPerTest.set(mk, entryWithFlag);
+}
         }
         // Store ALL attempts; _bestGrades used for overall category calculation only
         window._rawGrades=allAttempts.sort((a,b)=>b.dateObject-a.dateObject);
@@ -860,42 +884,107 @@
     }
 
     function buildFinalGrades(){
-        const map={};
-        const allRaw=window._rawGrades||[];
-        const bestOnly=window._bestGrades||[];
-        // Build instances from ALL attempts (for activity history display)
-        allRaw.forEach(g=>{
-            const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
-            if(!map[key])map[key]={key,name:g.studentName,section:g.section,email:g.studentEmail,categories:[],instances:[],uniqueTests:new Set()};
-            const alreadyExists=map[key].instances.some(i=>
-                i.name===g.testName &&
-                i.dateObject?.getTime()===g.dateObject?.getTime() &&
-                i.result===g.result
-            );
-            if(!alreadyExists){
-                map[key].instances.push({name:g.testName,date:g.date,dateObject:g.dateObject,result:g.result,category:g.category,isSkinfold:g.isSkinfold,id:g.id,attemptNum:g.attemptNum,testId:g.testId,videoUrl:g.videoUrl||''});
-            }
-            if(g.testId) {
-                map[key].uniqueTests.add(g.testId);
+    const map={};
+    const allRaw=window._rawGrades||[];
+    const bestOnly=window._bestGrades||[];
+
+    // Build instances from ALL attempts (for activity history display)
+    allRaw.forEach(g=>{
+        const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
+        if(!map[key])map[key]={
+            key,name:g.studentName,section:g.section,
+            email:g.studentEmail,
+            pe1Categories:[],  // rank-based (PE 1)
+            pe2Scores:[],      // numeric score-based (PE 2)
+            instances:[],uniqueTests:new Set(),
+            isPe2:false
+        };
+        const alreadyExists=map[key].instances.some(i=>
+            i.name===g.testName &&
+            i.dateObject?.getTime()===g.dateObject?.getTime() &&
+            i.result===g.result
+        );
+        if(!alreadyExists){
+            map[key].instances.push({
+                name:g.testName,date:g.date,dateObject:g.dateObject,
+                result:g.result,category:g.category,isSkinfold:g.isSkinfold,
+                id:g.id,attemptNum:g.attemptNum,testId:g.testId,
+                videoUrl:g.videoUrl||''
+            });
+        }
+        if(g.testId){
+            map[key].uniqueTests.add(g.testId);
+        } else {
+            map[key].uniqueTests.add(`${g.testName}_${g.section}`);
+        }
+    });
+
+    // Build overall from BEST non-skinfold attempt per test
+    bestOnly.forEach(g=>{
+        const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
+        if(!map[key])map[key]={
+            key,name:g.studentName,section:g.section,
+            email:g.studentEmail,
+            pe1Categories:[],
+            pe2Scores:[],
+            instances:[],uniqueTests:new Set(),
+            isPe2:false
+        };
+        if(!g.isSkinfold){
+            if(g.isPe2){
+                // ✅ PE 2 — collect actual numeric scores (same as studentgrades)
+                map[key].isPe2=true;
+                if(g.numericScore!=null) map[key].pe2Scores.push(g.numericScore);
             } else {
-                map[key].uniqueTests.add(`${g.testName}_${g.section}`);
+                // PE 1 — rank-based
+                if(CATEGORY_ORDER[g.category]) map[key].pe1Categories.push(g.category);
             }
-        });
-        // Build overall category from BEST non-skinfold attempt per test only
-        bestOnly.forEach(g=>{
-            const key=g.studentEmail||`${g.studentName}_${g.section}`.toLowerCase();
-            if(!map[key])map[key]={key,name:g.studentName,section:g.section,email:g.studentEmail,categories:[],instances:[],uniqueTests:new Set()};
-            if(!g.isSkinfold && CATEGORY_ORDER[g.category]){
-                map[key].categories.push(g.category);
+        }
+    });
+
+    currentFinalGrades=Object.values(map).map(s=>{
+        let overall='No Grades';
+
+        if(s.isPe2 && s.pe2Scores.length>0 && s.pe1Categories.length===0){
+            // ✅ Pure PE 2 — average numeric scores, then scoreToCategory
+            // Exactly same as studentgrades.html processAndRender PE 2 block
+            const avgScore=s.pe2Scores.reduce((a,b)=>a+b,0)/s.pe2Scores.length;
+            if(avgScore>=100) overall='Excellent';
+            else if(avgScore>=80) overall='Good';
+            else if(avgScore>=60) overall='Average';
+            else if(avgScore>=40) overall='Below Average';
+            else overall='Poor';
+        } else if(!s.isPe2 && s.pe1Categories.length>0){
+            // ✅ Pure PE 1 — rank average
+            overall=getOverallCategory(s.pe1Categories);
+        } else if(s.pe1Categories.length>0||s.pe2Scores.length>0){
+            // Mixed fallback — use whichever has data
+            if(s.pe1Categories.length>0) overall=getOverallCategory(s.pe1Categories);
+            else {
+                const avgScore=s.pe2Scores.reduce((a,b)=>a+b,0)/s.pe2Scores.length;
+                if(avgScore>=100) overall='Excellent';
+                else if(avgScore>=80) overall='Good';
+                else if(avgScore>=60) overall='Average';
+                else if(avgScore>=40) overall='Below Average';
+                else overall='Poor';
             }
-        });
-        currentFinalGrades=Object.values(map).map(s=>{
-            const overall=s.categories.length?getOverallCategory(s.categories):'No Grades';
-            const totalUniqueTests = s.uniqueTests.size;
-            return{...s,overallCategory:overall,overallScore:CATEGORY_ORDER[overall]||0,totalActivities: totalUniqueTests};
-        }).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-        filteredFinalGrades=[...currentFinalGrades];window._filteredGradesRef=filteredFinalGrades;_currentPage=1;renderTable(filteredFinalGrades,1);updateStats(filteredFinalGrades);
-    }
+        }
+
+        const totalUniqueTests=s.uniqueTests.size;
+        return{
+            ...s,
+            overallCategory:overall,
+            overallScore:CATEGORY_ORDER[overall]||0,
+            totalActivities:totalUniqueTests
+        };
+    }).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+
+    filteredFinalGrades=[...currentFinalGrades];
+    window._filteredGradesRef=filteredFinalGrades;
+    _currentPage=1;
+    renderTable(filteredFinalGrades,1);
+    updateStats(filteredFinalGrades);
+}
 
     let _currentPage=1;
     const _pageSize=10;

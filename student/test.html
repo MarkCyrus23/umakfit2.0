@@ -413,8 +413,11 @@
     
     // PE2 uses a single generic category shown for all non-PE1 tests
     const pe2Category = {
-        'PE2 Activities': { icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png', subtitle: 'PE2 fitness activities' }
-    };
+    'PE2 Activities': {
+        icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png',
+        subtitle: 'Jumping Rope & PE2 fitness activities'
+    }
+};
 
         // ========== NORM HELPERS ==========
         function getStudentAgeForNorms() {
@@ -668,7 +671,24 @@
         const entry = attemptsMap.get(testId);
         entry.attempts++;
         const rawResult = r.result ?? r.resultData ?? r.rawResult;
-        const normCat = await resolveNormCategoryForStudent(r.testName, rawResult, testId);
+        let normCat = null;
+        const target = r.targetRepetitions || r.testTarget || r.result?.targetRepetitions || r.resultData?.targetRepetitions;
+        const rawVal = typeof rawResult === 'object' && rawResult !== null
+            ? parseFloat(rawResult.value ?? rawResult.result ?? rawResult.count ?? rawResult.repetitions ?? 0) || 0
+            : parseFloat(rawResult) || 0;
+
+        if (target && rawVal > 0) {
+            const tName = (r.testName || '').toLowerCase();
+            const lowerIsBetter = tName.includes('mile') || tName.includes('run') || tName.includes('step');
+            const pct = lowerIsBetter ? (Number(target) / rawVal) * 100 : (rawVal / Number(target)) * 100;
+            if (pct >= 100) normCat = 'Excellent';
+            else if (pct >= 80) normCat = 'Good';
+            else if (pct >= 60) normCat = 'Average';
+            else if (pct >= 40) normCat = 'Below Average';
+            else normCat = 'Poor';
+        } else {
+            normCat = await resolveNormCategoryForStudent(r.testName, rawResult, testId);
+        }
         if (normCat === 'Excellent') entry.hasExcellent = true;
     }));
 
@@ -1010,37 +1030,116 @@ function renderCategoryCards(attemptsMap) {
         // Uses already-fetched testResults — no extra Firestore query
 
         async function processPerformanceDashboard(testResults) {
-        const testDates = [];
-        const bestCatPerTest = new Map();
-        let bestRank = 0, bestCat = null;
-        const seenTestIds = new Set();
+    const testDates = [];
+    const bestCatPerTest = new Map();
+    let bestRank = 0, bestCat = null;
+    const seenTestIds = new Set();
 
-            await Promise.all(testResults.map(async result => {
-            const testId = result.testId || result.id;
-            const testDate = result.submittedAt?.toDate?.() || (result.submittedAt ? new Date(result.submittedAt) : new Date());
-            testDates.push(testDate);
-            const normCat = await resolveNormCategoryForStudent(result.testName, result.result ?? result.resultData ?? result.rawResult, result.testId);
-            if (!normCat) return;
-            const rank = normCategoryRank(normCat);
-            seenTestIds.add(testId);
-            if (!bestCatPerTest.has(testId) || rank > normCategoryRank(bestCatPerTest.get(testId))) {
-                bestCatPerTest.set(testId, normCat);
-            }
-            if (rank > bestRank) { bestRank = rank; bestCat = normCat; }
-        }));
+    const course = (studentData?.courseCode || 'PE1').toUpperCase();
+    const isPE1 = course === 'PE1';
 
-           const allRanks = Array.from(bestCatPerTest.values()).map(normCategoryRank);
+    function resolveProfessorTarget(result) {
+        const candidates = [
+            result?.targetRepetitions,
+            result?.testTarget,
+            result?.result?.targetRepetitions,
+            result?.resultData?.targetRepetitions,
+            result?.result?.testTarget,
+            result?.resultData?.testTarget
+        ];
+        for (const c of candidates) {
+            const v = Number(c);
+            if (!Number.isNaN(v) && v > 0) return v;
+        }
+        return 0;
+    }
+
+    function extractNumericVal(result) {
+        if (typeof result === 'object' && result !== null) {
+            return parseFloat(result.value ?? result.result ?? result.score ?? result.count ?? result.repetitions ?? 0) || 0;
+        }
+        if (typeof result === 'string') { const m = result.match(/(\d+\.?\d*)/); return m ? parseFloat(m[1]) : 0; }
+        return parseFloat(result) || 0;
+    }
+
+    function scoreToCategory(score) {
+        const s = Number(score);
+        if (Number.isNaN(s)) return null;
+        if (s >= 100) return 'Excellent';
+        if (s >= 90) return 'Good';
+        if (s >= 80) return 'Average';
+        if (s >= 70) return 'Below Average';
+        return 'Poor';
+    }
+
+    function resolveCategory(result) {
+        const rawResult = result.result ?? result.resultData ?? result.rawResult;
+        const target = resolveProfessorTarget(result);
+        const rawValue = extractNumericVal(rawResult);
+
+        // Professor target-based scoring (PE2 and any test with target)
+        if (target > 0 && rawValue > 0) {
+            const testNameL = (result.testName || '').toLowerCase();
+            const lowerIsBetter = testNameL.includes('mile') || testNameL.includes('run') || testNameL.includes('step');
+            const pct = lowerIsBetter ? (target / rawValue) * 100 : (rawValue / target) * 100;
+            if (pct >= 100) return 'Excellent';
+            if (pct >= 80) return 'Good';
+            if (pct >= 60) return 'Average';
+            if (pct >= 40) return 'Below Average';
+            return 'Poor';
+        }
+
+        // PE1: use norm-based resolution
+        if (isPE1) {
+            return null; // will be resolved async below
+        }
+
+        // Fallback: check saved score/category fields
+        const savedCat = result?.normCategory || result?.score || result?.category;
+        const VALID = ['Excellent', 'Good', 'Average', 'Below Average', 'Poor'];
+        if (savedCat && VALID.includes(savedCat)) return savedCat;
+
+        // Score-based fallback
+        const scoreVal = result?.result?.score ?? result?.resultData?.score ?? result?.score;
+        if (scoreVal != null && !isNaN(Number(scoreVal))) return scoreToCategory(Number(scoreVal));
+
+        return 'Average';
+    }
+
+    await Promise.all(testResults.map(async r => {
+        const testId = r.testId || r.id;
+        const testDate = r.submittedAt?.toDate?.() || (r.submittedAt ? new Date(r.submittedAt) : new Date());
+        testDates.push(testDate);
+
+        let normCat = resolveCategory(r);
+
+        // For PE1 tests without a target, use async norm resolution
+        if (!normCat || normCat === null) {
+            normCat = await resolveNormCategoryForStudent(r.testName, r.result ?? r.resultData ?? r.rawResult, r.testId);
+        }
+
+        if (!normCat) return;
+
+        seenTestIds.add(testId);
+        if (!bestCatPerTest.has(testId) || normCategoryRank(normCat) > normCategoryRank(bestCatPerTest.get(testId))) {
+            bestCatPerTest.set(testId, normCat);
+        }
+        const rank = normCategoryRank(normCat);
+        if (rank > bestRank) { bestRank = rank; bestCat = normCat; }
+    }));
+
+    const allRanks = Array.from(bestCatPerTest.values()).map(normCategoryRank);
     const testCount = seenTestIds.size;
     const weekStreakCount = calculateWeekStreak(testDates);
     let overallLabel = '--';
     if (allRanks.length > 0) overallLabel = rankToCategory(allRanks.reduce((a, b) => a + b, 0) / allRanks.length);
 
-            document.getElementById('testsDone').textContent = testCount;
-            document.getElementById('avgScore').textContent = overallLabel;
-            document.getElementById('bestScore').textContent = bestCat || '--';
-            const weekStreakEl = document.getElementById('weekStreak');
-            if (weekStreakEl) weekStreakEl.textContent = weekStreakCount;
-        }
+    document.getElementById('testsDone').textContent = testCount;
+    document.getElementById('avgScore').textContent = overallLabel;
+    document.getElementById('bestScore').textContent = bestCat || '--';
+    const weekStreakEl = document.getElementById('weekStreak');
+    if (weekStreakEl) weekStreakEl.textContent = weekStreakCount;
+}
             function buildDedupKey(data) {
     const titleKey = (data.title || '').replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
     const messageKey = (data.message || '').substring(0, 80);
@@ -1445,19 +1544,18 @@ function setupOverduePollFallback() {
         // ========== HELPERS ==========
 
         function getCategoryForTest(testName) {
-        // If student is PE2 (or any non-PE1), every test maps to the single PE2 category
-        const course = (studentData?.courseCode || 'PE1').toUpperCase();
-        if (course !== 'PE1') return 'PE2 Activities';
-    
-        for (const [category, data] of Object.entries(testCategories)) {
-            if (data.tests.some(t => {
-                const tl = testName.toLowerCase();
-                const cl = t.toLowerCase();
-                return tl.includes(cl) || cl.includes(tl);
-            })) return category;
-        }
-        return 'Cardiorespiratory Endurance';
+    const course = (studentData?.courseCode || 'PE1').toUpperCase();
+    if (course !== 'PE1') return 'PE2 Activities';
+
+    for (const [category, data] of Object.entries(testCategories)) {
+        if (data.tests.some(t => {
+            const tl = testName.toLowerCase();
+            const cl = t.toLowerCase();
+            return tl.includes(cl) || cl.includes(tl);
+        })) return category;
     }
+    return 'Cardiorespiratory Endurance';
+}
 
         function formatDeadline(deadline, deadlineTime) {
             if (!deadline) return 'No deadline';

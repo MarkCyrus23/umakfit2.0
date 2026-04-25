@@ -1677,31 +1677,51 @@ function showToast(message, type = 'info') {
         };
 
         function getTestData(testName) {
-            return testData[testName] || {
-                category: 'FITNESS TEST',
-                icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png',
-                badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
-                getDuration: () => 'Varies',
-                difficulty: 'Moderate',
-                objective: 'Complete the test according to instructions',
-                scoring: 'Based on performance metrics',
-                requirements: 'Follow test-specific requirements',
-                video: 'https://c.animaapp.com/pVU46Rgb/img/image-82.png',
-                videoDescription: 'Watch this video for demonstration',
-                protocol: ['Follow the test instructions carefully'],
-                safetyTips: ['Warm up properly', 'Stop if you feel pain', 'Maintain proper form', 'Stay hydrated']
-            };
-        }
+    // Check PE 2 jump rope variants first
+    const normalizedName = (testName || '').toLowerCase();
+    const isJumpRope = normalizedName.includes('jumping rope') || 
+                       normalizedName.includes('jump rope') ||
+                       normalizedName.includes('basic jump') ||
+                       normalizedName.includes('side to side') ||
+                       normalizedName.includes('front & back') ||
+                       normalizedName.includes('open & close') ||
+                       normalizedName.includes('criss cross') ||
+                       normalizedName.includes('straddle') ||
+                       normalizedName.includes('scissors') ||
+                       normalizedName.includes('alternate') ||
+                       normalizedName.includes('cross arms') ||
+                       normalizedName.includes('double jumps');
+
+    if (isJumpRope) {
+        return testData['Jump Rope'];
+    }
+
+    return testData[testName] || {
+        category: 'FITNESS TEST',
+        icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png',
+        badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
+        getDuration: () => 'Varies',
+        difficulty: 'Moderate',
+        objective: 'Complete the test according to instructions',
+        scoring: 'Based on performance metrics',
+        requirements: 'Follow test-specific requirements',
+        video: 'https://c.animaapp.com/pVU46Rgb/img/image-82.png',
+        videoDescription: 'Watch this video for demonstration',
+        protocol: ['Follow the test instructions carefully'],
+        safetyTips: ['Warm up properly', 'Stop if you feel pain', 'Maintain proper form', 'Stay hydrated']
+    };
+}
 
         function getTargetLabel(testName) {
-            const normalized = testName.toLowerCase();
-            if (normalized.includes('push-up') || normalized.includes('pushup')) return 'push-ups';
-            if (normalized.includes('sit-up') || normalized.includes('situp')) return 'sit-ups';
-            if (normalized.includes('plank')) return 'seconds';
-            if (normalized.includes('step test')) return 'minutes';
-            if (normalized.includes('sit-and-reach')) return 'cm';
-            return 'units';
-        }
+    const normalized = testName.toLowerCase();
+    if (normalized.includes('push-up') || normalized.includes('pushup')) return 'push-ups';
+    if (normalized.includes('sit-up') || normalized.includes('situp')) return 'sit-ups';
+    if (normalized.includes('plank')) return 'seconds';
+    if (normalized.includes('step test') || normalized.includes('3-minute')) return 'minutes';
+    if (normalized.includes('sit-and-reach')) return 'cm';
+    if (normalized.includes('jump') || normalized.includes('rope')) return 'repetitions';
+    return 'units';
+}
 
         function populateTestDetails(test) {    
             const testInfo = getTestData(test.testName);
@@ -1726,24 +1746,26 @@ function showToast(message, type = 'info') {
             document.getElementById('requirementsIconNew').src = categoryIcon;
 
             let requirementsText = testInfo.requirements;
-            if (test.testTarget) {
+            const repTarget = test.targetRepetitions || test.testTarget;
+            if (repTarget) {
                 const targetLabel = getTargetLabel(test.testName);
-                requirementsText += ` | Target: ${test.testTarget} ${targetLabel}`;
+                requirementsText += ` | Target: ${repTarget} ${targetLabel}`;
             }
             document.getElementById('requirementsTextNew').textContent = requirementsText;
 
             const videoPlaceholder = document.querySelector('.video-placeholder');
-            if (test.videoURL) {
-                let videoId = '';
-                
-                if (test.videoURL.includes('youtube.com/watch?v=')) {
-                    videoId = test.videoURL.split('v=')[1].split('&')[0];
-                } else if (test.videoURL.includes('youtu.be/')) {
-                    videoId = test.videoURL.split('youtu.be/')[1].split('?')[0];
-                } else if (test.videoURL.includes('youtube.com/embed/')) {
-                    videoId = test.videoURL.split('embed/')[1].split('?')[0];
-                }
-                
+const rawVideoURL = test.videoURL || testInfo.video || '';
+
+function extractYouTubeId(url) {
+    if (!url) return '';
+    if (url.includes('youtube.com/watch?v=')) return url.split('v=')[1].split('&')[0];
+    if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0];
+    if (url.includes('youtube.com/embed/')) return url.split('embed/')[1].split('?')[0];
+    return '';
+}
+
+const videoId = extractYouTubeId(rawVideoURL);
+
 if (videoId) {
     videoPlaceholder.innerHTML = `
         <iframe 
@@ -1755,31 +1777,20 @@ if (videoId) {
             style="width: 100%; height: 100%; border-radius: 12px;">
         </iframe>
     `;
-    document.getElementById('videoDescription').textContent = '📺 Watch the instruction video from your professor above';                } else {
-                    videoPlaceholder.innerHTML = `
-                        <div style="padding: 40px; text-align: center; background: #fee2e2; border-radius: 8px;">
-                            <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
-                            <p style="color: #991b1b; font-weight: 600; margin: 0 0 10px 0; font-size: 16px;">
-                                Video URL format not supported
-                            </p>
-                            <p style="color: #7f1d1d; font-size: 13px; margin: 0;">
-                                Please contact your professor
-                            </p>
-                        </div>
-                    `;
-                    document.getElementById('videoDescription').textContent = 'Unable to load video';
-                }
-            } else {
-                videoPlaceholder.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 15px; padding: 40px; background: #f3f4f6; border-radius: 8px;">
-                        <div style="font-size: 64px; opacity: 0.5;">📹</div>
-                        <p style="color: #6b7280; font-size: 15px; margin: 0; font-weight: 500;">
-                            No instruction video available for this test
-                        </p>
-                    </div>
-                `;
-                document.getElementById('videoDescription').textContent = testInfo.videoDescription;
-            }
+    document.getElementById('videoDescription').textContent = test.videoURL
+        ? '📺 Watch the instruction video from your professor above'
+        : testInfo.videoDescription;
+} else {
+    videoPlaceholder.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 15px; padding: 40px; background: #f3f4f6; border-radius: 8px;">
+            <div style="font-size: 64px; opacity: 0.5;">📹</div>
+            <p style="color: #6b7280; font-size: 15px; margin: 0; font-weight: 500;">
+                No instruction video available for this test
+            </p>
+        </div>
+    `;
+    document.getElementById('videoDescription').textContent = testInfo.videoDescription;
+}
             
             const protocolStepsContainer = document.getElementById('protocolSteps');
             protocolStepsContainer.innerHTML = '';
