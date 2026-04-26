@@ -505,7 +505,8 @@
                         <option value="">All Course Codes</option>
                         <option value="PE 1">PE 1</option>
                         <option value="PE 2">PE 2</option>
-                        <option value="PE 3">PE 3</option>
+<option value="PE 3">PE 3</option>
+<option value="PE 4">PE 4</option>
                     </select>
                     <select id="filterTestType" onchange="filterScheduleTable()" class="block w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm text-text-secondary">
                         <option value="">All Test Types</option>
@@ -1002,10 +1003,10 @@
     window.showInfoModal  = showInfoModal;
     window.showErrorModal = showErrorModal;
 
-    function isRepetitionCourse(courseCode) {
-        const cc = String(courseCode || '').trim().toUpperCase();
-        return cc === 'PE 2' || cc === 'PE 3';
-    }
+function isRepetitionCourse(courseCode) {
+    const cc = String(courseCode || '').trim().toUpperCase();
+    return cc === 'PE 2' || cc === 'PE 3' || cc === 'PE 4';
+}
 
     // ── Video helpers ──
     function toggleCustomURLInput() {
@@ -1349,7 +1350,11 @@ function generateReports()    { showInfoModal('Report generation feature coming 
                  'CROSS ARMS — Jumping Rope','DOUBLE JUMPS — Jumping Rope'],
         'PE 3': ['Ball Control (Front) — Pingpong','Ball Control (Back) — Pingpong',
                  'Ball Control (Alternate) — Pingpong'],
-        'PE 4': [],
+'PE 4': [
+    'Dribbling (Stationary) — Basketball',
+    'Passing Accuracy — Basketball',
+    'Free Throw — Basketball',
+],
     };
 
     function handleScheduleCourseCodeChange() {
@@ -1424,15 +1429,20 @@ window.handleScheduleCourseCodeChange = handleScheduleCourseCodeChange;
     window.handleScheduleCourseCodeChange = handleScheduleCourseCodeChange;
     function filterResultsTable() { window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
     function clearResultFilters() { document.getElementById('searchResults').value=''; document.getElementById('filterSection').value=''; window.resultsCurrentPage=1; if(window.renderStudentResultsTableGlobal) window.renderStudentResultsTableGlobal(); }
-    const _COURSE_TEST_MAP = {
-        'PE 1': ['3-Minute Step Test','Curl-Up Test','Push-Up Test','Sit-and-Reach','Skinfold Caliper'],
-        'PE 2': ['BASIC JUMP — Jumping Rope','SIDE TO SIDE — Jumping Rope','FRONT & BACK — Jumping Rope',
-                 'OPEN & CLOSE — Jumping Rope','CRISS CROSS — Jumping Rope',
-                 'STRADDLE/SCISSORS — Jumping Rope','ALTERNATE — Jumping Rope',
-                 'CROSS ARMS — Jumping Rope','DOUBLE JUMPS — Jumping Rope'],
-        'PE 3': ['Ball Control (Front) — Pingpong','Ball Control (Back) — Pingpong',
-                 'Ball Control (Alternate) — Pingpong'],
-    };
+const _COURSE_TEST_MAP = {
+    'PE 1': ['3-Minute Step Test','Curl-Up Test','Push-Up Test','Sit-and-Reach','Skinfold Caliper'],
+    'PE 2': ['BASIC JUMP — Jumping Rope','SIDE TO SIDE — Jumping Rope','FRONT & BACK — Jumping Rope',
+             'OPEN & CLOSE — Jumping Rope','CRISS CROSS — Jumping Rope',
+             'STRADDLE/SCISSORS — Jumping Rope','ALTERNATE — Jumping Rope',
+             'CROSS ARMS — Jumping Rope','DOUBLE JUMPS — Jumping Rope'],
+    'PE 3': ['Ball Control (Front) — Pingpong','Ball Control (Back) — Pingpong',
+             'Ball Control (Alternate) — Pingpong'],
+    'PE 4': [
+        'Dribbling (Stationary) — Basketball',
+        'Passing Accuracy — Basketball',
+        'Free Throw — Basketball',
+    ],
+};
 
     window.filterByCourseCode = function() {
         const cc = document.getElementById('filterCourseCode')?.value || '';
