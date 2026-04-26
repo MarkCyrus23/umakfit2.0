@@ -361,14 +361,17 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, onSnapsho
             'Body Composition': { tests: ['Skinfold Caliper Measurements'], icon: '⚖️' }
         };
 function getPECategory(courseCode) {
-    const code = (courseCode || 'PE2').toUpperCase();
+    const code = (courseCode || 'PE2').toUpperCase().replace(/\s+/g, '');
     return { [`${code} Activities`]: { tests: [], icon: '🏃' } };
 }
 
 function normalizeCourseCode(value) {
     const normalized = String(value || '').toUpperCase().replace(/\s+/g, '');
     if (normalized === 'PE1') return 'PE1';
-    if (normalized.startsWith('PE')) return normalized; // PE2, PE3, PE4, etc.
+    if (normalized === 'PE2') return 'PE2';
+    if (normalized === 'PE3') return 'PE3';
+    if (normalized === 'PE4') return 'PE4';
+    if (normalized.startsWith('PE')) return normalized;
     return 'PE1';
 }
 
@@ -427,13 +430,13 @@ function normalizeCourseCode(value) {
         }
 
 function getCategoryForTest(testName) {
-    const course = (studentData?.courseCode || 'PE1').toUpperCase();
+    const course = (studentData?.courseCode || 'PE1').toUpperCase().replace(/\s+/g, '');
     if (course !== 'PE1') return `${course} Activities`;
-            for (const [category, data] of Object.entries(testCategories)) {
-                if (data.tests.some(t => { const tl = testName.toLowerCase(); const cl = t.toLowerCase(); return tl.includes(cl) || cl.includes(tl); })) return category;
-            }
-            return 'Cardiorespiratory Endurance';
-        }
+    for (const [category, data] of Object.entries(testCategories)) {
+        if (data.tests.some(t => { const tl = testName.toLowerCase(); const cl = t.toLowerCase(); return tl.includes(cl) || cl.includes(tl); })) return category;
+    }
+    return 'Cardiorespiratory Endurance';
+}
 
         function normCategoryClass(cat) {
             if (!cat) return 'norm-average';
@@ -553,7 +556,11 @@ function getCategoryForTest(testName) {
         const scheduledData = normDocsCache.get(`scheduled:${scheduledId}`);
         candidates.push(scheduledData?.courseCode);
     }
-    return candidates.some(code => /^pe\s*[2-9](\d+)?$/i.test(String(code || '').trim()));
+    return candidates.some(code => {
+        const normalized = String(code || '').toUpperCase().replace(/\s+/g, '');
+        return normalized === 'PE2' || normalized === 'PE3' || normalized === 'PE4' || 
+               /^PE[2-9]\d*$/.test(normalized);
+    });
 }
 
         function getFallbackScore(testName, result) {
@@ -956,11 +963,15 @@ const categoriesSource = course === 'PE1' ? testCategories : getPECategory(cours
             Object.keys(categoriesSource).forEach(cat => { categoryData[cat] = { categories: [], tests: [], scores: [] }; });
             const overallCategories = [];
 
-            testResults.forEach(result => {
+           testResults.forEach(result => {
     if (categoryData[result.category]) {
         if (result.normCategory) {
             categoryData[result.category].categories.push(result.normCategory);
             overallCategories.push(result.normCategory);
+        }
+        // I-store din ang score para sa PE2/3/4 averaging
+        if (result.score != null && !isNaN(Number(result.score))) {
+            categoryData[result.category].scores.push(Number(result.score));
         }
         categoryData[result.category].tests.push({ name: result.testName, normCategory: result.normCategory });
     }
@@ -970,33 +981,34 @@ const categoriesSource = course === 'PE1' ? testCategories : getPECategory(cours
             const overallStandingEl = document.getElementById('overallStanding');
             const overallNoteEl = document.getElementById('overallNote');
 
-            // Collect all numeric scores across every completed test (deduped by testId above)
-const nonPE1Results = testResults.filter(r => isPeNoNormCourse(r));
-const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
-let overallCat = null;
+                    // In processAndRender, replace the overall standing computation block:
+        const nonPE1Results = testResults.filter(r => isPeNoNormCourse(r));
+        const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
+        let overallCat = null;
 
-if (nonPE1Results.length > 0 && pe1Results.length === 0) {
-    // PE2/PE3: average the actual numeric scores (60–100 scale), then map to category
-    const scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s > 0);
-    if (scores.length > 0) {
-        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-        overallCat = scoreToCategory(avgScore);
-    }
-} else if (pe1Results.length > 0 && nonPE1Results.length === 0) {
-    // PE1: rank-based averaging (norm-based, 1–5 scale)
-    const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
-    if (pe1Categories.length > 0) {
-        const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
-        overallCat = rankToCategory(avgRank);
-    }
-} else if (testResults.length > 0) {
-    // Mixed fallback — rank-based
-    const allCats = testResults.map(r => r.normCategory).filter(Boolean);
-    if (allCats.length > 0) {
-        const avgRank = allCats.map(normCategoryRank).reduce((a, b) => a + b, 0) / allCats.length;
-        overallCat = rankToCategory(avgRank);
-    }
-}
+        if (testResults.length > 0) {
+            if (nonPE1Results.length > 0 && pe1Results.length === 0) {
+            const scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s > 0);
+            if (scores.length > 0) {
+                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                overallCat = scoreToCategory(avg);
+            }
+
+            } else if (pe1Results.length > 0 && nonPE1Results.length === 0) {
+                const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
+                if (pe1Categories.length > 0) {
+                    const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
+                    overallCat = rankToCategory(avgRank);
+                }
+            } else {
+                // Mixed fallback
+                const allCats = testResults.map(r => r.normCategory).filter(Boolean);
+                if (allCats.length > 0) {
+                    const avgRank = allCats.map(normCategoryRank).reduce((a, b) => a + b, 0) / allCats.length;
+                    overallCat = rankToCategory(avgRank);
+                }
+            }
+        }
             if (overallCat) {
                 overallStandingEl.innerHTML = `<span class="norm-badge ${normCategoryClass(overallCat)} text-sm px-4 py-2"><i class="bi ${normCategoryIcon(overallCat)}"></i> ${overallCat}</span>`;
                 overallNoteEl.textContent = `Based on ${testResults.length} test${testResults.length !== 1 ? 's' : ''} completed`;
@@ -1016,52 +1028,50 @@ if (nonPE1Results.length > 0 && pe1Results.length === 0) {
         }
 
         function renderCategoryPerformance(categoryData) {
-            const container = document.getElementById('categoriesContainer');
-            if (!container) return;
-            let html = '', hasData = false;
+    const container = document.getElementById('categoriesContainer');
+    if (!container) return;
+    let html = '', hasData = false;
 
-            Object.entries(categoryData).forEach(([category, data]) => {
-                if (!data.tests.length) return;
-                hasData = true;
-                let dominantCat = null;
-                
-                // Use norm category rank averaging for ALL courses (PE1, PE2, PE3, etc.)
-                if (data.categories.length > 0) {
-                    const course = (studentData?.courseCode || 'PE1').toUpperCase();
-                    if (course !== 'PE1') {
-                        // PE2/PE3: average the actual numeric scores stored in data.tests
-                        const catScores = data.categories.map(cat => mapNormCategoryToScore(cat));
-                        const avgScore = catScores.reduce((a, b) => a + b, 0) / catScores.length;
-                        dominantCat = scoreToCategory(avgScore);
-                    } else {
-                        // PE1: rank-based averaging
-                        const avgRank = data.categories.map(normCategoryRank).reduce((a,b) => a+b, 0) / data.categories.length;
-                        dominantCat = rankToCategory(avgRank);
-                    }
-                }
-                const cls = dominantCat ? normCategoryClass(dominantCat) : 'norm-completion';
-                const ico = dominantCat ? normCategoryIcon(dominantCat) : 'bi-check-circle-fill';
-                const displayCat = dominantCat || 'Completed';
+    Object.entries(categoryData).forEach(([category, data]) => {
+        if (!data.tests.length) return;
+        hasData = true;
+        let dominantCat = null;
 
-                html += `
-                <div class="px-4 py-4 md:px-6 hover:bg-gray-50 transition-colors">
-                    <div class="block md:hidden">
-                        <div class="flex items-center justify-between mb-2"><h4 class="font-semibold text-gray-900 text-sm">${category}</h4></div>
-                        <div class="flex justify-between items-center"><p class="text-xs text-gray-500">${data.tests.length} test${data.tests.length !== 1 ? 's' : ''}</p><span class="norm-badge ${cls}"><i class="bi ${ico}"></i> ${displayCat}</span></div>
-                    </div>
-                    <div class="hidden md:grid grid-cols-12 gap-4 items-center">
-                        <div class="col-span-5"><h4 class="font-semibold text-gray-900">${category}</h4><p class="text-xs text-gray-500 mt-0.5">${data.tests.length} test${data.tests.length !== 1 ? 's' : ''} completed</p></div>
-                        <div class="col-span-3 text-center"><span class="text-gray-600">${data.tests.length} taken</span></div>
-                        <div class="col-span-4 flex justify-end"><span class="norm-badge ${cls} text-sm"><i class="bi ${ico}"></i> ${displayCat}</span></div>
-                    </div>
-                </div>`;
-            });
+        if (data.categories.length > 0) {
+    const courseCode = (studentData?.courseCode || 'PE1').toUpperCase().replace(/\s+/g, '');
+    if (courseCode !== 'PE1' && data.scores.length > 0) {
+        // PE2/3/4: gamitin ang pre-stored scores sa categoryData
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        dominantCat = scoreToCategory(avg);
+    } else {
+        const avgRank = data.categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / data.categories.length;
+        dominantCat = rankToCategory(avgRank);
+    }
+}
 
-            if (!hasData) {
-                html = `<div class="px-6 py-12 text-center"><i class="bi bi-inbox text-gray-300 text-5xl mb-3 block"></i><p class="text-gray-500">No category data available yet</p><p class="text-gray-400 text-sm mt-2">Complete tests to see your performance by category</p></div>`;
-            }
-            container.innerHTML = html;
-        }
+        const cls = dominantCat ? normCategoryClass(dominantCat) : 'norm-completion';
+        const ico = dominantCat ? normCategoryIcon(dominantCat) : 'bi-check-circle-fill';
+        const displayCat = dominantCat || 'Completed';
+
+        html += `
+        <div class="px-4 py-4 md:px-6 hover:bg-gray-50 transition-colors">
+            <div class="block md:hidden">
+                <div class="flex items-center justify-between mb-2"><h4 class="font-semibold text-gray-900 text-sm">${category}</h4></div>
+                <div class="flex justify-between items-center"><p class="text-xs text-gray-500">${data.tests.length} test${data.tests.length !== 1 ? 's' : ''}</p><span class="norm-badge ${cls}"><i class="bi ${ico}"></i> ${displayCat}</span></div>
+            </div>
+            <div class="hidden md:grid grid-cols-12 gap-4 items-center">
+                <div class="col-span-5"><h4 class="font-semibold text-gray-900">${category}</h4><p class="text-xs text-gray-500 mt-0.5">${data.tests.length} test${data.tests.length !== 1 ? 's' : ''} completed</p></div>
+                <div class="col-span-3 text-center"><span class="text-gray-600">${data.tests.length} taken</span></div>
+                <div class="col-span-4 flex justify-end"><span class="norm-badge ${cls} text-sm"><i class="bi ${ico}"></i> ${displayCat}</span></div>
+            </div>
+        </div>`;
+    });
+
+    if (!hasData) {
+        html = `<div class="px-6 py-12 text-center"><i class="bi bi-inbox text-gray-300 text-5xl mb-3 block"></i><p class="text-gray-500">No category data available yet</p><p class="text-gray-400 text-sm mt-2">Complete tests to see your performance by category</p></div>`;
+    }
+    container.innerHTML = html;
+}
 
         function renderTestResults(testResults) {
             const container = document.getElementById('testResultsContainer');

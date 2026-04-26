@@ -510,11 +510,6 @@
                     </select>
                     <select id="filterTestType" onchange="filterScheduleTable()" class="block w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm text-text-secondary">
                         <option value="">All Test Types</option>
-                        <option value="3-Minute Step Test">3-Minute Step Test</option>
-                        <option value="Curl-Up Test">Curl-Up Test</option>
-                        <option value="Push-Up Test">Push-Up Test</option>
-                        <option value="Sit-and-Reach">Sit-and-Reach Test</option>
-                        <option value="Skinfold Caliper">Skinfold Caliper</option>
                     </select>
                     <select id="sortBySection" onchange="filterScheduleTable()" class="block w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-blue/20 focus:border-blue bg-surface text-sm text-text-secondary">
                         <option value="">All Sections (sorted by section)</option>
@@ -1443,34 +1438,72 @@ const _COURSE_TEST_MAP = {
         'Free Throw — Basketball',
     ],
 };
-
+        (function initTestTypeDropdown() {
+    const testTypeSelect = document.getElementById('filterTestType');
+    if (!testTypeSelect) return;
+    testTypeSelect.innerHTML = '<option value="">All Test Types</option>';
+    Object.values(_COURSE_TEST_MAP).flat().forEach(t => {
+        const o = document.createElement('option');
+        o.value = t; o.textContent = t;
+        testTypeSelect.appendChild(o);
+    });
+})();
     window.filterByCourseCode = function() {
-        const cc = document.getElementById('filterCourseCode')?.value || '';
-        const testTypeSelect = document.getElementById('filterTestType');
-        testTypeSelect.innerHTML = '<option value="">All Test Types</option>';
-        if (cc && _COURSE_TEST_MAP[cc]) {
-            _COURSE_TEST_MAP[cc].forEach(t => {
-                const o = document.createElement('option');
-                o.value = t; o.textContent = t;
-                testTypeSelect.appendChild(o);
-            });
-        } else {
-            const allTests = [
-                ...(_COURSE_TEST_MAP['PE 1'] || []),
-                ...(_COURSE_TEST_MAP['PE 2'] || []),
-                ...(_COURSE_TEST_MAP['PE 3'] || []),
-            ];
-            allTests.forEach(t => {
-                const o = document.createElement('option');
-                o.value = t; o.textContent = t;
-                testTypeSelect.appendChild(o);
-            });
-        }
-        testTypeSelect.value = '';
-        window._scheduleCurrentPage = 1;
-        if (window.allScheduledTests?.length && window.renderScheduleTable)
-            window.renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
-    };
+    const cc = document.getElementById('filterCourseCode')?.value || '';
+    const testTypeSelect = document.getElementById('filterTestType');
+    const sortBySectionSelect = document.getElementById('sortBySection');
+
+    // Update test type options
+    testTypeSelect.innerHTML = '<option value="">All Test Types</option>';
+    if (cc && _COURSE_TEST_MAP[cc]) {
+        _COURSE_TEST_MAP[cc].forEach(t => {
+            const o = document.createElement('option');
+            o.value = t; o.textContent = t;
+            testTypeSelect.appendChild(o);
+        });
+    } else {
+        // Show all test types from all courses
+        Object.values(_COURSE_TEST_MAP).flat().forEach(t => {
+            const o = document.createElement('option');
+            o.value = t; o.textContent = t;
+            testTypeSelect.appendChild(o);
+        });
+    }
+    testTypeSelect.value = '';
+
+    // Update section dropdown filtered by course code
+    const removedNames = window._removedSectionNames || new Set();
+    const allSections = [
+        ...window.assignedSections.map(s => s.section),
+        ...window.allScheduledTests.map(t => t.section).filter(Boolean)
+    ].filter(s => !removedNames.has(s));
+
+    const filteredSections = cc
+        ? [...new Set(
+            window.allScheduledTests
+                .filter(t => (t.courseCode || '') === cc && !removedNames.has(t.section))
+                .map(t => t.section)
+                .filter(Boolean)
+          )]
+        : [...new Set(allSections)];
+
+    const counts = new Map();
+    window.allScheduledTests.forEach(t => {
+        if (t.section) counts.set(t.section, (counts.get(t.section) || 0) + 1);
+    });
+
+    let opts = '<option value="">All Sections (sorted by section)</option>';
+    filteredSections.sort().forEach(sec => {
+        const c = counts.get(sec) || 0;
+        opts += `<option value="${sec}">${sec} (${c} test${c !== 1 ? 's' : ''})</option>`;
+    });
+    sortBySectionSelect.innerHTML = opts;
+    sortBySectionSelect.value = '';
+
+    window._scheduleCurrentPage = 1;
+    if (window.allScheduledTests?.length && window.renderScheduleTable)
+        window.renderScheduleTable(window.allScheduledTests, window._enabledTestsMap || new Map());
+};
 
     window.filterScheduleTable = function() { window._scheduleCurrentPage=1; if(window.allScheduledTests?.length&&window.renderScheduleTable) window.renderScheduleTable(window.allScheduledTests, window._enabledTestsMap||new Map()); };
     window.closeScheduleTestModal = function() {
@@ -1839,16 +1872,31 @@ function _buildSectionsArray(snap) {
 
 // ── Schedule Table ─────────────────────────────────────────────────
 function populateSectionSortDropdown() {
-    const select = document.getElementById('sortBySection'); if(!select) return;
+    const select = document.getElementById('sortBySection'); if (!select) return;
+    const activeCourseCode = document.getElementById('filterCourseCode')?.value || '';
     const counts = new Map();
-    window.allScheduledTests.forEach(t => { if(t.section) counts.set(t.section,(counts.get(t.section)||0)+1); });
-   const removedNames = window._removedSectionNames || new Set();
-const sectionsSet = new Set([
-    ...window.assignedSections.map(s => s.section),
-    ...window.allScheduledTests.map(t => t.section).filter(Boolean)
-].filter(s => !removedNames.has(s)));
+    window.allScheduledTests.forEach(t => { if (t.section) counts.set(t.section, (counts.get(t.section) || 0) + 1); });
+    const removedNames = window._removedSectionNames || new Set();
+
+    const allSections = new Set([
+        ...window.assignedSections.map(s => s.section),
+        ...window.allScheduledTests.map(t => t.section).filter(Boolean)
+    ].filter(s => !removedNames.has(s)));
+
+    const filteredSections = activeCourseCode
+        ? new Set(
+            window.allScheduledTests
+                .filter(t => (t.courseCode || '') === activeCourseCode && !removedNames.has(t.section))
+                .map(t => t.section)
+                .filter(Boolean)
+          )
+        : allSections;
+
     let opts = '<option value="">All Sections (sorted by section)</option>';
-    Array.from(sectionsSet).sort().forEach(sec => { const c=counts.get(sec)||0; opts+=`<option value="${sec}">${sec} (${c} test${c!==1?'s':''})</option>`; });
+    Array.from(filteredSections).sort().forEach(sec => {
+        const c = counts.get(sec) || 0;
+        opts += `<option value="${sec}">${sec} (${c} test${c !== 1 ? 's' : ''})</option>`;
+    });
     select.innerHTML = opts;
 }
 

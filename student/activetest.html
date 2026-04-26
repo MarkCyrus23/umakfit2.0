@@ -1579,10 +1579,19 @@ window.startTimer = async function() {
                 </div>`;
                 document.getElementById('submitBtn').disabled = false;
             } else {
-                const targetHint = currentTest.testTarget ? ` (Target: ${currentTest.testTarget})` : '';
-                html = `<div class="input-group-custom"><label class="input-label">📊 Test Result <span style="color:#ef4444;">*</span></label><input type="text" class="input-field" id="resultInput" placeholder="Enter your test result${targetHint}" required><div class="input-hint"><i class="bi bi-info-circle"></i>Enter your test result as instructed by your instructor${targetHint}</div></div>`;
-                document.getElementById('submitBtn').disabled = false;
-            }
+    const genTarget = parseInt(currentTest?.targetRepetitions) || parseInt(currentTest?.testTarget) || 0;
+    html = `<div class="input-group-custom">
+        <label class="input-label">📊 Test Result <span style="color:#ef4444;">*</span></label>
+        <input type="number" class="input-field" id="resultInput"
+            placeholder="Enter your result${genTarget ? ' (max: ' + genTarget + ')' : ''}"
+            ${genTarget ? `max="${genTarget}"` : ''}
+            oninput="this.value=this.value.replace(/[^0-9]/g,'');${genTarget ? `if(parseInt(this.value)>${genTarget})this.value='${genTarget}';` : `if(this.value.length>4)this.value=this.value.slice(0,4);`}"
+            required>
+        <div class="input-hint"><i class="bi bi-info-circle"></i>Enter your test result as instructed by your instructor${genTarget ? ' (max: ' + genTarget + ')' : ''}</div>
+        ${genTarget ? `<div class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-800 font-semibold">🎯 Professor's Target: <strong>${genTarget} reps</strong> — You cannot enter more than this.</div>` : ''}
+    </div>`;
+    document.getElementById('submitBtn').disabled = false;
+}
             inputSection.innerHTML = html;
         }
 

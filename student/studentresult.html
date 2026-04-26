@@ -912,10 +912,11 @@ const active = allNotifs.filter(n => {
                     );
                 };
 
-                // ✅ Fetch norm category and attempt count in parallel
                 const [normResult, attemptSnap] = await Promise.all([
                     resolveNormCategory(data.testName, data.result, scheduledTestId),
-                    scheduledTestId
+                    scheduledTestId && data.studentEmail
+                        ? getDocs(query(collection(db,'testResults'), where('testId','==',scheduledTestId), where('studentEmail','==',data.studentEmail)))
+                        : scheduledTestId && data.studentId
                         ? getDocs(query(collection(db,'testResults'), where('testId','==',scheduledTestId), where('studentId','==',data.studentId)))
                         : Promise.resolve(null)
                 ]);
@@ -926,72 +927,6 @@ const active = allNotifs.filter(n => {
                     ? (scheduledTestDoc.data().targetRepetitions || 0)
                     : 0;
 
-                // Try to gather all attempts for the same student + test, then pick highest.
-                try {
-                    const studentEmail = data.studentEmail || currentUser?.email || null;
-                    const studentId = data.studentId || studentData?.studentId || null;
-                    const candidates = [{ id: resultDoc.id, ...data }];
-
-                    const relatedSnaps = [];
-                    if (scheduledTestId && studentEmail) {
-                        relatedSnaps.push(
-                            getDocs(query(
-                                collection(db, 'testResults'),
-                                where('testId', '==', scheduledTestId),
-                                where('studentEmail', '==', studentEmail)
-                            ))
-                        );
-                        relatedSnaps.push(
-                            getDocs(query(
-                                collection(db, 'testResults'),
-                                where('scheduledTestId', '==', scheduledTestId),
-                                where('studentEmail', '==', studentEmail)
-                            ))
-                        );
-                    }
-                    if (scheduledTestId && studentId) {
-                        relatedSnaps.push(
-                            getDocs(query(
-                                collection(db, 'testResults'),
-                                where('testId', '==', scheduledTestId),
-                                where('studentId', '==', studentId)
-                            ))
-                        );
-                        relatedSnaps.push(
-                            getDocs(query(
-                                collection(db, 'testResults'),
-                                where('scheduledTestId', '==', scheduledTestId),
-                                where('studentId', '==', studentId)
-                            ))
-                        );
-                    }
-
-                    const snapshots = await Promise.all(relatedSnaps);
-                    snapshots.forEach(snap => {
-                        snap.forEach(d => candidates.push({ id: d.id, ...d.data() }));
-                    });
-
-                    const unique = [];
-                    const seen = new Set();
-                    candidates.forEach(c => {
-                        if (seen.has(c.id)) return;
-                        seen.add(c.id);
-                        unique.push(c);
-                    });
-
-                    if (unique.length > 1) {
-                        unique.sort((a, b) => {
-                            const scoreDiff = compareScore(b, targetRepetitions) - compareScore(a, targetRepetitions);
-                            if (scoreDiff !== 0) return scoreDiff;
-                            const aDate = new Date(a.submittedAt?.seconds ? a.submittedAt.seconds * 1000 : (a.submittedAt || 0)).getTime();
-                            const bDate = new Date(b.submittedAt?.seconds ? b.submittedAt.seconds * 1000 : (b.submittedAt || 0)).getTime();
-                            return bDate - aDate;
-                        });
-                        data = unique[0];
-                    }
-                } catch (_) {
-                    // Fall back to requested resultId if related-attempt lookup fails.
-                }
 
                 const score = normCategory
                     ? mapNormCategoryToScore(normCategory)

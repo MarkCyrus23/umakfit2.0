@@ -1674,12 +1674,68 @@ function showToast(message, type = 'info') {
                 'Start slowly to warm up, then build to your full pace'
             ]
         },
+            'Pingpong': {
+    category: 'PE3 ACTIVITY — TABLE TENNIS',
+    icon: 'https://c.animaapp.com/HN7hFbsr/img/image-150@2x.png',
+    badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
+    getDuration: (target) => target ? `Target: ${target} ball controls` : 'Maximum repetitions',
+    difficulty: 'Intermediate',
+    objective: 'To develop and assess ball control proficiency using a table tennis paddle through sustained rallying techniques.',
+    scoring: 'Count each successful ball contact. Score is based on total consecutive controls relative to the professor\'s target.',
+    requirements: 'Table tennis paddle, pingpong ball, flat surface or table.',
+    video: '',
+    videoDescription: 'Watch proper table tennis ball control technique for accurate counting',
+    protocol: [
+        'Hold the paddle with your dominant hand using a comfortable grip.',
+        'Begin by bouncing the ball on the paddle surface without letting it fall.',
+        'Maintain consistent contact height — aim for a steady, controlled bounce.',
+        'For Front control: keep paddle face up and bounce the ball on the front face.',
+        'For Back control: flip the paddle and bounce on the back face.',
+        'For Alternate control: alternate between front and back faces each bounce.',
+        'Count each successful bounce without dropping the ball.',
+        'Record your total number of successful contacts below.'
+    ],
+    safetyTips: [
+        'Use a paddle appropriate for your skill level',
+        'Keep a firm but relaxed grip to avoid wrist strain',
+        'Practice on a flat, stable surface with enough space',
+        'Stop if you feel wrist or elbow discomfort'
+    ]
+},
+    'Basketball': {
+        category: 'PE4 ACTIVITY — BASKETBALL',
+        icon: 'https://c.animaapp.com/HN7hFbsr/img/image-150@2x.png',
+        badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
+        getDuration: (target) => target ? `Target: ${target} repetitions` : 'Maximum repetitions',
+        difficulty: 'Intermediate',
+        objective: 'To develop and assess fundamental basketball skills including dribbling control, passing accuracy, and free throw shooting.',
+        scoring: 'Count each successful repetition. Score is based on total successful attempts relative to the professor\'s target.',
+        requirements: 'Basketball (size 6 or 7), basketball court or flat surface, basketball hoop (for free throws).',
+        video: '',
+        videoDescription: 'Watch proper basketball skill technique for accurate performance',
+        protocol: [
+            'Warm up with light dribbling or stretching before starting.',
+            'For Dribbling (Stationary): Stand in place and dribble the ball continuously using your dominant hand, then non-dominant hand.',
+            'For Passing Accuracy: Stand at the marked distance and pass the ball to the target area or partner accurately.',
+            'For Free Throw: Stand at the free throw line, aim at the basket, and shoot using proper form.',
+            'Each successful repetition (dribble, accurate pass, or made shot) counts as one.',
+            'Maintain proper body posture and technique throughout the test.',
+            'Record your total number of successful repetitions below.'
+        ],
+        safetyTips: [
+            'Wear proper athletic shoes with ankle support',
+            'Warm up wrists, fingers, and shoulders before starting',
+            'Use a properly inflated basketball appropriate for your size',
+            'Stop if you feel pain in joints or muscles'
+        ]
+    },
         };
 
-        function getTestData(testName) {
-    // Check PE 2 jump rope variants first
+       function getTestData(testName) {
     const normalizedName = (testName || '').toLowerCase();
-    const isJumpRope = normalizedName.includes('jumping rope') || 
+
+    // PE 2 — Jump Rope variants
+    const isJumpRope = normalizedName.includes('jumping rope') ||
                        normalizedName.includes('jump rope') ||
                        normalizedName.includes('basic jump') ||
                        normalizedName.includes('side to side') ||
@@ -1691,23 +1747,145 @@ function showToast(message, type = 'info') {
                        normalizedName.includes('alternate') ||
                        normalizedName.includes('cross arms') ||
                        normalizedName.includes('double jumps');
-
     if (isJumpRope) {
-        return testData['Jump Rope'];
+        const variant = testName; // preserve exact name for category label
+        const base = { ...testData['Jump Rope'] };
+        base.category = `PE2 ACTIVITY — ${testName.toUpperCase()}`;
+        return base;
     }
 
+    // PE 3 — Pingpong variants
+    const isPingpong = normalizedName.includes('pingpong') ||
+                       normalizedName.includes('ping pong') ||
+                       normalizedName.includes('ball control') ||
+                       normalizedName.includes('table tennis');
+    if (isPingpong) {
+        const base = { ...testData['Pingpong'] };
+        base.category = `PE3 ACTIVITY — ${testName.toUpperCase()}`;
+        // Customize protocol based on specific variant
+        if (normalizedName.includes('front')) {
+            base.protocol = [
+                'Hold the paddle with your dominant hand using a comfortable grip.',
+                'Keep the paddle face up (front face).',
+                'Begin bouncing the ball on the front face of the paddle without letting it fall.',
+                'Maintain a consistent, controlled bounce height.',
+                'Count each successful bounce on the front face.',
+                'Stop counting if the ball drops or you lose control.',
+                'Record your total number of successful front-face contacts below.'
+            ];
+            base.objective = 'To assess ball control proficiency using the front face of the table tennis paddle through sustained bouncing.';
+        } else if (normalizedName.includes('back')) {
+            base.protocol = [
+                'Hold the paddle with your dominant hand using a comfortable grip.',
+                'Flip the paddle so the back face is facing up.',
+                'Begin bouncing the ball on the back face of the paddle without letting it fall.',
+                'Maintain a consistent, controlled bounce height.',
+                'Count each successful bounce on the back face.',
+                'Stop counting if the ball drops or you lose control.',
+                'Record your total number of successful back-face contacts below.'
+            ];
+            base.objective = 'To assess ball control proficiency using the back face of the table tennis paddle through sustained bouncing.';
+        } else if (normalizedName.includes('alternate')) {
+            base.protocol = [
+                'Hold the paddle with your dominant hand using a comfortable grip.',
+                'Begin bouncing the ball on the front face of the paddle.',
+                'After each bounce, flip the paddle to alternate between front and back faces.',
+                'Each alternating contact (front → back → front) counts as one repetition.',
+                'Maintain a consistent, controlled rhythm throughout.',
+                'Stop counting if the ball drops or you fail to alternate properly.',
+                'Record your total number of successful alternate contacts below.'
+            ];
+            base.objective = 'To assess ball control and coordination by alternating between the front and back face of the table tennis paddle.';
+        }
+        return base;
+    }
+
+    // PE 4 — Basketball variants
+    const isBasketball = normalizedName.includes('basketball') ||
+                         normalizedName.includes('dribbling') ||
+                         normalizedName.includes('passing accuracy') ||
+                         normalizedName.includes('free throw');
+    if (isBasketball) {
+        const base = { ...testData['Basketball'] };
+        base.category = `PE4 ACTIVITY — ${testName.toUpperCase()}`;
+        // Customize per specific skill
+        if (normalizedName.includes('dribbling')) {
+            base.objective = 'To assess stationary dribbling control and hand coordination using a basketball.';
+            base.scoring = 'Count each successful dribble without losing control. Score is based on total dribbles relative to the professor\'s target.';
+            base.requirements = 'Basketball (size 6 or 7), flat non-slippery surface.';
+            base.protocol = [
+                'Stand in an athletic stance with feet shoulder-width apart.',
+                'Hold the basketball at waist height with your dominant hand.',
+                'Begin dribbling the ball continuously in place using your fingertips, not your palm.',
+                'Keep your eyes forward, not looking at the ball.',
+                'Each time the ball bounces and returns to your hand counts as one repetition.',
+                'Switch to your non-dominant hand when instructed by the professor.',
+                'Stop counting if the ball rolls away or you lose control.',
+                'Record your total number of successful dribbles below.'
+            ];
+            base.safetyTips = [
+                'Wear proper athletic shoes with good traction',
+                'Use a flat, non-slippery surface',
+                'Keep fingers loose and relaxed to avoid jamming',
+                'Stop if you feel pain in your fingers, wrist, or shoulder'
+            ];
+        } else if (normalizedName.includes('passing')) {
+            base.objective = 'To assess passing accuracy and strength by hitting a designated target area from a set distance.';
+            base.scoring = 'Count each pass that accurately hits the target zone. Score is based on accurate passes relative to the professor\'s target.';
+            base.requirements = 'Basketball (size 6 or 7), target wall or partner, marked passing distance line.';
+            base.protocol = [
+                'Stand behind the marked passing line at the designated distance.',
+                'Hold the basketball at chest height with both hands.',
+                'Pass the ball toward the target using a chest pass — push from chest with both hands.',
+                'The pass must hit the designated target area to count as successful.',
+                'Retrieve the ball and return to the passing line for each attempt.',
+                'Maintain proper passing form: step forward, extend arms, and follow through.',
+                'Count each pass that successfully hits the target.',
+                'Record your total number of accurate passes below.'
+            ];
+            base.safetyTips = [
+                'Warm up wrists and shoulders before starting',
+                'Use proper chest pass form to protect your fingers',
+                'Ensure the target area is safely secured or has a partner to receive',
+                'Stop if you feel pain in your wrists, elbows, or shoulders'
+            ];
+        } else if (normalizedName.includes('free throw')) {
+            base.objective = 'To assess shooting accuracy from the free throw line using proper form and technique.';
+            base.scoring = 'Count each successful basket made from the free throw line. Score is based on made shots relative to the professor\'s target.';
+            base.requirements = 'Basketball (size 6 or 7), basketball hoop at standard height (3.05m), free throw line (4.57m from backboard).';
+            base.protocol = [
+                'Stand at the free throw line with your dominant foot slightly forward.',
+                'Hold the ball in your shooting hand with fingertips, guide hand on the side.',
+                'Bend your knees slightly and align your elbow under the ball.',
+                'Focus your eyes on the front of the rim or the backboard target.',
+                'Extend your legs, arm, and wrist in one smooth upward motion.',
+                'Follow through: hold your wrist in a downward snap position until the ball hits the rim.',
+                'Each ball that goes through the hoop cleanly counts as one successful shot.',
+                'Record your total number of made free throws below.'
+            ];
+            base.safetyTips = [
+                'Warm up your shooting arm and wrist before starting',
+                'Use a basketball appropriate for your size and age',
+                'Ensure the hoop and backboard are properly secured',
+                'Stop if you feel pain in your elbow, shoulder, or wrist'
+            ];
+        }
+        return base;
+    }
+
+    // PE 1 — Standard fitness tests
     return testData[testName] || {
         category: 'FITNESS TEST',
         icon: 'https://c.animaapp.com/HN7hFbsr/img/image-148@2x.png',
         badgeIcon: 'https://c.animaapp.com/pVU46Rgb/img/image-152@2x.png',
         getDuration: () => 'Varies',
         difficulty: 'Moderate',
-        objective: 'Complete the test according to instructions',
-        scoring: 'Based on performance metrics',
-        requirements: 'Follow test-specific requirements',
-        video: 'https://c.animaapp.com/pVU46Rgb/img/image-82.png',
+        objective: 'Complete the test according to your professor\'s instructions.',
+        scoring: 'Based on performance metrics defined by your professor.',
+        requirements: 'Follow test-specific equipment requirements.',
+        video: '',
         videoDescription: 'Watch this video for demonstration',
-        protocol: ['Follow the test instructions carefully'],
+        protocol: ['Follow the test instructions carefully as directed by your professor.'],
         safetyTips: ['Warm up properly', 'Stop if you feel pain', 'Maintain proper form', 'Stay hydrated']
     };
 }
