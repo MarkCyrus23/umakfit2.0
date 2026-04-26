@@ -277,12 +277,12 @@
     </div>
 
     <!-- Charts Grid -->
-    <div class="charts-grid">
-        <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-heart-pulse-fill" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Cardiorespiratory Endurance</h2></div><div id="cardioChart"></div></div>
-        <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-lightning-charge-fill" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Muscular Strength and Endurance</h2></div><div id="muscularChart"></div></div>
-        <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-arrows-angle-expand" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Flexibility</h2></div><div id="flexibilityChart"></div></div>
-        <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-person-fill" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Body Composition</h2></div><div id="bodyCompChart"></div></div>
-    </div>
+    <div class="charts-grid" id="chartsGrid" style="display:none;">
+    <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-heart-pulse-fill" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Cardiorespiratory Endurance</h2></div><div id="cardioChart"></div></div>
+    <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-lightning-charge-fill" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Muscular Strength and Endurance</h2></div><div id="muscularChart"></div></div>
+    <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-arrows-angle-expand" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Flexibility</h2></div><div id="flexibilityChart"></div></div>
+    <div class="chart-card"><div class="chart-header"><div class="chart-icon"><i class="bi bi-person-fill" style="color:white;font-size:15px;"></i></div><h2 class="chart-title">Body Composition</h2></div><div id="bodyCompChart"></div></div>
+</div>
 </div>
 
 <!-- Improvement Modal -->
@@ -618,7 +618,7 @@ function getNormCategorySync(testName, result, testId = null) {
 function getCategoryForTest(testName) {
     const course = (studentData?.courseCode || studentData?.course || 'PE1').toUpperCase();
     // PE2 and above — single category
-    if (course !== 'PE1') return 'PE2 Activities';
+   if (course !== 'PE1') return `${course} Activities`;
 
     const n = testName.toLowerCase().trim();
     if (['push-up','pushup','grip','curl-up','curl up','sit-up','situp','plank'].some(k => n.includes(k))) return 'Muscular Strength and Endurance';
@@ -635,7 +635,7 @@ function getCategoryTag(category) {
         'Flexibility': {label:'Flexibility',cls:'flexibility'},
         'Body Composition': {label:'Body Comp',cls:'body'}
     };
-    return map[category] || {label:category,cls:'cardio'};
+    return map[category] || {label: category.replace(' Activities',''), cls:'cardio'};
 }
 
 // ========== CHART RENDERING ==========
@@ -1207,8 +1207,8 @@ function processProgressData() {
 
     // Build category data — PE1 uses 4 categories, PE2 uses 1
     const categoryKeys = isPE1
-        ? ['Cardiorespiratory Endurance', 'Muscular Strength and Endurance', 'Flexibility', 'Body Composition']
-        : ['PE2 Activities'];
+    ? ['Cardiorespiratory Endurance', 'Muscular Strength and Endurance', 'Flexibility', 'Body Composition']
+    : [`${course} Activities`];
 
     const categoryData = {};
     categoryKeys.forEach(k => categoryData[k] = []);
@@ -1263,25 +1263,28 @@ function processProgressData() {
     document.getElementById('lastTestName').innerHTML = `<i class="bi bi-clock-history"></i>&nbsp;<span>${latestTestName}</span>`;
 
     // Render charts
-    if (isPE1) {
+      if (isPE1) {
         // Show all 4 PE1 charts
-        document.querySelector('.charts-grid').style.display = '';
+        document.getElementById('chartsGrid').style.display = '';
         renderNormTimeline('cardioChart',      categoryData['Cardiorespiratory Endurance'],     'Cardiorespiratory Endurance');
         renderNormTimeline('muscularChart',    categoryData['Muscular Strength and Endurance'], 'Muscular Strength and Endurance');
         renderNormTimeline('flexibilityChart', categoryData['Flexibility'],                     'Flexibility');
         renderNormTimeline('bodyCompChart',    categoryData['Body Composition'],                'Body Composition');
-    } else {
-        // PE2: hide PE1 charts, show single PE2 chart
-        const chartsGrid = document.querySelector('.charts-grid');
+     } else {
+        // Non-PE1: hide PE1 charts, show single activity chart
+        const activityKey = `${course} Activities`;
+        const chartId = `${course.toLowerCase()}Chart`;
+         const chartsGrid = document.getElementById('chartsGrid');
+        chartsGrid.style.display = '';
         chartsGrid.innerHTML = `
             <div class="chart-card" style="grid-column: 1 / -1;">
                 <div class="chart-header">
                     <div class="chart-icon"><i class="bi bi-activity" style="color:white;font-size:15px;"></i></div>
-                    <h2 class="chart-title">PE2 Activities Progress</h2>
+                    <h2 class="chart-title">${course} Activities Progress</h2>
                 </div>
-                <div id="pe2Chart"></div>
+                <div id="${chartId}"></div>
             </div>`;
-        renderNormTimeline('pe2Chart', categoryData['PE2 Activities'], 'PE2 Activities');
+        renderNormTimeline(chartId, categoryData[activityKey] || [], activityKey);
     }
 
     updateImprovementPreview();

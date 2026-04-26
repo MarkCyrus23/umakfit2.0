@@ -1202,32 +1202,62 @@ if (data.email) profilesMap.set(data.email, { birthday:data.birthday||null, age:
                         }
                     }
 
-                    // Overall = average rank of best attempt per unique test (matches studentgrades.html logic)
+                    // Resolve course code for this student's section
+                    const studentSection = sections.find(s => s.name === section.name);
+                    const courseCode = studentSection?.courseCode || 'PE1';
+                    const isNonPE1 = courseCode.toUpperCase().replace(/\s+/g,'') !== 'PE1';
+
                     const categories = Array.from(bestCatPerTest.values());
-                    const overallCategory = getOverallCategory(categories);
+
+                    // For PE2/PE3, also compute numeric scores (matching studentgrades.html logic)
+                    let numericScores = [];
+                    if (isNonPE1) {
+                        for (const r of results) {
+                            const rawVal = r.result ?? r.repetitions ?? r.resultData ?? null;
+                            const target = r.testTarget || r.targetRepetitions || 0;
+                            const numVal = extractNumericResult(rawVal);
+                            if (target > 0 && numVal) {
+                                const testNameLower = (r.testName || '').toLowerCase();
+                                const isLower = testNameLower.includes('step test') || testNameLower.includes('3-minute');
+                                const pct = isLower ? (target / numVal) * 100 : (numVal / target) * 100;
+                                let score = 60;
+                                if (pct >= 100) score = 100;
+                                else if (pct >= 80) score = 90;
+                                else if (pct >= 60) score = 80;
+                                else if (pct >= 40) score = 70;
+                                numericScores.push(score);
+                            } else if (r.score && !isNaN(Number(r.score))) {
+                                numericScores.push(Number(r.score));
+                            }
+                        }
+                    }
+
+                    const overallCategory = getOverallCategory(categories, numericScores, courseCode);
 
                     newStudents.push({
-                        id: email, email,
-                        umakId: raw.student_id || raw.studentId || 'N/A',
-                        firstName: firstName || 'Unknown',
-                        lastName,
-                        fullName,
-                        section: section.name,
-                        yearLevel: section.yearLevel || extractYearLevel(section.name),
-                        totalAttempts: results.length,
-                        uniqueTestCount: categories.length,
-                        categories,
-                        overallCategory,
-                        overallScore: CATEGORY_ORDER[overallCategory] || 3,
-                        status: 'active',
-                        age: profile.age || null,
-                        birthday: profile.birthday || null,
-                        gender: profile.gender || 'male',
-medicalCondition: profile.medicalCondition || null,
-medicalProofURL: profile.medicalProofURL || null,
-                        testNames: Array.from(testNames),
-                        testResultsRaw: results,
-                    });
+                    id: email, email,
+                    umakId: raw.student_id || raw.studentId || 'N/A',
+                    firstName: firstName || 'Unknown',
+                    lastName,
+                    fullName,
+                    section: section.name,
+                    yearLevel: section.yearLevel || extractYearLevel(section.name),
+                    courseCode,
+                    totalAttempts: results.length,
+                    uniqueTestCount: categories.length,
+                    categories,
+                    numericScores,
+                    overallCategory,
+                    overallScore: CATEGORY_ORDER[overallCategory] || 3,
+                    status: 'active',
+                    age: profile.age || null,
+                    birthday: profile.birthday || null,
+                    gender: profile.gender || 'male',
+                    medicalCondition: profile.medicalCondition || null,
+                    medicalProofURL: profile.medicalProofURL || null,
+                    testNames: Array.from(testNames),
+                    testResultsRaw: results,
+                });
                 }
             }
 
@@ -1379,9 +1409,21 @@ function setupRealtimeUpdates() {
         return 'Average';
     }
 
-    function getOverallCategory(cats) {
+    function getOverallCategory(cats, scores, courseCode) {
     if (!cats?.length) return null;
     const RANK = { Excellent:5, Good:4, Average:3, 'Below Average':2, Poor:1 };
+    const isNonPE1 = courseCode && courseCode.toUpperCase().replace(/\s+/g,'') !== 'PE1';
+    
+    if (isNonPE1 && scores?.length) {
+        // PE2/PE3: average numeric scores (60–100 scale) → category
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (avg >= 90) return 'Excellent';
+        if (avg >= 80) return 'Good';
+        if (avg >= 70) return 'Average';
+        if (avg >= 60) return 'Below Average';
+        return 'Poor';
+    }
+    // PE1: rank-based norm averaging
     const avg = cats.reduce((s, c) => s + (RANK[c] || 3), 0) / cats.length;
     if (avg >= 4.5) return 'Excellent';
     if (avg >= 3.5) return 'Good';
@@ -2366,41 +2408,99 @@ repetitions: completed?.repetitions ?? null,
         const bestPerTest     = new Map();
         const allAttemptsByTest = new Map();
 
- const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
+        const VALID_CATS = new Set(['Excellent','Good','Average','Below Average','Poor']);
 
-// Build attempts map first (sync, no Firestore)
-const allDocs = attSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-allDocs.forEach(attempt => {
-    const key = attempt.testId || attempt.testName;
-    if (!allAttemptsByTest.has(key)) allAttemptsByTest.set(key, { testName:attempt.testName||'Unknown', attempts:[] });
-    allAttemptsByTest.get(key).attempts.push(attempt);
-});
+        // Build attempts map first (sync, no Firestore)
+        const allDocs = attSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+        allDocs.forEach(attempt => {
+            const key = attempt.testId || attempt.testName;
+            if (!allAttemptsByTest.has(key)) allAttemptsByTest.set(key, { testName:attempt.testName||'Unknown', attempts:[] });
+            allAttemptsByTest.get(key).attempts.push(attempt);
+        });
 
-// Resolve all categories in PARALLEL — DO NOT use savedScore/category across attempts
-// Each attempt gets its own fresh classification from its own result value
-const catResults = await Promise.all(allDocs.map(attempt => {
-    // Only use savedScore if it was explicitly set for THIS specific attempt
-    // and was set by a professor override (isProfessorOverride), not carried over
-    const savedCat = attempt.isProfessorOverride 
-        ? (attempt.score || attempt.category)
-        : null;
-    if (VALID_CATS.has(savedCat)) return Promise.resolve(savedCat);
-    return getNormCategoryWithPriority(
-        attempt.testName||'', 
-        attempt.result||attempt.repetitions||attempt, 
-        attempt.testId, 
-        student.email, 
-        profile.gender, 
-        _studentAge(profile)
-    );
-}));
+        // Detect PE2/PE3 for this student
+        const studentCourseCodeModal = student.courseCode || sections.find(s => s.name === student.section)?.courseCode || 'PE1';
+        const isNonPE1Modal = studentCourseCodeModal.toUpperCase().replace(/\s+/g,'') !== 'PE1';
 
-allDocs.forEach((attempt, i) => {
-    const key = attempt.testId || attempt.testName;
-    const cat = catResults[i];
-    if (!bestPerTest.has(key)||(CATEGORY_ORDER[cat]||3)>(CATEGORY_ORDER[bestPerTest.get(key)]||0)) 
-        bestPerTest.set(key, cat);
-});
+        // Pre-fetch scheduled test docs to get targetRepetitions (same as studentresult.html)
+        const scheduledTestIds = [...new Set(allDocs.map(a => a.testId || a.scheduledTestId).filter(Boolean))];
+        const scheduledTestDocsMap = new Map();
+        await Promise.all(scheduledTestIds.map(async tid => {
+            try {
+                const snap = await getDoc(doc(db, 'scheduledTests', tid));
+                if (snap.exists()) scheduledTestDocsMap.set(tid, snap.data());
+            } catch(_) {}
+        }));
+
+        function resolveTargetFromScheduled(attempt) {
+            const tid = attempt.testId || attempt.scheduledTestId;
+            const scheduledData = tid ? scheduledTestDocsMap.get(tid) : null;
+            // Priority: scheduledTest.targetRepetitions → scheduledTest.testTarget → attempt fields
+            const candidates = [
+                scheduledData?.targetRepetitions,
+                scheduledData?.testTarget,
+                attempt.targetRepetitions,
+                attempt.testTarget,
+            ];
+            for (const c of candidates) {
+                const v = Number(c);
+                if (!isNaN(v) && v > 0) return v;
+            }
+            return 0;
+        }
+
+        function resolveAttemptCatModal(attempt) {
+            const savedCat = attempt.isProfessorOverride ? (attempt.score || attempt.category) : null;
+            if (VALID_CATS.has(savedCat)) return Promise.resolve(savedCat);
+
+            if (isNonPE1Modal) {
+                const rawVal = attempt.result ?? attempt.repetitions ?? attempt.resultData ?? null;
+                const numVal = typeof rawVal === 'object' && rawVal !== null
+                    ? parseFloat(rawVal.repetitions ?? rawVal.reps ?? rawVal.value ?? rawVal.time ?? rawVal.distance ?? rawVal.count ?? 0)
+                    : parseFloat(rawVal) || 0;
+                // Fetch target from scheduledTest doc first (mirrors studentresult.html)
+                const target = resolveTargetFromScheduled(attempt);
+                if (target > 0 && numVal) {
+                    const testNameLower = (attempt.testName || '').toLowerCase();
+                    const isLower = testNameLower.includes('step test') || testNameLower.includes('3-minute');
+                    const pct = isLower ? (target / numVal) * 100 : (numVal / target) * 100;
+                    if (pct >= 100) return Promise.resolve('Excellent');
+                    if (pct >= 80)  return Promise.resolve('Good');
+                    if (pct >= 60)  return Promise.resolve('Average');
+                    if (pct >= 40)  return Promise.resolve('Below Average');
+                    return Promise.resolve('Poor');
+                }
+                // No target — fallback to stored score
+                if (attempt.score && !isNaN(Number(attempt.score))) {
+                    const s = Number(attempt.score);
+                    if (s >= 90) return Promise.resolve('Excellent');
+                    if (s >= 80) return Promise.resolve('Good');
+                    if (s >= 70) return Promise.resolve('Average');
+                    if (s >= 60) return Promise.resolve('Below Average');
+                    return Promise.resolve('Poor');
+                }
+                return Promise.resolve('Average');
+            }
+
+            return getNormCategoryWithPriority(
+                attempt.testName||'', 
+                attempt.result||attempt.repetitions||attempt.resultData, 
+                attempt.testId, 
+                student.email, 
+                profile.gender, 
+                _studentAge(profile)
+            );
+        }
+
+        // Resolve all categories in PARALLEL
+        const catResults = await Promise.all(allDocs.map(resolveAttemptCatModal));
+
+        allDocs.forEach((attempt, i) => {
+            const key = attempt.testId || attempt.testName;
+            const cat = catResults[i];
+            if (!bestPerTest.has(key)||(CATEGORY_ORDER[cat]||3)>(CATEGORY_ORDER[bestPerTest.get(key)]||0)) 
+                bestPerTest.set(key, cat);
+        });
 
         const completedIds = new Set(attSnap.docs.map(d=>d.data().testId).filter(Boolean));
         const now = new Date();
@@ -2519,23 +2619,7 @@ allDocs.forEach((attempt, i) => {
                     return tsA >= tsB ? a : best;
                 }, attempts[0]);
 
-        // Pre-resolve all attempt categories in parallel BEFORE building HTML
-        // Each attempt is classified independently from its own result value
-        const attemptCats = await Promise.all(forNum.map(att => {
-            // Only trust savedScore if this was a professor override for THIS attempt
-            const savedCat = att.isProfessorOverride ? (att.score || att.category) : null;
-            if (VALID_CATS.has(savedCat)) return Promise.resolve(savedCat);
-            // Always re-classify from the raw result value
-            const rawVal = att.result ?? att.repetitions ?? att.resultData ?? null;
-            return getNormCategoryWithPriority(
-                att.testName||'', 
-                rawVal, 
-                att.testId, 
-                student.email, 
-                profile.gender, 
-                _studentAge(profile)
-            );
-        }));
+        const attemptCats = await Promise.all(forNum.map(att => resolveAttemptCatModal(att)));
 
 for (const [i, att] of forNum.entries()) {
     const num = i+1;

@@ -558,9 +558,11 @@ function getCategoryForTest(testName) {
 
         function getFallbackScore(testName, result) {
             const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+            const n = (testName || '').toLowerCase();
+            // Always re-resolve target from both result fields AND normDocsCache
+            const target = resolveProfessorTarget(result);
+
             if (!rawValue) {
-                // Do not force fake defaults for jumping rope; keep null if no value.
-                if (isJumpRopeTest(testName)) return null;
                 const topLevelCandidates = [
                     result?.score,
                     result?.result?.score,
@@ -574,12 +576,11 @@ function getCategoryForTest(testName) {
                 return null;
             }
 
-            const n = (testName || '').toLowerCase();
-            const target = resolveProfessorTarget(result);
-            if (target > 0) {
-                const lowerIsBetter = n.includes('mile') || n.includes('run') || n.includes('step');
-                if (lowerIsBetter && rawValue <= 0) return 60;
-                const pct = lowerIsBetter ? (target / rawValue) * 100 : (rawValue / target) * 100;
+            // Jump rope — always target-based (mirrors studentresult.html)
+            if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping') ||
+                n.includes('jumping rope')) {
+                if (target <= 0) return 75;
+                const pct = (rawValue / target) * 100;
                 if (pct >= 100) return 100;
                 if (pct >= 80) return 90;
                 if (pct >= 60) return 80;
@@ -587,15 +588,30 @@ function getCategoryForTest(testName) {
                 return 60;
             }
 
-            // Treat jumping-rope as repetition-based when no target/score is stored.
-            if (n.includes('jumping rope') || n.includes('jump rope')) {
-                if (rawValue >= 100) return 100;
-                if (rawValue >= 80) return 90;
-                if (rawValue >= 60) return 80;
-                if (rawValue >= 40) return 70;
+            // Push-up / sit-up / curl-up — rep-based with target
+            if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') ||
+                n.includes('curl-up') || n.includes('curl up')) {
+                if (target <= 0) return 75;
+                const pct = (rawValue / target) * 100;
+                if (pct >= 100) return 100;
+                if (pct >= 80) return 90;
+                if (pct >= 60) return 80;
+                if (pct >= 40) return 70;
                 return 60;
             }
 
+            // Generic target-based (step test = lower is better)
+            if (target > 0) {
+                const isLower = n.includes('step test') || n.includes('3-minute');
+                const pct = isLower ? (target / rawValue) * 100 : (rawValue / target) * 100;
+                if (pct >= 100) return 100;
+                if (pct >= 80) return 90;
+                if (pct >= 60) return 80;
+                if (pct >= 40) return 70;
+                return 60;
+            }
+
+            // No target — fall back to stored score fields
             const topLevelCandidates = [
                 result?.score,
                 result?.result?.score,
@@ -606,61 +622,81 @@ function getCategoryForTest(testName) {
             for (const candidate of topLevelCandidates) {
                 if (isValidScore(candidate)) return Number(candidate);
             }
-
-            // Same baseline behavior as studentresult fallback.
             return 75;
         }
 
-        function resolveResultScore(result) {
-            const professorTarget = resolveProfessorTarget(result);
-            const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+       function resolveResultScore(result) {
+        const professorTarget = resolveProfessorTarget(result);
+        const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+
+        // For PE2/PE3: always target-based if target exists
+        if (isPeNoNormCourse(result)) {
             if (professorTarget > 0 && rawValue) {
                 return getFallbackScore(result?.testName, result);
             }
-
-            if (isPeNoNormCourse(result)) {
-                if (isValidScore(result?.score)) return Number(result.score);
-                if (isValidScore(result?.result?.score)) return Number(result.result.score);
-                if (isValidScore(result?.resultData?.score)) return Number(result.resultData.score);
-                return getFallbackScore(result?.testName, result);
-            }
-
-            // Jump rope must be score-based from professor target/result, not norms.
-            if (isJumpRopeTest(result?.testName)) {
-                return getFallbackScore(result?.testName, result);
-            }
-
-            const normCat = getNormCategorySync(result.testName, result.result || result.resultData, result.testId);
-            if (normCat) return mapNormCategoryToScore(normCat);
-
+            // No target — try saved score fields
             if (isValidScore(result?.score)) return Number(result.score);
             if (isValidScore(result?.result?.score)) return Number(result.result.score);
             if (isValidScore(result?.resultData?.score)) return Number(result.resultData.score);
-
-            return getFallbackScore(result.testName, result);
+            return getFallbackScore(result?.testName, result);
         }
 
+        // PE1 below — norm-based
+        if (professorTarget > 0 && rawValue) {
+            return getFallbackScore(result?.testName, result);
+        }
+
+        if (isJumpRopeTest(result?.testName)) {
+            return getFallbackScore(result?.testName, result);
+        }
+
+        const normCat = getNormCategorySync(result.testName, result.result || result.resultData, result.testId);
+        if (normCat) return mapNormCategoryToScore(normCat);
+
+        if (isValidScore(result?.score)) return Number(result.score);
+        if (isValidScore(result?.result?.score)) return Number(result.result.score);
+        if (isValidScore(result?.resultData?.score)) return Number(result.resultData.score);
+
+        return getFallbackScore(result.testName, result);
+    }
+
         function getDisplayCategory(result) {
-            // Keep Performance page aligned with View page:
-            // derive category from resolved score/target, not stale saved labels.
-            const professorTarget = resolveProfessorTarget(result);
-            const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+        const professorTarget = resolveProfessorTarget(result);
+        const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+
+        // PE2/PE3: always score-based, mirrors studentresult.html exactly
+        if (isPeNoNormCourse(result)) {
             if (professorTarget > 0 && rawValue) {
-                const resolvedScore = resolveResultScore(result);
-                return scoreToCategory(resolvedScore) || 'Average';
+                const pct = (() => {
+                    const n = (result?.testName || '').toLowerCase();
+                    const isLower = n.includes('step test') || n.includes('3-minute');
+                    return isLower ? (professorTarget / rawValue) * 100 : (rawValue / professorTarget) * 100;
+                })();
+                if (pct >= 100) return 'Excellent';
+                if (pct >= 80)  return 'Good';
+                if (pct >= 60)  return 'Average';
+                if (pct >= 40)  return 'Below Average';
+                return 'Poor';
             }
-
-            if (isPeNoNormCourse(result)) {
-                const resolvedScore = resolveResultScore(result);
-                return scoreToCategory(resolvedScore) || 'Average';
-            }
-
-            const directNormCategory = normalizeCategoryLabel(result?.normCategory);
-            if (directNormCategory && !isJumpRopeTest(result?.testName)) return directNormCategory;
-
             const resolvedScore = resolveResultScore(result);
             return scoreToCategory(resolvedScore) || 'Average';
         }
+
+        // PE1: norm-based
+        if (professorTarget > 0 && rawValue) {
+            const resolvedScore = resolveResultScore(result);
+            return scoreToCategory(resolvedScore) || 'Average';
+        }
+
+        const normCat = getNormCategorySync(result.testName, result.result || result.resultData, result.testId);
+        if (normCat) return normCat;
+
+        const directNormCategory = normalizeCategoryLabel(result?.normCategory);
+        if (directNormCategory && !isJumpRopeTest(result?.testName)) return directNormCategory;
+
+        const resolvedScore = resolveResultScore(result);
+        return scoreToCategory(resolvedScore) || 'Average';
+    }
 
         function toDate(v) {
             if (!v) return null;
@@ -925,14 +961,6 @@ const categoriesSource = course === 'PE1' ? testCategories : getPECategory(cours
         if (result.normCategory) {
             categoryData[result.category].categories.push(result.normCategory);
             overallCategories.push(result.normCategory);
-            if (isValidScore(result.score)) {
-                const numericScore = Number(result.score);
-                categoryData[result.category].scores.push(numericScore);
-            }
-            // Tag kung PE 2 ang result
-if (isPeNoNormCourse(result)) {
-    categoryData[result.category].isNonPE1 = true;
-}
         }
         categoryData[result.category].tests.push({ name: result.testName, normCategory: result.normCategory });
     }
@@ -948,23 +976,26 @@ const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
 let overallCat = null;
 
 if (nonPE1Results.length > 0 && pe1Results.length === 0) {
-    // Pure PE2/PE3/PE4+ — score-based average
-    const scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s >= 0);
+    // PE2/PE3: average the actual numeric scores (60–100 scale), then map to category
+    const scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s > 0);
     if (scores.length > 0) {
         const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
         overallCat = scoreToCategory(avgScore);
     }
 } else if (pe1Results.length > 0 && nonPE1Results.length === 0) {
-    // Pure PE1 — norm category rank average
+    // PE1: rank-based averaging (norm-based, 1–5 scale)
     const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
     if (pe1Categories.length > 0) {
         const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
         overallCat = rankToCategory(avgRank);
     }
-} else if (overallCategories.length > 0) {
-    // Mixed fallback
-    const avgRank = overallCategories.map(normCategoryRank).reduce((a, b) => a + b, 0) / overallCategories.length;
-    overallCat = rankToCategory(avgRank);
+} else if (testResults.length > 0) {
+    // Mixed fallback — rank-based
+    const allCats = testResults.map(r => r.normCategory).filter(Boolean);
+    if (allCats.length > 0) {
+        const avgRank = allCats.map(normCategoryRank).reduce((a, b) => a + b, 0) / allCats.length;
+        overallCat = rankToCategory(avgRank);
+    }
 }
             if (overallCat) {
                 overallStandingEl.innerHTML = `<span class="norm-badge ${normCategoryClass(overallCat)} text-sm px-4 py-2"><i class="bi ${normCategoryIcon(overallCat)}"></i> ${overallCat}</span>`;
@@ -993,12 +1024,20 @@ if (nonPE1Results.length > 0 && pe1Results.length === 0) {
                 if (!data.tests.length) return;
                 hasData = true;
                 let dominantCat = null;
-if (data.isNonPE1 && data.scores.length > 0) {
-                        const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
-                    dominantCat = scoreToCategory(avgScore);
-                } else if (data.categories.length > 0) {
-                    const avgRank = data.categories.map(normCategoryRank).reduce((a,b) => a+b, 0) / data.categories.length;
-                    dominantCat = rankToCategory(avgRank);
+                
+                // Use norm category rank averaging for ALL courses (PE1, PE2, PE3, etc.)
+                if (data.categories.length > 0) {
+                    const course = (studentData?.courseCode || 'PE1').toUpperCase();
+                    if (course !== 'PE1') {
+                        // PE2/PE3: average the actual numeric scores stored in data.tests
+                        const catScores = data.categories.map(cat => mapNormCategoryToScore(cat));
+                        const avgScore = catScores.reduce((a, b) => a + b, 0) / catScores.length;
+                        dominantCat = scoreToCategory(avgScore);
+                    } else {
+                        // PE1: rank-based averaging
+                        const avgRank = data.categories.map(normCategoryRank).reduce((a,b) => a+b, 0) / data.categories.length;
+                        dominantCat = rankToCategory(avgRank);
+                    }
                 }
                 const cls = dominantCat ? normCategoryClass(dominantCat) : 'norm-completion';
                 const ico = dominantCat ? normCategoryIcon(dominantCat) : 'bi-check-circle-fill';

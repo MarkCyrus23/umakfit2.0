@@ -827,17 +827,82 @@ import { resolveTestKey, extractNumericResult } from './normLookup.js';
         return parseFloat(rawResult) || 0;
     }
 
-    async function classifyResult(testName, rawResult, testId, studentEmail, gender, studentData) {
-        const testKey = resolveTestKey(testName);
-        if (!testKey) return 'Average';
+    async function _getScheduledTestData(testId) {
+        if (!testId) return null;
+        const dk = `scheduledTest:${testId}`;
+        if (!_normDocCache.has(dk)) {
+            try {
+                const snap = await getDoc(doc(db, 'scheduledTests', testId));
+                _normDocCache.set(dk, snap.exists() ? snap.data() : null);
+            } catch(_) { _normDocCache.set(dk, null); }
+        }
+        return _normDocCache.get(dk);
+    }
 
-        const gKey    = _genderKey(gender);
-        const ageGroup = _ageGroupKey(getAgeGroupFromStudent(studentData));
-        const value   = _extractValue(rawResult);
-        const cacheKey = `${studentEmail}|${testKey}|${gKey}|${ageGroup}|${testId || 'none'}|${value}`;
+    // Resolve target (repetitions/score target) from scheduledTest doc first, then fallback to result fields
+    function _resolveTarget(scheduledData, rawResult) {
+        const candidates = [
+            scheduledData?.targetRepetitions,
+            scheduledData?.testTarget,
+            rawResult?.targetRepetitions,
+            rawResult?.testTarget,
+        ];
+        for (const c of candidates) {
+            const v = Number(c);
+            if (!isNaN(v) && v > 0) return v;
+        }
+        return 0;
+    }
+
+    // Check if section courseCode is PE2/PE3 (no fitness norms — target-based only)
+    function _isNonPE1Section(sectionId) {
+        const sec = assignedSections.find(s => s.id === sectionId);
+        if (!sec) return false;
+        const code = (sec.courseCode || '').toUpperCase().replace(/\s+/g, '');
+        return code !== 'PE1' && code.startsWith('PE');
+    }
+
+    async function classifyResult(testName, rawResult, testId, studentEmail, gender, studentData, sectionId) {
+        const value = _extractValue(rawResult);
+        const cacheKey = `${studentEmail}|${testId || 'none'}|${value}`;
 
         if (_classifyCache.has(cacheKey)) return _classifyCache.get(cacheKey);
         const set = cat => { _classifyCache.set(cacheKey, cat); return cat; };
+
+        // Always fetch scheduledTest doc to get target (mirrors studentresult.html)
+        const scheduledData = await _getScheduledTestData(testId);
+        const target = _resolveTarget(scheduledData, rawResult);
+
+        // PE2/PE3: target-based percentage scoring (matches studentgrades.html exactly)
+        if (_isNonPE1Section(sectionId)) {
+            if (target > 0 && value > 0) {
+                const testNameLower = (testName || '').toLowerCase();
+                const isLower = testNameLower.includes('step test') || testNameLower.includes('3-minute');
+                const pct = isLower ? (target / value) * 100 : (value / target) * 100;
+                if (pct >= 100) return set('Excellent');
+                if (pct >= 80)  return set('Good');
+                if (pct >= 60)  return set('Average');
+                if (pct >= 40)  return set('Below Average');
+                return set('Poor');
+            }
+            // No target — fallback to stored score on the result doc
+            const storedScore = Number(rawResult?.score ?? rawResult?.result?.score ?? rawResult?.resultData?.score ?? 0);
+            if (!isNaN(storedScore) && storedScore > 0) {
+                if (storedScore >= 90) return set('Excellent');
+                if (storedScore >= 80) return set('Good');
+                if (storedScore >= 70) return set('Average');
+                if (storedScore >= 60) return set('Below Average');
+                return set('Poor');
+            }
+            return set('Average');
+        }
+
+        // PE1: norm-based classification
+        const testKey = resolveTestKey(testName);
+        if (!testKey) return set('Average');
+
+        const gKey     = _genderKey(gender);
+        const ageGroup = _ageGroupKey(getAgeGroupFromStudent(studentData));
 
         // 1. Student-specific norm
         if (studentEmail) {
@@ -865,20 +930,10 @@ import { resolveTestKey, extractNumericResult } from './normLookup.js';
             } catch (_) {}
         }
 
-        // 3. scheduledTests inline customNorms
-        if (testId) {
-            try {
-                const dk = `scheduledTest:${testId}`;
-                if (!_normDocCache.has(dk)) {
-                    const snap = await getDoc(doc(db, 'scheduledTests', testId));
-                    _normDocCache.set(dk, snap.exists() ? snap.data() : null);
-                }
-                const td = _normDocCache.get(dk);
-                if (td?.customNorms?.thresholds) {
-                    const cat = _applyThresholds(td.customNorms, value);
-                    if (cat) return set(cat);
-                }
-            } catch (_) {}
+        // 3. scheduledTests inline customNorms (already fetched above)
+        if (scheduledData?.customNorms?.thresholds) {
+            const cat = _applyThresholds(scheduledData.customNorms, value);
+            if (cat) return set(cat);
         }
 
         // 4. Default fitnessNorms
@@ -1255,13 +1310,14 @@ window.addEventListener('pagehide', () => {
                 const storedCat = data.isProfessorOverride ? (data.score || data.category) : null;
                 const category = VALID_CATS.has(storedCat)
                     ? storedCat
-                    : await classifyResult(
+                     : await classifyResult(
                         data.testName || '',
                         data.result ?? data.resultData ?? data.repetitions ?? data,
                         testId,
                         studentEmail,
                         gender,
-                        studentData || null
+                        studentData || null,
+                        studentSection.id
                     );
 
                 // Same dedup key as studentgrades.html

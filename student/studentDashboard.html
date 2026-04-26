@@ -1945,17 +1945,21 @@ function escapeHtml(str) {
             }
 
             completed.sort((a, b) => {
-                const dA = a.submittedAt?.toDate?.() || new Date(a.date || 0);
-                const dB = b.submittedAt?.toDate?.() || new Date(b.date || 0);
-                return dB - dA;
-            });
+            function toMs(r) {
+                if (r.submittedAt?.toDate) return r.submittedAt.toDate().getTime();
+                if (r.submittedAt?.seconds) return r.submittedAt.seconds * 1000;
+                if (r.submittedAt) return new Date(r.submittedAt).getTime();
+                if (r.date) return new Date(r.date).getTime();
+                return 0;
+            }
+            return toMs(b) - toMs(a);
+        });
 
-            const latest = completed[0];
+        // Most recently submitted attempt (no deduplication — show the actual latest)
+        const latest = completed[0];
 
             // FIX: use sync lookup from prefetched cache
-            const normCat = getNormCategorySync(
-                latest.testName, latest.result ?? latest.resultData, latest.testId
-            ) || 'Completed';
+            const normCat = getDashboardDisplayCategory(latest) || 'Completed';
 
             let submittedDate;
             if (latest.submittedAt?.toDate) submittedDate = latest.submittedAt.toDate();
@@ -2109,9 +2113,7 @@ async function createOverallProgressChart(testResults) {
         relevant.forEach(r => {
             const testKey = r.testId || r.scheduledTestId || r.testName || 'unknown';
 
-            const normCat = getNormCategorySync(
-                r.testName, r.result ?? r.resultData, r.testId
-            ) || 'Completed';
+            const normCat = getDashboardDisplayCategory(r) || 'Completed';
             const rank = NORM_RANKS[normCat] || 3;
 
             let testDate = new Date();
