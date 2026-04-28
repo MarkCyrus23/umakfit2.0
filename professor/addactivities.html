@@ -2806,6 +2806,7 @@ window.manageStudents = async function(testId, testName, section) {
         document.getElementById('testInfoHeader').textContent = `${testName} - ${section}`;
         document.getElementById('manageStudentsModal').style.display = 'flex';
         const td = (await getDoc(doc(db,'scheduledTests',testId))).data();
+        window._managingTestCourseCode = td?.courseCode || 'PE 1';
         if (!td.selectedStudents?.length) { window.selectedStudentEmails=new Set(); window.autoSelectAll=true; }
         else { window.selectedStudentEmails=new Set(td.selectedStudents); window.autoSelectAll=false; }
         await loadStudentsForTest(section);
@@ -2851,23 +2852,26 @@ function renderStudentListForTest(filterText='') {
     let toShow = window.currentTestStudents;
     if (filterText) { const fl=filterText.toLowerCase(); toShow=toShow.filter(s=>(s.displayName||'').toLowerCase().includes(fl)||(s.studentNumber||'').toLowerCase().includes(fl)||(s.email||'').toLowerCase().includes(fl)); }
     if (!toShow.length) { container.innerHTML='<p class="text-center text-text-muted py-5">No students found</p>'; return; }
+    const courseCode = window._managingTestCourseCode || 'PE 1';
+    const showNormsButton = !isRepetitionCourse(courseCode);
     container.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${toShow.map(s => {
         const currentTestKey = resolveTestKey(window._currentManagingTestName || '');
         const studentNorms = window._studentCustomNorms?.get(s.email);
         const hasCustomNorm = !!(currentTestKey && studentNorms?.has(currentTestKey));
-        const normBadge = hasCustomNorm ? `<span title="Has custom norms" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;margin-left:4px;">🎛 Custom</span>` : '';
+        const normBadge = (showNormsButton && hasCustomNorm) ? `<span title="Has custom norms" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;margin-left:4px;">🎛 Custom</span>` : '';
         const safeEmail = s.email.replace(/'/g,"\\'");
         const safeName  = (s.displayName||s.name||s.email).replace(/'/g,"\\'");
+        const normsButtonHTML = showNormsButton ? `<button type="button" onclick="openStudentNormModal('${safeEmail}','${safeName}','${(window._currentManagingTestName||'').replace(/'/g,"\\'")}')" title="Set custom norms"
+                style="flex-shrink:0;padding:5px 10px;border:1.5px solid #7c3aed;border-radius:12px;background:${hasCustomNorm?'#7c3aed':'white'};color:${hasCustomNorm?'white':'#7c3aed'};font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">
+                <i class="fas fa-sliders-h"></i> Norms
+            </button>` : '';
         return `<div class="student-checkbox-item" style="display:flex;align-items:center;gap:10px;">
             <input type="checkbox" value="${esc(s.email)}" ${window.selectedStudentEmails.has(s.email)?'checked':''} onchange="toggleStudentInTest('${safeEmail}')" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;">
             <div class="student-info" style="flex:1;min-width:0;">
                 <div class="student-name-sm">${esc(s.displayName||s.name||s.email)}${normBadge}</div>
                 <div class="student-details">${esc(s.studentNumber||'N/A')} • ${esc(s.email)}</div>
             </div>
-           <button type="button" onclick="openStudentNormModal('${safeEmail}','${safeName}','${(window._currentManagingTestName||'').replace(/'/g,"\\'")}')" title="Set custom norms"
-                style="flex-shrink:0;padding:5px 10px;border:1.5px solid #7c3aed;border-radius:12px;background:${hasCustomNorm?'#7c3aed':'white'};color:${hasCustomNorm?'white':'#7c3aed'};font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">
-                <i class="fas fa-sliders-h"></i> Norms
-            </button>
+           ${normsButtonHTML}
         </div>`;
     }).join('')}</div>`;
     updateStudentSelectionCount();
@@ -3512,6 +3516,13 @@ function readScheduleNorms() {
         window._studentCustomNorms = new Map();
 
         window.openStudentNormModal = async function(studentEmail, studentName, testName) {
+            // Safety check: prevent norms for PE 2/3/4 courses
+            const courseCode = window._managingTestCourseCode || 'PE 1';
+            if (isRepetitionCourse(courseCode)) {
+                showErrorModal('Norms are not available for ' + courseCode + '. Norms are only applicable to PE 1 tests.');
+                return;
+            }
+            
             const parts=studentName.split(' ');
             document.getElementById('snAvatarCircle').textContent  = ((parts[0]||'').charAt(0)+(parts[parts.length-1]||'').charAt(0)).toUpperCase()||'?';
             document.getElementById('snStudentName').textContent   = studentName;
@@ -3690,6 +3701,13 @@ window.loadStudentNormForKey = async function() {
 };
 
 window.saveStudentNormOverride = async function() {
+    // Safety check: prevent saving norms for PE 2/3/4 courses
+    const courseCode = window._managingTestCourseCode || 'PE 1';
+    if (isRepetitionCourse(courseCode)) {
+        showErrorModal('❌ Cannot save norms for ' + courseCode + '. Norms are only applicable to PE 1 tests.');
+        return;
+    }
+    
     const studentEmail=document.getElementById('snStudentEmailHidden').value,
           testKey=document.getElementById('snTestKeySelect').value,
           lb=document.getElementById('snLowerIsBetter').value==='1';
