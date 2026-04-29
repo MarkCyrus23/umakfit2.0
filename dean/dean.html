@@ -1263,15 +1263,23 @@ const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average
         return { 'Excellent':'score-excellent', 'Good':'score-good', 'Average':'score-fair', 'Below Average':'score-poor', 'Poor':'score-poor' }[cat] || 'score-fair';
     }
 
-    // Legacy alias so existing rendering code still works
-    function getScoreRating(avgScore) {
+// AFTER
+function getScoreRating(avgScore) {
     if (typeof avgScore === 'string') return { text: avgScore, cls: getCategoryClass(avgScore) };
-    // Match studentgrades.html rankToCategory thresholds exactly
+    if (avgScore > 5) {
+        // PE2/3/4 — numeric 0–100 scale
+        if (avgScore >= 100) return { text: 'Excellent',     cls: 'score-excellent' };
+        if (avgScore >= 80)  return { text: 'Good',          cls: 'score-good' };
+        if (avgScore >= 60)  return { text: 'Average',       cls: 'score-fair' };
+        if (avgScore >= 40)  return { text: 'Below Average', cls: 'score-poor' };
+        return                      { text: 'Poor',          cls: 'score-poor' };
+    }
+    // PE1 — rank scale 1–5
     if (avgScore >= 4.5) return { text: 'Excellent',     cls: 'score-excellent' };
     if (avgScore >= 3.5) return { text: 'Good',          cls: 'score-good' };
     if (avgScore >= 2.5) return { text: 'Average',       cls: 'score-fair' };
     if (avgScore >= 1.5) return { text: 'Below Average', cls: 'score-poor' };
-    return                       { text: 'Poor',         cls: 'score-poor' };
+    return                      { text: 'Poor',          cls: 'score-poor' };
 }
 
     // ─── BMI HELPERS ───
@@ -1434,8 +1442,10 @@ const CATEGORY_ORDER = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average
         const avgScore = perStudentAvgs.length
             ? perStudentAvgs.reduce((a, b) => a + b, 0) / perStudentAvgs.length
             : 0;
-        document.getElementById('dashOverallPerf').textContent =
-            avgScore > 0 ? getScoreRating(avgScore).text : '—';
+const dashPerfLabel = avgScore > 0
+    ? (avgScore > 5 ? getScoreRating(avgScore).text : getScoreRating(avgScore).text)
+    : '—';
+document.getElementById('dashOverallPerf').textContent = dashPerfLabel;
 
     // Performance breakdown bars
     const perfBarsEl = document.getElementById('dashPerfBars');
@@ -1923,47 +1933,157 @@ function _applyThresholds(thresholds, value, lowerIsBetter) {
     }
     return 'Poor';
 }
- 
-// Full priority-chain norm resolver — same order as studentgrades.html
+ // REPLACE _resolveNormCategory in dean.html with this:
 function _resolveNormCategory({ testName, result, testId, studentEmail, genderKey, ageGroup, normDocCache, schedTestCache }) {
     const testKey = _resolveTestKey(testName);
-    const value   = extractNumericResult(result);
- 
-    // Skinfold — body composition categories, not standard norms
-    if ((testName || '').toLowerCase().includes('skinfold')) {
+    const tl = (testName || '').toLowerCase();
+    const value = extractNumericResult(result);
+
+    // ── Skinfold: category is embedded in result string ──
+    if (tl.includes('skinfold') || tl.includes('skin fold') || tl.includes('body fat') || tl.includes('caliper')) {
         const raw = String(result || '').toLowerCase();
-        for (const cat of ['lean', 'essential fat', 'athletic', 'fitness', 'average', 'overfat', 'obese']) {
-            if (raw.includes(cat)) return cat.charAt(0).toUpperCase() + cat.slice(1);
-        }
+        if (raw.includes('lean'))          return 'Lean';
+        if (raw.includes('essential'))     return 'Essential Fat';
+        if (raw.includes('athletic'))      return 'Athletic';
+        if (raw.includes('fitness'))       return 'Fitness';
+        if (raw.includes('overfat'))       return 'Overfat';
+        if (raw.includes('obese'))         return 'Obese';
         return 'Average';
     }
- 
-    if (!testKey) return getNormCategory(testName, result, genderKey, ageGroup); // final fallback
- 
-    // 1. Student-specific norms (highest priority — set by professor per student)
+
+    // ── Jump rope: target-based ──
+    const isJumpRope = tl.includes('jumping rope') || tl.includes('jump rope') || tl.includes('jumprope') || tl.includes('skipping');
+
+    // ── Get scheduled test data for target + courseCode ──
+    const schedData = testId ? schedTestCache.get(testId) : null;
+
+    // ── PE 2/3/4 detection: check courseCode in scheduledTest doc ──
+    const isPeNoNorm = (() => {
+        const candidates = [
+            schedData?.courseCode,
+            result?.courseCode,
+            typeof result === 'object' ? result?.resultData?.courseCode : null,
+        ];
+        return candidates.some(code => {
+            const n = String(code || '').toUpperCase().replace(/\s+/g, '');
+            return n === 'PE2' || n === 'PE3' || n === 'PE4' || /^PE[2-9]\d*$/.test(n);
+        });
+    })();
+
+    // ── Target-based scoring (professor sets target reps) ──
+    function _classifyByTarget(rawResult, testData) {
+        const val = typeof rawResult === 'number' ? rawResult : extractNumericResult(rawResult);
+        if (!(val > 0)) return null;
+        const targetCandidates = [
+            testData?.targetRepetitions, testData?.testTarget,
+            rawResult?.targetRepetitions, rawResult?.testTarget,
+        ];
+        let target = 0;
+        for (const c of targetCandidates) {
+            const n = Number(c);
+            if (!isNaN(n) && n > 0) { target = n; break; }
+        }
+        if (!(target > 0)) return null;
+        const lowerIsBetter = tl.includes('mile') || tl.includes('run') || tl.includes('step');
+        const pct = lowerIsBetter ? (target / val) * 100 : (val / target) * 100;
+        if (pct >= 100) return 'Excellent';
+        if (pct >= 80)  return 'Good';
+        if (pct >= 60)  return 'Average';
+        if (pct >= 40)  return 'Below Average';
+        return 'Poor';
+    }
+
+    function _scoreToCategory(score) {
+        const s = Number(score);
+        if (isNaN(s)) return null;
+        if (s >= 100) return 'Excellent';
+        if (s >= 80)  return 'Good';
+        if (s >= 60)  return 'Average';
+        if (s >= 40)  return 'Below Average';
+        return 'Poor';
+    }
+
+    function _getFallbackScore(rawResult, testData) {
+        const rawVal = extractNumericResult(rawResult);
+        if (rawVal > 0) {
+            const target = (() => {
+                const candidates = [testData?.targetRepetitions, testData?.testTarget, rawResult?.targetRepetitions, rawResult?.testTarget];
+                for (const c of candidates) { const n = Number(c); if (!isNaN(n) && n > 0) return n; }
+                return 0;
+            })();
+            if (target > 0) {
+                const lowerIsBetter = tl.includes('mile') || tl.includes('run') || tl.includes('step');
+                const pct = lowerIsBetter ? (target / rawVal) * 100 : (rawVal / target) * 100;
+                if (pct >= 100) return 100;
+                if (pct >= 80)  return 90;
+                if (pct >= 60)  return 80;
+                if (pct >= 40)  return 70;
+                return 60;
+            }
+            if (isJumpRope) {
+                if (rawVal >= 100) return 100;
+                if (rawVal >= 80)  return 90;
+                if (rawVal >= 60)  return 80;
+                if (rawVal >= 40)  return 70;
+                return 60;
+            }
+        }
+        // Try saved score field
+        const scoreCandidates = [result?.score, result?.value];
+        for (const c of scoreCandidates) {
+            const n = Number(c);
+            if (!isNaN(n) && n >= 0 && n <= 100) return n;
+        }
+        return null;
+    }
+
+    // ── Jump rope: target-based, no norms ──
+    if (isJumpRope) {
+        const targetCat = _classifyByTarget(result, schedData);
+        if (targetCat) return targetCat;
+        const fallbackScore = _getFallbackScore(result, schedData);
+        return _scoreToCategory(fallbackScore) || 'Average';
+    }
+
+    // ── Target-based check first (professor set a target) ──
+    const targetCat = _classifyByTarget(result, schedData);
+    if (targetCat) return targetCat;
+
+    // ── PE 2/3/4: numeric score, no norms ──
+    if (isPeNoNorm) {
+        const fallbackScore = _getFallbackScore(result, schedData);
+        return _scoreToCategory(fallbackScore) || 'Average';
+    }
+
+    if (!testKey) return getNormCategory(testName, result, genderKey, ageGroup);
+
+    // ── 1. Student-specific norms ──
     if (studentEmail) {
         const stuNorm = normDocCache.get(`student:${studentEmail}:${testKey}`);
-        if (stuNorm?.thresholds) {
-            return _applyThresholds(stuNorm.thresholds, value, stuNorm.lowerIsBetter ?? false);
-        }
+        if (stuNorm?.thresholds) return _applyThresholds(stuNorm, value);
     }
- 
-    // 2. Test-level custom norms (set by professor when scheduling/editing the test)
-    if (testId) {
-        const schedData = schedTestCache.get(testId);
-        if (schedData?.customNorms?.thresholds) {
-            return _applyThresholds(schedData.customNorms.thresholds, value, schedData.customNorms.lowerIsBetter ?? false);
-        }
+
+    // ── 2. Test-level custom norms ──
+    if (schedData?.customNorms?.thresholds) {
+        return _applyThresholds(schedData.customNorms, value);
     }
- 
-    // 3. Default DB norms (from fitnessNorms collection, gender+age specific)
+
+    // ── 3. Default DB norms ──
     const defaultNorm = normDocCache.get(`default:${testKey}_${genderKey}_${ageGroup}`);
-    if (defaultNorm?.thresholds) {
-        return _applyThresholds(defaultNorm.thresholds, value, defaultNorm.lowerIsBetter ?? false);
-    }
- 
-    // 4. Hardcoded fallback (existing getNormCategory function — unchanged)
+    if (defaultNorm?.thresholds) return _applyThresholds(defaultNorm, value);
+
+    // ── 4. Hardcoded fallback ──
     return getNormCategory(testName, result, genderKey, ageGroup);
+}
+
+function _applyThresholds(nd, value) {
+    const lib = nd.lowerIsBetter ?? false;
+    for (const cat of ['Excellent', 'Good', 'Average', 'Below Average']) {
+        const t = nd.thresholds?.[cat];
+        if (t == null) continue;
+        if (lib ? value <= t : value >= t) return cat;
+    }
+    return 'Poor';
 }
     async function loadDashboardStats() {
         try {
@@ -2343,11 +2463,15 @@ function renderSectionRankingTable() {
             ? `<span style="font-weight:600;font-family:'DM Mono',monospace;">${s.totalTests || 0}</span>`
             : '<span style="color:#8a98ae;">—</span>';
 
-        let avgPerfCell = '<span style="color:#8a98ae;font-size:12px;">No result yet</span>';
-        if (hasData && s.avgScore > 0) {
-            const rt = getScoreRating(s.avgScore);
-            avgPerfCell = `<span class="score-pill ${rt.cls}">${rt.text}</span>`;
-        }
+// AFTER
+let avgPerfCell = '<span style="color:#8a98ae;font-size:12px;">No result yet</span>';
+if (hasData && s.overallCategory) {
+    const cls = getCategoryClass(s.overallCategory);
+    avgPerfCell = `<span class="score-pill ${cls}">${s.overallCategory}</span>`;
+} else if (hasData && s.avgScore > 0) {
+    const rt = getScoreRating(s.avgScore);
+    avgPerfCell = `<span class="score-pill ${rt.cls}">${rt.text}</span>`;
+}
 
         
 
@@ -2441,9 +2565,22 @@ window.goToSectionRankingPage = function(page) {
 
    function updateRankingSummaryStats() {
     document.getElementById('totalSectionsRanked').textContent = sectionRankings.length;
-    const avgs = sectionRankings.map(s => s.avgScore).filter(s => s > 0);
-    const overallAvg = avgs.length ? avgs.reduce((a,b) => a+b, 0) / avgs.length : 0;
-    document.getElementById('overallAvgScore').textContent = overallAvg > 0 ? getScoreRating(overallAvg).text : '—';
+// AFTER
+// Use each section's pre-computed overallCategory instead of averaging raw scores
+const RANK_MAP = { Excellent:5, Good:4, Average:3, 'Below Average':2, Poor:1 };
+const catRanks = sectionRankings
+    .filter(s => s.overallCategory)
+    .map(s => RANK_MAP[s.overallCategory] || 0)
+    .filter(r => r > 0);
+const overallAvgRank = catRanks.length
+    ? catRanks.reduce((a,b) => a+b, 0) / catRanks.length
+    : 0;
+const overallLabel = overallAvgRank >= 4.5 ? 'Excellent'
+    : overallAvgRank >= 3.5 ? 'Good'
+    : overallAvgRank >= 2.5 ? 'Average'
+    : overallAvgRank >= 1.5 ? 'Below Average'
+    : overallAvgRank > 0    ? 'Poor' : '—';
+document.getElementById('overallAvgScore').textContent = overallLabel;
     const topWithData = sectionRankings.find(s => s.hasData);
     if (topWithData) {
         document.getElementById('topSectionName').textContent = topWithData.name;
@@ -2472,16 +2609,19 @@ const top = sectionRankings
     tbody.innerHTML = top.map((s, i) => {
         const rank = i + 1;
         const rc = rank <= 3 ? `rank-${rank}` : 'rank-other';
-        const rt = getScoreRating(s.avgScore);
-    
-        return `<tr>
-            <td data-label="Rank"><div class="rank-num ${rc}">${rank}</div></td>
-            <td data-label="Section"><span style="font-weight:600;color:#0a1628;">${s.name}</span></td>
-            <td data-label="Professor">${s.professor || 'Unassigned'}</td>
-            <td data-label="College">${s.college}</td>
-            <td data-label="Students">${s.studentCount}</td>
-            <td data-label="Performance"><span class="score-pill ${rt.cls}">${rt.text}</span></td>
-        </tr>`;
+// AFTER
+const perfCat = s.overallCategory || (s.avgScore > 0 ? getScoreRating(s.avgScore).text : null);
+const perfCls = perfCat ? getCategoryClass(perfCat) : '';
+return `<tr>
+    <td data-label="Rank"><div class="rank-num ${rc}">${rank}</div></td>
+    <td data-label="Section"><span style="font-weight:600;color:#0a1628;">${s.name}</span></td>
+    <td data-label="Professor">${s.professor || 'Unassigned'}</td>
+    <td data-label="College">${s.college}</td>
+    <td data-label="Students">${s.studentCount}</td>
+    <td data-label="Performance">
+        ${perfCat ? `<span class="score-pill ${perfCls}">${perfCat}</span>` : '<span style="color:#8a98ae;font-size:12px;">No result yet</span>'}
+    </td>
+</tr>`;
     }).join('');
 }
 
@@ -3444,11 +3584,22 @@ function generateProfessorEmail(professorName) {
     document.getElementById('totalStudentsRanked').textContent = filteredStudentRankings.length;
 
     // Overall performance — weighted average across all students with data
-    const allScores = withData.flatMap(s => s.allScores || []).filter(s => s > 0);
-    const stuOverallAvg = allScores.length
-        ? allScores.reduce((a, b) => a + b, 0) / allScores.length
-        : 0;
-    document.getElementById('studentOverallAvgScore').textContent = stuOverallAvg > 0 ? getScoreRating(stuOverallAvg).text : '—';
+// AFTER
+// Use each student's pre-computed overallCategory string to avoid scale mixing
+const RANK_MAP2 = { Excellent:5, Good:4, Average:3, 'Below Average':2, Poor:1 };
+const stuCatRanks = withData
+    .filter(s => s.overallCategory)
+    .map(s => RANK_MAP2[s.overallCategory] || 0)
+    .filter(r => r > 0);
+const stuOverallAvgRank = stuCatRanks.length
+    ? stuCatRanks.reduce((a,b) => a+b, 0) / stuCatRanks.length
+    : 0;
+const stuOverallLabel = stuOverallAvgRank >= 4.5 ? 'Excellent'
+    : stuOverallAvgRank >= 3.5 ? 'Good'
+    : stuOverallAvgRank >= 2.5 ? 'Average'
+    : stuOverallAvgRank >= 1.5 ? 'Below Average'
+    : stuOverallAvgRank > 0    ? 'Poor' : '—';
+document.getElementById('studentOverallAvgScore').textContent = stuOverallLabel;
 
     // Top student = rank #1 in the table (same sort as renderStudentRankingTable)
     // Sort: most tests first, then highest avgScore, then alphabetical
@@ -3671,48 +3822,137 @@ function generateProfessorEmail(professorName) {
         return 'Poor';
     }
 
-    function getNormCatForTest(t) {
-        const tl = (t.testName || '').toLowerCase();
+function getNormCatForTest(t) {
+    const tl = (t.testName || '').toLowerCase();
 
-        // Skinfold — category is embedded in the result string
-        if (tl.includes('skinfold') || tl.includes('skin fold')) {
-            const raw = String(t.result || t.resultData || '');
-            const m   = raw.match(/\(([^)]+)\)/);
-            if (m) {
-                const cls = m[1];
-                if (cls === 'Athletic' || cls === 'Fitness')  return 'Excellent';
-                if (cls === 'Essential Fat')                  return 'Good';
-                if (cls === 'Average')                        return 'Average';
-                if (cls === 'Overfat')                        return 'Below Average';
-                if (cls === 'Obese')                          return 'Poor';
-            }
-            return 'Average';
+    // ── Skinfold: embedded in result string ──
+    if (tl.includes('skinfold') || tl.includes('skin fold')) {
+        const raw = String(t.result || t.resultData || '');
+        const m = raw.match(/\(([^)]+)\)/);
+        if (m) {
+            const cls = m[1];
+            if (cls === 'Athletic' || cls === 'Fitness')  return 'Excellent';
+            if (cls === 'Essential Fat')                  return 'Good';
+            if (cls === 'Average')                        return 'Average';
+            if (cls === 'Overfat')                        return 'Below Average';
+            if (cls === 'Obese')                          return 'Poor';
         }
-
-        const canonicalKey = resolveCanonicalKey(t.testName);
-        const value        = extractNumericResult(t.result || t.resultData);
-
-        // Priority 1 — student-specific norms
-        if (canonicalKey) {
-            const stuNorm = normDocCache.get(`student:${canonicalKey}`);
-            if (stuNorm?.thresholds) return applyThresholds(stuNorm, value);
-        }
-
-        // Priority 2 — scheduled-test customNorms
-        if (t.testId) {
-            const sched = normDocCache.get(`scheduled:${t.testId}`);
-            if (sched?.customNorms?.thresholds) return applyThresholds(sched.customNorms, value);
-        }
-
-        // Priority 3 — default fitnessNorms from DB
-        if (canonicalKey) {
-            const fitNorm = normDocCache.get(`fitness:${canonicalKey}`);
-            if (fitNorm?.thresholds) return applyThresholds(fitNorm, value);
-        }
-
-        // Priority 4 — hardcoded fallback
-        return getNormCategory(t.testName, t.result || t.resultData, stuGender, stuAgeGroup) || 'Average';
+        return 'Average';
     }
+
+    const canonicalKey = resolveCanonicalKey(t.testName);
+    const rawResult    = t.result || t.resultData;
+    const value        = extractNumericResult(rawResult);
+
+    // ── Get scheduledTest data (already fetched in normDocCache) ──
+    const schedData = t.testId ? normDocCache.get(`scheduled:${t.testId}`) : null;
+
+    // ── PE 2/3/4 detection ──
+    const isPeNoNorm = (() => {
+        const candidates = [
+            schedData?.courseCode,
+            t.courseCode,
+            rawResult?.courseCode,
+        ];
+        return candidates.some(code => {
+            const n = String(code || '').toUpperCase().replace(/\s+/g, '');
+            return n === 'PE2' || n === 'PE3' || n === 'PE4' || /^PE[2-9]\d*$/.test(n);
+        });
+    })();
+
+    // ── Target-based scoring (works for PE2/3/4 AND custom PE1 targets) ──
+    function classifyByTarget(rawResult, testData) {
+        const val = extractNumericResult(rawResult);
+        if (!(val > 0)) return null;
+        const targetCandidates = [
+            testData?.targetRepetitions, testData?.testTarget,
+            rawResult?.targetRepetitions, rawResult?.testTarget,
+        ];
+        let target = 0;
+        for (const c of targetCandidates) {
+            const n = Number(c);
+            if (!isNaN(n) && n > 0) { target = n; break; }
+        }
+        if (!(target > 0)) return null;
+        const lowerIsBetter = tl.includes('mile') || tl.includes('run') || tl.includes('step');
+        const pct = lowerIsBetter ? (target / val) * 100 : (val / target) * 100;
+        if (pct >= 100) return 'Excellent';
+        if (pct >= 80)  return 'Good';
+        if (pct >= 60)  return 'Average';
+        if (pct >= 40)  return 'Below Average';
+        return 'Poor';
+    }
+
+    function scoreToCategory(score) {
+        const s = Number(score);
+        if (isNaN(s)) return null;
+        if (s >= 100) return 'Excellent';
+        if (s >= 80)  return 'Good';
+        if (s >= 60)  return 'Average';
+        if (s >= 40)  return 'Below Average';
+        return 'Poor';
+    }
+
+    // ── Jump rope ──
+    const isJumpRope = tl.includes('jumping rope') || tl.includes('jump rope') || tl.includes('jumprope') || tl.includes('skipping');
+
+    // ── Try target-based first (covers PE2/3/4 with professor targets) ──
+    const targetCat = classifyByTarget(rawResult, schedData);
+    if (targetCat) return targetCat;
+
+    // ── PE 2/3/4 without explicit target: use score field directly ──
+    if (isPeNoNorm) {
+        const scoreCandidates = [
+            t.score, rawResult?.score, rawResult?.value,
+        ];
+        for (const c of scoreCandidates) {
+            const n = Number(c);
+            if (!isNaN(n) && n > 0 && n <= 100) {
+                return scoreToCategory(n) || 'Average';
+            }
+        }
+        // If score > 5 (already numeric 0-100 scale from loadTestResults)
+        if (t.score > 5) return scoreToCategory(t.score) || 'Average';
+        // Fallback: use pre-computed category from loadTestResults
+        if (t.category && t.category !== 'Average') return t.category;
+        return 'Average';
+    }
+
+    // ── Jump rope: fallback ──
+    if (isJumpRope) {
+        if (value >= 100) return 'Excellent';
+        if (value >= 80)  return 'Good';
+        if (value >= 60)  return 'Average';
+        if (value >= 40)  return 'Below Average';
+        return 'Poor';
+    }
+
+    // ── PE1 norm-based tests ──
+
+    // Priority 1 — student-specific norms
+    if (canonicalKey) {
+        const stuNorm = normDocCache.get(`student:${canonicalKey}`);
+        if (stuNorm?.thresholds) return applyThresholds(stuNorm, value);
+    }
+
+    // Priority 2 — scheduled-test customNorms
+    if (t.testId) {
+        const sched = normDocCache.get(`scheduled:${t.testId}`);
+        if (sched?.customNorms?.thresholds) return applyThresholds(sched.customNorms, value);
+    }
+
+    // Priority 3 — default fitnessNorms from DB
+    if (canonicalKey) {
+        const fitNorm = normDocCache.get(`fitness:${canonicalKey}`);
+        if (fitNorm?.thresholds) return applyThresholds(fitNorm, value);
+    }
+
+    // Priority 4 — use pre-computed category from loadTestResults (already classified correctly)
+    if (t.category && NORM_RANK_MAP[t.category]) return t.category;
+
+    // Priority 5 — hardcoded fallback
+    return getNormCategory(t.testName, rawResult, stuGender, stuAgeGroup) || 'Average';
+}
 
     const testGroups = {};
     rawTests.forEach(t => {
