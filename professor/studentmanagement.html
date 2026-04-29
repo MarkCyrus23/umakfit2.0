@@ -811,7 +811,7 @@
                 clearInterval(window._headerDateInterval);
                 cleanupAllListeners();
                 await signOut(auth);
-                window.location.href = '/login/index.html';
+                window.location.href = '/index.html';
             } catch (err) {
                 overlay.remove();
                 alert('Error logging out. Please try again.');
@@ -956,7 +956,7 @@
     onAuthStateChanged(auth, async user => {
         if (!user) {
             clearTimeout(_loadingTimeout);
-            window.location.href = '/login/index.html';
+            window.location.href = '/index.html';
             return;
         }
         currentUser = user;

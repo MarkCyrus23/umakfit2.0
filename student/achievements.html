@@ -1339,7 +1339,7 @@ window.handleLogout = function() {
     document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
         const btn = document.getElementById('logoutConfirmBtn');
         btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '0.7';
-        try { await signOut(auth); window.location.href = '../login/index.html'; }
+        try { await signOut(auth); window.location.href = '../index.html'; }
         catch (_) { overlay.remove(); showErrorPopup('Error logging out. Please try again.', 'Logout Failed'); }
     });
 };
@@ -1367,7 +1367,7 @@ unsubscribeAuth = onAuthStateChanged(auth, async user => {
                     showErrorPopup(
                         'Access Denied: This page is for students only',
                         'Access Denied',
-                        () => { window.location.href = '../login/index.html'; }
+                        () => { window.location.href = '../index.html'; }
                     );
                     await signOut(auth);
                     return;
@@ -1388,7 +1388,7 @@ unsubscribeAuth = onAuthStateChanged(auth, async user => {
         }
     } else {
         clearTimeout(loadingTimeout);
-        window.location.href = '../login/index.html';
+        window.location.href = '../index.html';
     }
 });
 

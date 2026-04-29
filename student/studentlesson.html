@@ -877,7 +877,7 @@ function showToast(message, type = 'info') {
             document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
                 const btn = document.getElementById('logoutConfirmBtn');
                 btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '.7';
-                try { await signOut(auth); window.location.href = '../login/index.html'; } catch(e) { overlay.remove(); alert('Error logging out. Please try again.'); }
+                try { await signOut(auth); window.location.href = '../index.html'; } catch(e) { overlay.remove(); alert('Error logging out. Please try again.'); }
             });
         }
 
@@ -1041,7 +1041,7 @@ async function updateLastLogin(docId) {
                 }
             } else {
                 clearTimeout(loadingTimeout);
-                window.location.href = '../login/index.html';
+                window.location.href = '../index.html';
             }
         });
 

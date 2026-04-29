@@ -1054,7 +1054,7 @@ if (isActivity && window.loadActivityTab) window.loadActivityTab();};
     }, 1500);
 
     let _authUnsub = onAuthStateChanged(auth, async user => {
-        if (!user) { clearTimeout(_loadingTimeout); window.location.href = '/login/index.html'; return; }
+        if (!user) { clearTimeout(_loadingTimeout); window.location.href = '/index.html'; return; }
         try {
             currentUser = user;
             await loadProfessorData(user);
@@ -2160,7 +2160,7 @@ window.refreshActivity = async function() {
         document.getElementById('logoutConfirmBtn').onclick = async () => {
             const btn = document.getElementById('logoutConfirmBtn');
             btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '0.7';
-            try { _cleanup(); await signOut(auth); window.location.href = '/login/index.html'; }
+            try { _cleanup(); await signOut(auth); window.location.href = '/index.html'; }
             catch(err) { console.error(err); overlay.remove(); alert('Error logging out. Please try again.'); }
         };
     }

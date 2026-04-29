@@ -2468,7 +2468,7 @@ window.goToEditProfile = () => window.location.href = './studentProfile.html?edi
             document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
                 const btn = document.getElementById('logoutConfirmBtn');
                 btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '.7';
-                try { await signOut(auth); window.location.href = '../login/index.html'; }
+                try { await signOut(auth); window.location.href = '../index.html'; }
                 catch (_) { overlay.remove(); showErrorPopup('Error logging out. Please try again.', 'Logout Failed'); }
             });
         }
@@ -2608,7 +2608,7 @@ window.goToEditProfile = () => window.location.href = './studentProfile.html?edi
                         showErrorPopup(
                             userRole ? `Access Denied: Students only.\nYour role: ${userRole}` : 'Access Denied: Your account is not configured as a student.',
                             'Access Denied',
-                            () => { window.location.href = '../login/index.html'; }
+                            () => { window.location.href = '../index.html'; }
                         );
                         await signOut(auth);
                         return;
@@ -2632,7 +2632,7 @@ window.goToEditProfile = () => window.location.href = './studentProfile.html?edi
                 }
             } else {
                 clearTimeout(loadingTimeout);
-                window.location.href = '../login/index.html';
+                window.location.href = '../index.html';
             }
         });
 

@@ -1777,7 +1777,7 @@ function getCategoryForTest(testName) {
             document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
                 const btn = document.getElementById('logoutConfirmBtn');
                 btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '0.7';
-                try { await signOut(auth); window.location.href = '../login/index.html'; }
+                try { await signOut(auth); window.location.href = '../index.html'; }
                 catch (_) { overlay.remove(); alert('Error logging out. Please try again.'); }
             });
         };
@@ -1914,7 +1914,7 @@ function getCategoryForTest(testName) {
                         clearTimeout(loadingTimeout);
                         alert(userRole ? `Access Denied: Students only.\nYour role: ${userRole}` : 'Access Denied: Not configured as a student.');
                         await signOut(auth);
-                        window.location.href = '../login/index.html';
+                        window.location.href = '../index.html';
                         return;
                     }
 
@@ -1938,7 +1938,7 @@ function getCategoryForTest(testName) {
                 }
             } else {
                 clearTimeout(loadingTimeout);
-                window.location.href = '../login/index.html';
+                window.location.href = '../index.html';
             }
         });
 

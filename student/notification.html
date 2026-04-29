@@ -801,7 +801,7 @@ async function fetchNotificationsOnce() {
             document.getElementById('logoutConfirmBtn').addEventListener('click', async () => {
                 const btn = document.getElementById('logoutConfirmBtn');
                 btn.textContent = 'Logging out...'; btn.disabled = true; btn.style.opacity = '.7';
-                try { await signOut(auth); window.location.href = '../login/index.html'; }
+                try { await signOut(auth); window.location.href = '../index.html'; }
                 catch(e) { overlay.remove(); alert('Error logging out. Please try again.'); }
             });
         };
@@ -839,7 +839,7 @@ async function fetchNotificationsOnce() {
                 updateProfileUI(user);
                 await loadAllNotifications();
             } else {
-                window.location.href = '../login/index.html';
+                window.location.href = '../index.html';
             }
         });
 
