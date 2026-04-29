@@ -644,7 +644,7 @@
     onAuthStateChanged(auth, async user => {
         if (!user) {
             clearTimeout(loadingTimeout);
-            window.location.href = '/login/index.html';
+            window.location.href = '/index.html';
             return;
         }
 
@@ -669,7 +669,7 @@
             clearTimeout(loadingTimeout);
             document.getElementById('loadingScreen').style.display = 'none';
             window.showAlert(err.message || 'Error loading dashboard.', 'error');
-            setTimeout(async () => { await signOut(auth); window.location.href = '/login/index.html'; }, 2500);
+            setTimeout(async () => { await signOut(auth); window.location.href = '/index.html'; }, 2500);
         }
     });
 
@@ -1669,7 +1669,7 @@ if (rankEl) {
                 clearInterval(window._headerDateInterval);
                 if (window._unsubActivities) { try { window._unsubActivities(); } catch(e) {} }
                 await signOut(auth);
-                window.location.href = '/login/index.html';
+                window.location.href = '/index.html';
             } catch (err) {
                 console.error('Logout error:', err);
                 overlay.remove();
