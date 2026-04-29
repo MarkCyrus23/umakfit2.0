@@ -600,7 +600,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 alert('Please log in first');
-                window.location.href = '/login/index.html';
+                window.location.href = '/index.html';
                 return;
             }
 
@@ -610,7 +610,7 @@
             if (!studentInfo) {
                 alert('Your account is not registered. Please contact your college secretary.');
                 await window.signOut(window.auth);
-                window.location.href = '/login/index.html';
+                window.location.href = '/index.html';
                 return;
             }
 
@@ -639,7 +639,7 @@
         window.handleDecline = async function() {
             if (confirm('If you decline, you will not be able to use UMakFit. Are you sure you want to decline?')) {
                 await window.signOut(window.auth);
-                window.location.href = '/login/index.html';
+                window.location.href = '/index.html';
             }
         };
 
