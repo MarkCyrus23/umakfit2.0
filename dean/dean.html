@@ -1855,16 +1855,45 @@ async function loadTestResults() {
                 schedTestCache: _schedTestCache,
             });
  
-            const normScore = CATEGORY_ORDER[category] || 3;
- 
-            testResults.push({
-                id,
-                ...data,
-                score:     normScore,
-                category,
-                genderKey,
-                ageGroup,
+           // Preserve original numeric score for PE2/3/4 (0-100 scale)
+        // Only convert to rank-based score for PE1 norm-based tests
+        // Check if raw score is already 0-100 numeric (PE2/3/4 style)
+        const rawScore = parseFloat(data.score) || 0;
+        const isPe234 = (() => {
+            const candidates = [data.courseCode, data.result?.courseCode, data.resultData?.courseCode];
+            return candidates.some(code => {
+                const n = String(code || '').toUpperCase().replace(/\s+/g, '');
+                return n === 'PE2' || n === 'PE3' || n === 'PE4' || /^PE[2-9]\d*$/.test(n);
             });
+        })();
+
+        // If score > 5, it's already a 0-100 numeric score — preserve it
+        // If score <= 5, it's a norm rank — keep as is for PE1
+        // If PE2/3/4 detected but score is missing, try to extract from result
+        let finalScore;
+        if (rawScore > 5) {
+            // Already a numeric 0-100 score, use directly
+            finalScore = rawScore;
+        } else if (isPe234) {
+            // PE2/3/4 but score not stored properly — try result fields
+            const resultScore = parseFloat(
+                data.result?.score ?? data.resultData?.score ??
+                data.result?.value ?? data.resultData?.value ?? 0
+            );
+            finalScore = resultScore > 0 ? resultScore : (CATEGORY_ORDER[category] || 3) * 20;
+        } else {
+            // PE1 norm rank (1-5)
+            finalScore = CATEGORY_ORDER[category] || 3;
+        }
+
+        testResults.push({
+            id,
+            ...data,
+            score:     finalScore,
+            category,
+            genderKey,
+            ageGroup,
+        });
         });
  
         return testResults;
@@ -2140,6 +2169,59 @@ Object.entries(perSectionStudentBest).forEach(([compositeKey, stuMap]) => {
 // NOT the set of students who submitted tests — that inflates the count.
 const enrolledCount = meta.studentCount > 0 ? meta.studentCount : stuCount;
 
+// Separate PE1 (rank-based) and PE2/3/4 (numeric score) for proper overall category calculation
+const pe1CatsForSec = data.allScores
+    .filter(score => score >= 1 && score <= 5 && Number.isInteger(score)) // Likely rank-based
+    .map(score => {
+        if (score >= 4.5) return 'Excellent';
+        if (score >= 3.5) return 'Good';
+        if (score >= 2.5) return 'Average';
+        if (score >= 1.5) return 'Below Average';
+        return 'Poor';
+    });
+
+const pe234ScoresForSec = data.allScores
+    .filter(score => score > 5 || !Number.isInteger(score)) // Likely numeric (0-100)
+    .map(score => {
+        const s = Number(score);
+        if (isNaN(s)) return null;
+        if (s >= 100) return 'Excellent';
+        if (s >= 80) return 'Good';
+        if (s >= 60) return 'Average';
+        if (s >= 40) return 'Below Average';
+        return 'Poor';
+    })
+    .filter(Boolean);
+
+const DEAN_SEC_RANK_MAP = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+
+let secOverallCategory = null;
+if (pe234ScoresForSec.length > 0 && pe1CatsForSec.length === 0) {
+    // PE2/3/4 only
+    const avgRank = pe234ScoresForSec.map(c => DEAN_SEC_RANK_MAP[c] || 3).reduce((a, b) => a + b, 0) / pe234ScoresForSec.length;
+    if (avgRank >= 4.5) secOverallCategory = 'Excellent';
+    else if (avgRank >= 3.5) secOverallCategory = 'Good';
+    else if (avgRank >= 2.5) secOverallCategory = 'Average';
+    else if (avgRank >= 1.5) secOverallCategory = 'Below Average';
+    else secOverallCategory = 'Poor';
+} else if (pe1CatsForSec.length > 0 && pe234ScoresForSec.length === 0) {
+    // PE1 only
+    const avgRank = pe1CatsForSec.map(c => DEAN_SEC_RANK_MAP[c] || 3).reduce((a, b) => a + b, 0) / pe1CatsForSec.length;
+    if (avgRank >= 4.5) secOverallCategory = 'Excellent';
+    else if (avgRank >= 3.5) secOverallCategory = 'Good';
+    else if (avgRank >= 2.5) secOverallCategory = 'Average';
+    else if (avgRank >= 1.5) secOverallCategory = 'Below Average';
+    else secOverallCategory = 'Poor';
+} else if (pe234ScoresForSec.length > 0 && pe1CatsForSec.length > 0) {
+    // Mixed: prioritize PE2/3/4
+    const avgRank = pe234ScoresForSec.map(c => DEAN_SEC_RANK_MAP[c] || 3).reduce((a, b) => a + b, 0) / pe234ScoresForSec.length;
+    if (avgRank >= 4.5) secOverallCategory = 'Excellent';
+    else if (avgRank >= 3.5) secOverallCategory = 'Good';
+    else if (avgRank >= 2.5) secOverallCategory = 'Average';
+    else if (avgRank >= 1.5) secOverallCategory = 'Below Average';
+    else secOverallCategory = 'Poor';
+}
+
 sectionRankings.push({
     name,
     college,
@@ -2153,6 +2235,7 @@ sectionRankings.push({
     postTestAvg: parseFloat(postAvg.toFixed(2)),
     improvement: parseFloat((postAvg - preAvg).toFixed(2)),
     avgScore: parseFloat(avgScore.toFixed(2)),
+    overallCategory: secOverallCategory,
     totalTests: data.allScores.length || 0,
     hasData: (data.allScores.length || 0) > 0,
     preScores: data.preScores,
@@ -2730,6 +2813,18 @@ async function loadStudentRankings() {
         const stuData = {};
         studentSections.clear();
         const uidToSid = {};
+        
+        // Fetch sections for courseCode fallback
+        let sectionsMap = {};
+        try {
+            const sectionsSnap = await db.collection('sections').get();
+            sectionsSnap.forEach(d => {
+                const data = d.data();
+                if (data.name) {
+                    sectionsMap[data.name] = { courseCode: (data.courseCode || 'PE1').toUpperCase().replace(/\s+/g, '') };
+                }
+            });
+        } catch (e) { /* sections fetch failed, continue with empty map */ }
 
         // 1. Build student base records from users collection
         try {
@@ -2741,8 +2836,12 @@ async function loadStudentRankings() {
                 const sid = umakId || firebaseUid;
                 const name = data.name || data.displayName || data.firstName || data.email?.split('@')[0] || 'Unknown Student';
                 const sec = data.section || data.assignedSection || data.class || data.sectionName || 'N/A';
+                const userCourseCode = (data.courseCode || data.course || '').toUpperCase().replace(/\s+/g, '');
+                // Use user's courseCode, fallback to section's courseCode
+                const finalCourseCode = userCourseCode || (sectionsMap[sec]?.courseCode || 'PE1');
                 stuData[sid] = {
-                    name, id: sid, umakId, firebaseUid, section: sec, email: data.email || '',
+                name, id: sid, umakId, firebaseUid, section: sec, email: data.email || '',
+                courseCode: finalCourseCode,
                     tests: [],           // ALL raw tests (for modal)
                     uniqueTests: [],     // UNIQUE test types (for ranking)
                     preScores: [],
@@ -2987,7 +3086,89 @@ data.hasData = uniqueTests.length > 0;
                 return 'Poor';
             }
             
-            const overallCategory = data.avgScore > 0 ? rankToCat(data.avgScore) : null;
+            function isPeNoNormDean(t) {
+    // Primary: use student's stored courseCode (matches studentgrades.html)
+    const stuCourse = (data.courseCode || '').toUpperCase().replace(/\s+/g, '');
+    if (stuCourse && stuCourse !== 'PE1') return true;
+    // Fallback: check result fields
+    const candidates = [t?.courseCode, t?.result?.courseCode, t?.resultData?.courseCode];
+    return candidates.some(code => {
+        const n = String(code || '').toUpperCase().replace(/\s+/g, '');
+        return n === 'PE2' || n === 'PE3' || n === 'PE4' || /^PE[2-9]\d*$/.test(n);
+    });
+}
+function scoreToCatDean(score) {
+    const s = Number(score);
+    if (isNaN(s)) return null;
+    if (s >= 100) return 'Excellent';
+    if (s >= 80)  return 'Good';
+    if (s >= 60)  return 'Average';
+    if (s >= 40)  return 'Below Average';
+    return 'Poor';
+}
+function peScoreFromDeanTest(t) {
+    const candidates = [t?.score, t?.result?.score, t?.resultData?.score, t?.result?.value, t?.resultData?.value];
+    for (const c of candidates) {
+        const n = Number(c);
+        if (!isNaN(n) && n >= 0 && n <= 100) return n;
+    }
+    return (DEAN_RANK_MAP[t?.category] || 3) * 20;
+}
+const DEAN_RANK_MAP = { 'Excellent': 5, 'Good': 4, 'Average': 3, 'Below Average': 2, 'Poor': 1 };
+
+const studentTests = data.tests || [];
+const stuCourseCodeDean = (data.courseCode || '').toUpperCase().replace(/\s+/g, '');
+const isPE1StudentDean = !stuCourseCodeDean || stuCourseCodeDean === 'PE1';
+
+// Helper function to extract score from dean test (PE2/3/4)
+function peScoreFromDeanTestFixed(t) {
+    const candidates = [t?.score, t?.result?.score, t?.resultData?.score, t?.result?.value, t?.resultData?.value];
+    for (const c of candidates) {
+        const n = Number(c);
+        if (!isNaN(n) && n >= 0 && n <= 100) return n;
+    }
+    return (DEAN_RANK_MAP[t?.category] || 3) * 20;
+}
+
+// Get best attempt per test group (deduplicated, matching studentgrades.html)
+const bestByGroupDean = new Map();
+studentTests.forEach(t => {
+    const groupKey = t.testId || t.scheduledTestId || t.testName;
+    const existing = bestByGroupDean.get(groupKey);
+    const existingScore = existing ? (isPeNoNormDean(existing) ? peScoreFromDeanTestFixed(existing) : (DEAN_RANK_MAP[existing.category] || 3)) : -1;
+    const currentScore = isPeNoNormDean(t) ? peScoreFromDeanTestFixed(t) : (DEAN_RANK_MAP[t.category] || 3);
+    if (!existing || currentScore > existingScore) bestByGroupDean.set(groupKey, t);
+});
+const dedupedStudentTests = Array.from(bestByGroupDean.values());
+
+const nonPE1Dean = dedupedStudentTests.filter(t => isPeNoNormDean(t));
+const pe1Dean = dedupedStudentTests.filter(t => !isPeNoNormDean(t));
+
+let overallCategory = null;
+if (!isPE1StudentDean || (nonPE1Dean.length > 0 && pe1Dean.length === 0)) {
+    // PE2/3/4: average all best-attempt scores → category
+    const scores = dedupedStudentTests.map(t => peScoreFromDeanTestFixed(t)).filter(s => !isNaN(s) && s >= 0);
+    if (scores.length > 0) {
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        overallCategory = scoreToCatDean(avg);
+    }
+} else if (pe1Dean.length > 0 && nonPE1Dean.length === 0) {
+    const cats = pe1Dean.map(t => t.category).filter(Boolean);
+    const avgRank = cats.length ? cats.map(c => DEAN_RANK_MAP[c] || 3).reduce((a, b) => a + b, 0) / cats.length : 0;
+    overallCategory = cats.length ? rankToCat(avgRank) : null;
+} else if (dedupedStudentTests.length > 0) {
+    if (nonPE1Dean.length > 0) {
+        const scores = nonPE1Dean.map(t => peScoreFromDeanTestFixed(t)).filter(s => !isNaN(s) && s >= 0);
+        if (scores.length > 0) {
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            overallCategory = scoreToCatDean(avg);
+        }
+    } else {
+        const allCats = dedupedStudentTests.map(t => t.category).filter(Boolean);
+        const avgRank = allCats.length ? allCats.map(c => DEAN_RANK_MAP[c] || 3).reduce((a, b) => a + b, 0) / allCats.length : 0;
+        overallCategory = allCats.length ? rankToCat(avgRank) : null;
+    }
+}
             const bestTestCategory = data.bestTestScore > 0 ? rankToCat(data.bestTestScore) : null;
             
             studentRankings.push({
