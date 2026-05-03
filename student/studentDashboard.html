@@ -480,51 +480,51 @@
                 <div class="space-y-6">
 
                     <!-- Performance Summary -->
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-                        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                            <i class="bi bi-trophy text-yellow-500 text-2xl"></i>
-                            Performance
-                        </h3>
-                        <div class="space-y-4">
-                            <div class="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-gray-700">Completion</span>
-                                    <i class="bi bi-clipboard-check text-blue-600 text-xl"></i>
-                                </div>
-                                <div id="completionRate" class="text-3xl font-bold text-gray-900">0%</div>
-                            </div>
-                            <div class="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-gray-700">Tests Completed</span>
-                                    <i class="bi bi-clipboard-check text-green-600 text-xl"></i>
-                                </div>
-                                <div id="testsCompletedCount" class="text-3xl font-bold text-gray-900">0 / 0</div>
-                            </div>
-                            <div class="p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-gray-700">Week Streak</span>
-                                    <i class="bi bi-fire text-orange-600 text-xl"></i>
-                                </div>
-                                <div id="currentStreak" class="text-3xl font-bold text-gray-900">0</div>
-                            </div>
-                            <div class="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-gray-700">Class Rank</span>
-                                    <i class="bi bi-trophy text-yellow-600 text-xl"></i>
-                                </div>
-                                <div id="classRanking" class="text-3xl font-bold text-gray-900">--</div>
-                                <div id="classRankingDetails" class="text-xs text-gray-600 mt-1">Calculating...</div>
-                            </div>
-                            <div class="p-4 bg-gradient-to-r from-pink-50 to-pink-100 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-gray-700">Best At</span>
-                                    <i class="bi bi-star text-pink-600 text-xl"></i>
-                                </div>
-                                <div id="strongestCategory" class="text-lg font-bold text-gray-900">Loading...</div>
-                                <div id="strongestCategoryScore" class="text-xs text-gray-600 mt-1">Calculating...</div>
-                            </div>
-                        </div>
-                    </div>
+<div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <i class="bi bi-trophy text-yellow-500 text-2xl"></i>
+        Performance
+    </h3>
+    <div class="space-y-4">
+        <div class="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700">Completion</span>
+                <i class="bi bi-clipboard-check text-blue-600 text-xl"></i>
+            </div>
+            <div id="completionRate" class="text-3xl font-bold text-gray-900">0%</div>
+        </div>
+        <div class="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700">Tests Completed</span>
+                <i class="bi bi-clipboard-check text-green-600 text-xl"></i>
+            </div>
+            <div id="testsCompletedCount" class="text-3xl font-bold text-gray-900">0 / 0</div>
+        </div>
+        <div class="p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700">Week Streak</span>
+                <i class="bi bi-fire text-orange-600 text-xl"></i>
+            </div>
+            <div id="currentStreak" class="text-3xl font-bold text-gray-900">0</div>
+        </div>
+        <div class="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700">Class Rank</span>
+                <i class="bi bi-trophy text-yellow-600 text-xl"></i>
+            </div>
+            <div id="classRanking" class="text-3xl font-bold text-gray-900">--</div>
+            <div id="classRankingDetails" class="text-xs text-gray-600 mt-1">Calculating...</div>
+        </div>
+        <div id="bestAtContainer" class="p-4 bg-gradient-to-r from-pink-50 to-pink-100 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700">Best At</span>
+                <i class="bi bi-star text-pink-600 text-xl"></i>
+            </div>
+            <div id="strongestCategory" class="text-lg font-bold text-gray-900">Loading...</div>
+            <div id="strongestCategoryScore" class="text-xs text-gray-600 mt-1">Calculating...</div>
+        </div>
+    </div>
+</div>
 
                     <!-- Daily Tip -->
                     <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
@@ -1395,10 +1395,16 @@ if (rawStudent?._ref) {
                 }
 
                 // Run class ranking and strongest category in parallel
-                await Promise.all([
-                    calculateClassRanking(testResults, sectionStudents),
-                    calculateStrongestCategory(testResults)
-                ]);
+                const promises = [calculateClassRanking(testResults, sectionStudents)];
+                // Only calculate strongest category if student is PE 1
+                if (shouldShowBestAt()) {
+                    promises.push(calculateStrongestCategory(testResults));
+                } else {
+                    // Hide the Best At container for PE 2, 3, 4
+                    const bestAtContainer = document.getElementById('bestAtContainer');
+                    if (bestAtContainer) bestAtContainer.style.display = 'none';
+                }
+                await Promise.all(promises);
 
             } catch (_) {
                 document.getElementById('completionRate').textContent = '0%';
@@ -2764,6 +2770,18 @@ function setupDashboardDeadlineWatcher() {
     }
 
     setInterval(pollUpcomingTests, 10000);
+}   
+    function shouldShowBestAt() {
+    if (!studentData) return true;
+    const courseCode = (studentData.course || '').toString().toUpperCase().trim();
+    // Hide Best At for PE 2, PE 3, PE 4
+    if (courseCode === 'PE 2' || courseCode === 'PE2' || 
+        courseCode === 'PE 3' || courseCode === 'PE3' || 
+        courseCode === 'PE 4' || courseCode === 'PE4') {
+        return false;
+    }
+    // Show Best At for PE 1 and all other courses
+    return true;
 }
     </script>
 </body>
