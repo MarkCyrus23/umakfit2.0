@@ -2526,8 +2526,27 @@ async function loadTestResults(userEmail) {
                 testData
             });
             const groupKey = `${studentEmail}_${r.testId||ds.id}`;
+            // Compute numericScore for PE2/3/4 (mirrors sectionranklist logic)
+            let numericScore = null;
+            const isNonPE1Result = !!(testData && (testData.courseCode || '').toUpperCase().replace(/\s+/g,'') !== 'PE1' &&
+                (testData.courseCode || '').toUpperCase().replace(/\s+/g,'').startsWith('PE'));
+            if (isNonPE1Result) {
+                const target2 = (() => {
+                    const candidates = [testData?.targetRepetitions, testData?.testTarget, r?.result?.targetRepetitions, r?.result?.testTarget];
+                    for (const c of candidates) { const v = Number(c); if (!isNaN(v) && v > 0) return v; }
+                    return 0;
+                })();
+                const rawVal2 = extractNumericResult(r.result || r.resultData || r.repetitions || r);
+                if (target2 > 0 && rawVal2 > 0) {
+                    const n2 = (r.testName || '').toLowerCase();
+                    const isLower2 = n2.includes('step test') || n2.includes('3-minute');
+                    const pct2 = isLower2 ? (target2 / rawVal2) * 100 : (rawVal2 / target2) * 100;
+                    numericScore = Math.min(100, Math.max(0, pct2));
+                }
+            }
+
             if (!testGroups.has(groupKey)||(CATEGORY_ORDER[category]||3)>(CATEGORY_ORDER[testGroups.get(groupKey).category]||0)) {
-                testGroups.set(groupKey, { ...r, id:ds.id, category, testName:r.testName||'Unknown', submittedAt:submittedDate });
+                testGroups.set(groupKey, { ...r, id:ds.id, category, numericScore, isNonPE1: isNonPE1Result, testName:r.testName||'Unknown', submittedAt:submittedDate });
             }
             // Store ALL attempts separately for the modal view
             const allKey = `all_${studentEmail}`;
@@ -2545,22 +2564,47 @@ async function loadTestResults(userEmail) {
         }));
 
         testGroups.forEach(result => {
-            const se = result.studentEmail;
-            if (!window.studentResultsMap.has(se)) {
-                window.studentResultsMap.set(se, { studentName:result.studentName||'Unknown', section:result.section||'N/A', tests:[], totalTests:0, categories:[], testNames:[], lastActivity:null, lastTestName:'' });
-            }
-            const sd2 = window.studentResultsMap.get(se);
-            sd2.tests.push({ id:result.id, testName:result.testName, category:result.category, result:result.result||result.resultData||result.repetitions||'N/A', date:result.submittedAt, attempt:result.attemptNumber||1 });
-            sd2.categories.push(result.category); sd2.testNames.push(result.testName); sd2.totalTests++;
-            if (!sd2.lastActivity||result.submittedAt>sd2.lastActivity) { sd2.lastActivity=result.submittedAt; sd2.lastTestName=result.testName; }
+    const se = result.studentEmail;
+    if (!window.studentResultsMap.has(se)) {
+        window.studentResultsMap.set(se, {
+            studentName: result.studentName||'Unknown',
+            section: result.section||'N/A',
+            tests: [], totalTests: 0,
+            categories: [], testNames: [],
+            numericScores: [],   // ← ADD THIS
+            isNonPE1: false,     // ← ADD THIS
+            lastActivity: null, lastTestName: ''
         });
+    }
+    const sd2 = window.studentResultsMap.get(se);
+    sd2.tests.push({ id:result.id, testName:result.testName, category:result.category, result:result.result||result.resultData||result.repetitions||'N/A', date:result.submittedAt, attempt:result.attemptNumber||1 });
+    sd2.categories.push(result.category);
+    sd2.testNames.push(result.testName);
+    sd2.totalTests++;
+    if (!sd2.lastActivity||result.submittedAt>sd2.lastActivity) {
+        sd2.lastActivity=result.submittedAt; sd2.lastTestName=result.testName;
+    }
+    // ← ADD THESE TWO LINES:
+    if (result.numericScore != null) sd2.numericScores.push(result.numericScore);
+    if (result.isNonPE1) sd2.isNonPE1 = true;
+});
 
         window.studentResultsMap.forEach(sd2 => {
-            sd2.overallCategory = getOverallCategory(sd2.categories);
-            let best='Average', bestScore=0;
-            sd2.categories.forEach((c,i) => { const s=CATEGORY_ORDER[c]||3; if(s>bestScore){bestScore=s;best=c;sd2.bestTestForCategory=sd2.testNames[i];} });
-            sd2.bestCategory = best;
-        });
+    if (sd2.isNonPE1 && sd2.numericScores && sd2.numericScores.length > 0) {
+        // PE2/3/4: average exact percentages (matches studentgrades.html)
+        const avgPct = sd2.numericScores.reduce((a, b) => a + b, 0) / sd2.numericScores.length;
+        if (avgPct >= 100) sd2.overallCategory = 'Excellent';
+        else if (avgPct >= 80) sd2.overallCategory = 'Good';
+        else if (avgPct >= 60) sd2.overallCategory = 'Average';
+        else if (avgPct >= 40) sd2.overallCategory = 'Below Average';
+        else sd2.overallCategory = 'Poor';
+    } else {
+        sd2.overallCategory = getOverallCategory(sd2.categories);
+    }
+    let best='Average', bestScore=0;
+    sd2.categories.forEach((c,i) => { const s=CATEGORY_ORDER[c]||3; if(s>bestScore){bestScore=s;best=c;sd2.bestTestForCategory=sd2.testNames[i];} });
+    sd2.bestCategory = best;
+});
 
         renderStudentResultsTable();
     } catch(err) { console.error('loadTestResults error:', err); }

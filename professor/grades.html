@@ -855,25 +855,23 @@
     // ✅ Resolve actual numeric score (same as studentgrades resolveResultScore)
     let numericScore = null;
     if(isPe2Entry){
-        const target=_resolveProfessorTarget(
-            data.result??data.resultData??data,
-            testData,
-            data
-        );
-        const rawVal=extractNumericResult(data.result??data.resultData??data);
-        if(target>0 && rawVal>0){
-            const pct=(rawVal/target)*100;
-            if(pct>=100) numericScore=100;
-            else if(pct>=80) numericScore=90;
-            else if(pct>=60) numericScore=80;
-            else if(pct>=40) numericScore=70;
-            else numericScore=60;
-        } else {
-            // fallback: use saved score field
-            const s=Number(data.score??data.result?.score??data.resultData?.score);
-            if(!isNaN(s)&&s>=0&&s<=100) numericScore=s;
-        }
+    const target=_resolveProfessorTarget(
+        data.result??data.resultData??data,
+        testData,
+        data
+    );
+    const rawVal=extractNumericResult(data.result??data.resultData??data);
+    if(target>0 && rawVal>0){
+        const n=(testName||'').toLowerCase();
+        const isLower=n.includes('step test')||n.includes('3-minute');
+        // Exact percentage (matches studentgrades.html getFallbackScore for PE2/3/4)
+        const pct=isLower?(target/rawVal)*100:(rawVal/target)*100;
+        numericScore=Math.min(100,Math.max(0,pct));
+    } else {
+        const s=Number(data.score??data.result?.score??data.resultData?.score);
+        if(!isNaN(s)&&s>=0&&s<=100) numericScore=s;
     }
+}
     const entryWithFlag={...entry, isPe2:isPe2Entry, numericScore};
     if(!ex||cs>(CATEGORY_ORDER[ex.category]||0))bestPerTest.set(mk, entryWithFlag);
 }

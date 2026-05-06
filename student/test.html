@@ -688,33 +688,54 @@ function normalizeCourseCode(value) {
 
     // ✅ Build attempts map FIRST, fully awaited — before any rendering
     const attemptsMap = new Map();
-    await Promise.all(testResults.map(async r => {
-        const testId = r.testId;
-        if (!testId) return;
-        if (!attemptsMap.has(testId)) attemptsMap.set(testId, { attempts: 0, hasExcellent: false });
-        const entry = attemptsMap.get(testId);
-        entry.attempts++;
-        const rawResult = r.result ?? r.resultData ?? r.rawResult;
-        let normCat = null;
-        const target = r.targetRepetitions || r.testTarget || r.result?.targetRepetitions || r.resultData?.targetRepetitions;
-        const rawVal = typeof rawResult === 'object' && rawResult !== null
-            ? parseFloat(rawResult.value ?? rawResult.result ?? rawResult.count ?? rawResult.repetitions ?? 0) || 0
-            : parseFloat(rawResult) || 0;
+    // Inside processTests(), replace the attemptsMap building Promise.all block:
 
-        if (target && rawVal > 0) {
-            const tName = (r.testName || '').toLowerCase();
-            const lowerIsBetter = tName.includes('mile') || tName.includes('run') || tName.includes('step');
-            const pct = lowerIsBetter ? (Number(target) / rawVal) * 100 : (rawVal / Number(target)) * 100;
-            if (pct >= 100) normCat = 'Excellent';
-            else if (pct >= 80) normCat = 'Good';
-            else if (pct >= 60) normCat = 'Average';
-            else if (pct >= 40) normCat = 'Below Average';
-            else normCat = 'Poor';
+await Promise.all(testResults.map(async r => {
+    const testId = r.testId;
+    if (!testId) return;
+    if (!attemptsMap.has(testId)) attemptsMap.set(testId, { attempts: 0, hasExcellent: false });
+    const entry = attemptsMap.get(testId);
+    entry.attempts++;
+
+    const rawResult = r.result ?? r.resultData ?? r.rawResult;
+    let normCat = null;
+
+    const target = r.targetRepetitions || r.testTarget || r.result?.targetRepetitions || r.resultData?.targetRepetitions;
+    const rawVal = typeof rawResult === 'object' && rawResult !== null
+        ? parseFloat(rawResult.value ?? rawResult.result ?? rawResult.count ?? rawResult.repetitions ?? 0) || 0
+        : parseFloat(rawResult) || 0;
+
+    if (target && rawVal > 0) {
+        const tName = (r.testName || '').toLowerCase();
+        const lowerIsBetter = tName.includes('mile') || tName.includes('run') || tName.includes('step');
+        const pct = lowerIsBetter ? (Number(target) / rawVal) * 100 : (rawVal / Number(target)) * 100;
+        if (pct >= 100) normCat = 'Excellent';
+        else if (pct >= 80) normCat = 'Good';
+        else if (pct >= 60) normCat = 'Average';
+        else if (pct >= 40) normCat = 'Below Average';
+        else normCat = 'Poor';
+    } else {
+        // PE2/3/4 without target: try score field directly
+        const courseCode = (studentData?.courseCode || 'PE1').toUpperCase().replace(/\s+/g, '');
+        if (courseCode !== 'PE1') {
+            const directScore = r.score ?? r.result?.score ?? r.resultData?.score;
+            if (directScore != null && !isNaN(Number(directScore))) {
+                const s = Number(directScore);
+                if (s >= 100) normCat = 'Excellent';
+                else if (s >= 80) normCat = 'Good';
+                else if (s >= 60) normCat = 'Average';
+                else if (s >= 40) normCat = 'Below Average';
+                else normCat = 'Poor';
+            } else {
+                normCat = await resolveNormCategoryForStudent(r.testName, rawResult, testId);
+            }
         } else {
             normCat = await resolveNormCategoryForStudent(r.testName, rawResult, testId);
         }
-        if (normCat === 'Excellent') entry.hasExcellent = true;
-    }));
+    }
+
+    if (normCat === 'Excellent') entry.hasExcellent = true;
+}));
 
     // ✅ Separate available vs overdue AFTER attemptsMap is complete
     const seenIds = new Set();
@@ -1053,13 +1074,13 @@ function renderCategoryCards(attemptsMap) {
         // ========== PROCESS: PERFORMANCE DASHBOARD ==========
         // Uses already-fetched testResults — no extra Firestore query
 
-        async function processPerformanceDashboard(testResults) {
+      async function processPerformanceDashboard(testResults) {
     const testDates = [];
-    const bestCatPerTest = new Map();
-    let bestRank = 0, bestCat = null;
+    const bestScorePerTest = new Map(); // Store exact percentage scores
+    let bestScoreValue = 0, bestCategory = null;
     const seenTestIds = new Set();
 
-    const course = (studentData?.courseCode || 'PE1').toUpperCase();
+    const course = (studentData?.courseCode || 'PE1').toUpperCase().replace(/\s+/g, '');
     const isPE1 = course === 'PE1';
 
     function resolveProfessorTarget(result) {
@@ -1086,81 +1107,103 @@ function renderCategoryCards(attemptsMap) {
         return parseFloat(result) || 0;
     }
 
-    function scoreToCategory(score) {
-        const s = Number(score);
-        if (Number.isNaN(s)) return null;
-        if (s >= 100) return 'Excellent';
-        if (s >= 90) return 'Good';
-        if (s >= 80) return 'Average';
-        if (s >= 70) return 'Below Average';
+    function calculateExactPercentage(testName, target, rawValue) {
+        if (target <= 0 || rawValue <= 0) return 0;
+        const testNameL = (testName || '').toLowerCase();
+        const lowerIsBetter = testNameL.includes('step') || testNameL.includes('3-minute') || testNameL.includes('mile') || testNameL.includes('run');
+        const pct = lowerIsBetter ? (target / rawValue) * 100 : (rawValue / target) * 100;
+        return Math.min(100, Math.max(0, pct));
+    }
+
+    function percentageToCategory(pct) {
+        if (pct >= 100) return 'Excellent';
+        if (pct >= 80) return 'Good';
+        if (pct >= 60) return 'Average';
+        if (pct >= 40) return 'Below Average';
         return 'Poor';
     }
 
-    function resolveCategory(result) {
-        const rawResult = result.result ?? result.resultData ?? result.rawResult;
-        const target = resolveProfessorTarget(result);
-        const rawValue = extractNumericVal(rawResult);
-
-        // Professor target-based scoring (PE2 and any test with target)
-        if (target > 0 && rawValue > 0) {
-            const testNameL = (result.testName || '').toLowerCase();
-            const lowerIsBetter = testNameL.includes('mile') || testNameL.includes('run') || testNameL.includes('step');
-            const pct = lowerIsBetter ? (target / rawValue) * 100 : (rawValue / target) * 100;
-            if (pct >= 100) return 'Excellent';
-            if (pct >= 80) return 'Good';
-            if (pct >= 60) return 'Average';
-            if (pct >= 40) return 'Below Average';
-            return 'Poor';
-        }
-
-        // PE1: use norm-based resolution
-        if (isPE1) {
-            return null; // will be resolved async below
-        }
-
-        // Fallback: check saved score/category fields
-        const savedCat = result?.normCategory || result?.score || result?.category;
-        const VALID = ['Excellent', 'Good', 'Average', 'Below Average', 'Poor'];
-        if (savedCat && VALID.includes(savedCat)) return savedCat;
-
-        // Score-based fallback
-        const scoreVal = result?.result?.score ?? result?.resultData?.score ?? result?.score;
-        if (scoreVal != null && !isNaN(Number(scoreVal))) return scoreToCategory(Number(scoreVal));
-
-        return 'Average';
-    }
-
-    await Promise.all(testResults.map(async r => {
+    // Process each test result
+    for (const r of testResults) {
         const testId = r.testId || r.id;
         const testDate = r.submittedAt?.toDate?.() || (r.submittedAt ? new Date(r.submittedAt) : new Date());
         testDates.push(testDate);
 
-        let normCat = resolveCategory(r);
+        const target = resolveProfessorTarget(r);
+        const rawValue = extractNumericVal(r.result ?? r.resultData ?? r.rawResult);
+        
+        let exactPercentage = 0;
+        let displayCategory = null;
 
-        // For PE1 tests without a target, use async norm resolution
-        if (!normCat || normCat === null) {
-            normCat = await resolveNormCategoryForStudent(r.testName, r.result ?? r.resultData ?? r.rawResult, r.testId);
+        if (!isPE1) {
+            // PE2/3/4: use exact percentage (same as studentgrades.html)
+            if (target > 0 && rawValue > 0) {
+                exactPercentage = calculateExactPercentage(r.testName, target, rawValue);
+                displayCategory = percentageToCategory(exactPercentage);
+            } else {
+                // Fallback to saved score
+                const savedScore = r?.result?.score ?? r?.resultData?.score ?? r?.score;
+                if (savedScore != null && !isNaN(Number(savedScore))) {
+                    exactPercentage = Number(savedScore);
+                    displayCategory = percentageToCategory(exactPercentage);
+                } else {
+                    exactPercentage = 75;
+                    displayCategory = 'Average';
+                }
+            }
+        } else {
+            // PE1: use norm-based
+            let normCat = await resolveNormCategoryForStudent(r.testName, r.result ?? r.resultData ?? r.rawResult, r.testId);
+            if (!normCat) normCat = 'Average';
+            displayCategory = normCat;
+            const normToScore = { 'Excellent': 100, 'Good': 90, 'Average': 80, 'Below Average': 70, 'Poor': 60 };
+            exactPercentage = normToScore[displayCategory] || 80;
         }
-
-        if (!normCat) return;
 
         seenTestIds.add(testId);
-        if (!bestCatPerTest.has(testId) || normCategoryRank(normCat) > normCategoryRank(bestCatPerTest.get(testId))) {
-            bestCatPerTest.set(testId, normCat);
+        
+        // Track best percentage per test (higher is better)
+        if (!bestScorePerTest.has(testId) || exactPercentage > bestScorePerTest.get(testId).percentage) {
+            bestScorePerTest.set(testId, { percentage: exactPercentage, category: displayCategory });
         }
-        const rank = normCategoryRank(normCat);
-        if (rank > bestRank) { bestRank = rank; bestCat = normCat; }
-    }));
+        
+        // Track overall best percentage
+        if (exactPercentage > bestScoreValue) {
+            bestScoreValue = exactPercentage;
+            bestCategory = displayCategory;
+        }
+    }
 
-    const allRanks = Array.from(bestCatPerTest.values()).map(normCategoryRank);
-    const testCount = seenTestIds.size;
-    const weekStreakCount = calculateWeekStreak(testDates);
+    // Calculate overall average (same as studentgrades.html logic)
     let overallLabel = '--';
-    if (allRanks.length > 0) overallLabel = rankToCategory(allRanks.reduce((a, b) => a + b, 0) / allRanks.length);
+    const testCount = seenTestIds.size;
+    
+    if (testCount > 0) {
+        if (!isPE1 && testCount > 0) {
+            // PE2/3/4: average the exact percentages then convert to category
+            let totalPercentage = 0;
+            for (const [_, data] of bestScorePerTest) {
+                totalPercentage += data.percentage;
+            }
+            const avgPercentage = totalPercentage / testCount;
+            overallLabel = percentageToCategory(avgPercentage);
+        } else {
+            // PE1: use rank-based averaging
+            let totalRank = 0;
+            for (const [_, data] of bestScorePerTest) {
+                const rank = normCategoryRank(data.category);
+                totalRank += rank;
+            }
+            const avgRank = totalRank / testCount;
+            overallLabel = rankToCategory(avgRank);
+        }
+    }
+
+    const weekStreakCount = calculateWeekStreak(testDates);
 
     document.getElementById('testsDone').textContent = testCount;
     document.getElementById('avgScore').textContent = overallLabel;
-    document.getElementById('bestScore').textContent = bestCat || '--';
+    document.getElementById('bestScore').textContent = bestCategory || '--';
     const weekStreakEl = document.getElementById('weekStreak');
     if (weekStreakEl) weekStreakEl.textContent = weekStreakCount;
 }

@@ -564,73 +564,81 @@ function getCategoryForTest(testName) {
 }
 
         function getFallbackScore(testName, result) {
-            const rawValue = extractNumericResult(result?.resultData ?? result?.result);
-            const n = (testName || '').toLowerCase();
-            // Always re-resolve target from both result fields AND normDocsCache
-            const target = resolveProfessorTarget(result);
+    const rawValue = extractNumericResult(result?.resultData ?? result?.result);
+    const n = (testName || '').toLowerCase();
+    const target = resolveProfessorTarget(result);
 
-            if (!rawValue) {
-                const topLevelCandidates = [
-                    result?.score,
-                    result?.result?.score,
-                    result?.resultData?.score,
-                    result?.result?.value,
-                    result?.resultData?.value
-                ];
-                for (const candidate of topLevelCandidates) {
-                    if (isValidScore(candidate)) return Number(candidate);
-                }
-                return null;
-            }
-
-            // Jump rope — always target-based (mirrors studentresult.html)
-            if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping') ||
-                n.includes('jumping rope')) {
-                if (target <= 0) return 75;
-                const pct = (rawValue / target) * 100;
-                if (pct >= 100) return 100;
-                if (pct >= 80) return 90;
-                if (pct >= 60) return 80;
-                if (pct >= 40) return 70;
-                return 60;
-            }
-
-            // Push-up / sit-up / curl-up — rep-based with target
-            if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') ||
-                n.includes('curl-up') || n.includes('curl up')) {
-                if (target <= 0) return 75;
-                const pct = (rawValue / target) * 100;
-                if (pct >= 100) return 100;
-                if (pct >= 80) return 90;
-                if (pct >= 60) return 80;
-                if (pct >= 40) return 70;
-                return 60;
-            }
-
-            // Generic target-based (step test = lower is better)
-            if (target > 0) {
-                const isLower = n.includes('step test') || n.includes('3-minute');
-                const pct = isLower ? (target / rawValue) * 100 : (rawValue / target) * 100;
-                if (pct >= 100) return 100;
-                if (pct >= 80) return 90;
-                if (pct >= 60) return 80;
-                if (pct >= 40) return 70;
-                return 60;
-            }
-
-            // No target — fall back to stored score fields
-            const topLevelCandidates = [
-                result?.score,
-                result?.result?.score,
-                result?.resultData?.score,
-                result?.result?.value,
-                result?.resultData?.value
-            ];
-            for (const candidate of topLevelCandidates) {
-                if (isValidScore(candidate)) return Number(candidate);
-            }
-            return 75;
+    if (!rawValue) {
+        const topLevelCandidates = [
+            result?.score,
+            result?.result?.score,
+            result?.resultData?.score,
+            result?.result?.value,
+            result?.resultData?.value
+        ];
+        for (const candidate of topLevelCandidates) {
+            if (isValidScore(candidate)) return Number(candidate);
         }
+        return null;
+    }
+
+    // PE2/3/4: always return EXACT percentage (not bucketed)
+    if (isPeNoNormCourse(result)) {
+        if (target <= 0) return 75;
+        const isLower = n.includes('step test') || n.includes('3-minute');
+        const pct = isLower ? (target / rawValue) * 100 : (rawValue / target) * 100;
+        // Cap at 100, floor at 0, return exact value
+        return Math.min(100, Math.max(0, pct));
+    }
+
+    // PE1: jump rope target-based (bucketed is fine for norm display)
+    if (n.includes('jump rope') || n.includes('jumprope') || n.includes('jump-rope') || n.includes('skipping') ||
+        n.includes('jumping rope')) {
+        if (target <= 0) return 75;
+        const pct = (rawValue / target) * 100;
+        if (pct >= 100) return 100;
+        if (pct >= 80) return 90;
+        if (pct >= 60) return 80;
+        if (pct >= 40) return 70;
+        return 60;
+    }
+
+    // PE1: push-up / sit-up / curl-up
+    if (n.includes('push-up') || n.includes('pushup') || n.includes('sit-up') || n.includes('situp') ||
+        n.includes('curl-up') || n.includes('curl up')) {
+        if (target <= 0) return 75;
+        const pct = (rawValue / target) * 100;
+        if (pct >= 100) return 100;
+        if (pct >= 80) return 90;
+        if (pct >= 60) return 80;
+        if (pct >= 40) return 70;
+        return 60;
+    }
+
+    // PE1: generic target-based
+    if (target > 0) {
+        const isLower = n.includes('step test') || n.includes('3-minute');
+        const pct = isLower ? (target / rawValue) * 100 : (rawValue / target) * 100;
+        if (pct >= 100) return 100;
+        if (pct >= 80) return 90;
+        if (pct >= 60) return 80;
+        if (pct >= 40) return 70;
+        return 60;
+    }
+
+    // No target fallback
+    const topLevelCandidates = [
+        result?.score,
+        result?.result?.score,
+        result?.resultData?.score,
+        result?.result?.value,
+        result?.resultData?.value
+    ];
+    for (const candidate of topLevelCandidates) {
+        if (isValidScore(candidate)) return Number(candidate);
+    }
+    return 75;
+}
 
        function resolveResultScore(result) {
         const professorTarget = resolveProfessorTarget(result);
@@ -930,29 +938,31 @@ const [testResults, assignedCount, notifications] = await Promise.all([
         // ========== PROCESS & RENDER (sync after prefetch) ==========
 
         const NORM_RANK = { Excellent:5, Good:4, Average:3, 'Below Average':2, Poor:1 };
-function processAndRender(rawResults, assignedCount) {
-    // Deduplicate: keep only the best-performing attempt per testId
-    const testGroups = {};
-    rawResults.forEach(result => {
-    const testId = result.testId || result.scheduledTestId || result.testName;
-    const resolvedScore = resolveResultScore(result);
-    const displayCategory = getDisplayCategory({ ...result, score: resolvedScore });
-    const category = getCategoryForTest(result.testName);
-    const dateObj = toDate(result.submittedAt) || new Date();
+    function processAndRender(rawResults, assignedCount) {
+        // Deduplicate: keep only the best-performing attempt per testId
+        const testGroups = {};
+        rawResults.forEach(result => {
+        const testId = result.testId || result.scheduledTestId || result.testName;
+        const resolvedScore = resolveResultScore(result);
+        const displayCategory = getDisplayCategory({ ...result, score: resolvedScore });
+        const category = getCategoryForTest(result.testName);
+        const dateObj = toDate(result.submittedAt) || new Date();
+
+        // For PE2/3/4: derive the numeric score FROM the displayCategory so both are always in sync
+    const categoryScore = resolvedScore;
 
     if (!testGroups[testId]) {
-        testGroups[testId] = { ...result, normCategory: displayCategory, score: resolvedScore, category, submittedAt: dateObj };
+        testGroups[testId] = { ...result, normCategory: displayCategory, score: categoryScore, category, submittedAt: dateObj };
     } else {
         const existingScore = Number(testGroups[testId].score ?? 0);
-        const newScore = Number(resolvedScore ?? 0);
-        // Keep highest-scoring attempt per test; if tied, keep most recent.
+        const newScore = Number(categoryScore ?? 0);
         if (newScore > existingScore) {
-            testGroups[testId] = { ...result, normCategory: displayCategory, score: resolvedScore, category, submittedAt: dateObj };
+            testGroups[testId] = { ...result, normCategory: displayCategory, score: categoryScore, category, submittedAt: dateObj };
         } else if (newScore === existingScore && dateObj > (testGroups[testId].submittedAt || new Date(0))) {
-            testGroups[testId] = { ...result, normCategory: displayCategory, score: resolvedScore, category, submittedAt: dateObj };
+            testGroups[testId] = { ...result, normCategory: displayCategory, score: categoryScore, category, submittedAt: dateObj };
         }
     }
-});
+    });
 
             const testResults = Object.values(testGroups);
 
@@ -983,32 +993,42 @@ const categoriesSource = course === 'PE1' ? testCategories : getPECategory(cours
 
                     // In processAndRender, replace the overall standing computation block:
         const nonPE1Results = testResults.filter(r => isPeNoNormCourse(r));
-        const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
-        let overallCat = null;
+const pe1Results = testResults.filter(r => !isPeNoNormCourse(r));
+let overallCat = null;
 
-        if (testResults.length > 0) {
-            if (nonPE1Results.length > 0 && pe1Results.length === 0) {
-            const scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s > 0);
-            if (scores.length > 0) {
-                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                overallCat = scoreToCategory(avg);
-            }
-
-            } else if (pe1Results.length > 0 && nonPE1Results.length === 0) {
-                const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
-                if (pe1Categories.length > 0) {
-                    const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
-                    overallCat = rankToCategory(avgRank);
-                }
-            } else {
-                // Mixed fallback
-                const allCats = testResults.map(r => r.normCategory).filter(Boolean);
-                if (allCats.length > 0) {
-                    const avgRank = allCats.map(normCategoryRank).reduce((a, b) => a + b, 0) / allCats.length;
-                    overallCat = rankToCategory(avgRank);
-                }
-            }
+if (testResults.length > 0) {
+    if (nonPE1Results.length > 0 && pe1Results.length === 0) {
+        // PE2/3/4: average the resolved numeric scores (e.g. 60+80=140/2=70 → Average)
+        const scores = nonPE1Results.map(r => {
+            const s = Number(r.score);
+            return (!isNaN(s) && s > 0) ? s : null;
+        }).filter(s => s !== null);
+        if (scores.length > 0) {
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            overallCat = scoreToCategory(avg);
         }
+
+    } else if (pe1Results.length > 0 && nonPE1Results.length === 0) {
+        // PE1: norm-rank based averaging
+        const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
+        if (pe1Categories.length > 0) {
+            const avgRank = pe1Categories.map(normCategoryRank).reduce((a, b) => a + b, 0) / pe1Categories.length;
+            overallCat = rankToCategory(avgRank);
+        }
+    } else {
+        // Mixed fallback: use score-based for nonPE1, rank-based for PE1, then combine
+        const nonPE1Scores = nonPE1Results.map(r => Number(r.score)).filter(s => !isNaN(s) && s > 0);
+        const pe1Categories = pe1Results.map(r => r.normCategory).filter(Boolean);
+        const allScores = [
+            ...nonPE1Scores,
+            ...pe1Categories.map(mapNormCategoryToScore)
+        ];
+        if (allScores.length > 0) {
+            const avg = allScores.reduce((a, b) => a + b, 0) / allScores.length;
+            overallCat = scoreToCategory(avg);
+        }
+    }
+}
             if (overallCat) {
                 overallStandingEl.innerHTML = `<span class="norm-badge ${normCategoryClass(overallCat)} text-sm px-4 py-2"><i class="bi ${normCategoryIcon(overallCat)}"></i> ${overallCat}</span>`;
                 overallNoteEl.textContent = `Based on ${testResults.length} test${testResults.length !== 1 ? 's' : ''} completed`;

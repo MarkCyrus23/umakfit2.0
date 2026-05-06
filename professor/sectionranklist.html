@@ -980,16 +980,26 @@ import { resolveTestKey, extractNumericResult } from './normLookup.js';
         return rank === 1 ? 'rank-gold' : rank === 2 ? 'rank-silver' : rank === 3 ? 'rank-bronze' : 'rank-other';
     }
 
-    function getOverallCategory(categories) {
-        if (!categories || categories.length === 0) return null;
-        const scores = categories.map(c => CATEGORY_ORDER[c] || 3);
-        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        if (avg >= 4.5) return 'Excellent';
-        if (avg >= 3.5) return 'Good';
-        if (avg >= 2.5) return 'Average';
-        if (avg >= 1.5) return 'Below Average';
+    function getOverallCategory(categories, numericScores, isNonPE1) {
+    if (!categories || categories.length === 0) return null;
+    // PE2/3/4: average exact percentages (matches studentgrades.html)
+    if (isNonPE1 && numericScores && numericScores.length > 0) {
+        const avg = numericScores.reduce((a, b) => a + b, 0) / numericScores.length;
+        if (avg >= 100) return 'Excellent';
+        if (avg >= 80)  return 'Good';
+        if (avg >= 60)  return 'Average';
+        if (avg >= 40)  return 'Below Average';
         return 'Poor';
     }
+    // PE1: rank-based averaging
+    const scores = categories.map(c => CATEGORY_ORDER[c] || 3);
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    if (avg >= 4.5) return 'Excellent';
+    if (avg >= 3.5) return 'Good';
+    if (avg >= 2.5) return 'Average';
+    if (avg >= 1.5) return 'Below Average';
+    return 'Poor';
+}
 
     function getInitials(name) {
         if (!name) return '?';
@@ -1322,19 +1332,35 @@ window.addEventListener('pagehide', () => {
                 const groupKey = data.scheduledTestId || data.testId || data.testName || 'unknown';
                 const mapKey   = `${studentEmail}___${groupKey}`;
 
-                if (!bestMap.has(mapKey) ||
-                    (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestMap.get(mapKey).category] || 0)) {
-                    bestMap.set(mapKey, {
-                        studentName:  data.studentName || 'Unknown',
-                        studentEmail,
-                        section:      studentSection.name,
-                        sectionId:    studentSection.id,
-                        testName:     data.testName,
-                        testId,
-                        category,
-                        ageGroup:     getAgeGroupFromStudent(studentData)
-                    });
-                }
+                // Compute exact numeric score for PE2/3/4 (matches studentgrades.html)
+let numericScore = null;
+if (_isNonPE1Section(studentSection.id)) {
+    const scheduledData2 = await _getScheduledTestData(testId);
+    const target2 = _resolveTarget(scheduledData2, data.result ?? data.resultData ?? data);
+    const rawVal2 = _extractValue(data.result ?? data.resultData ?? data.repetitions ?? data);
+    if (target2 > 0 && rawVal2 > 0) {
+        const testNameLower2 = (data.testName || '').toLowerCase();
+        const isLower2 = testNameLower2.includes('step test') || testNameLower2.includes('3-minute');
+        const pct2 = isLower2 ? (target2 / rawVal2) * 100 : (rawVal2 / target2) * 100;
+        numericScore = Math.min(100, Math.max(0, pct2));
+    }
+}
+
+            if (!bestMap.has(mapKey) ||
+                (CATEGORY_ORDER[category] || 3) > (CATEGORY_ORDER[bestMap.get(mapKey).category] || 0)) {
+                bestMap.set(mapKey, {
+                    studentName:  data.studentName || 'Unknown',
+                    studentEmail,
+                    section:      studentSection.name,
+                    sectionId:    studentSection.id,
+                    testName:     data.testName,
+                    testId,
+                    category,
+                    numericScore,
+                    isNonPE1:     _isNonPE1Section(studentSection.id),
+                    ageGroup:     getAgeGroupFromStudent(studentData)
+                });
+            }
             }));
         } catch(e) { console.error('testResults error:', e); }
 
@@ -1399,32 +1425,38 @@ window.addEventListener('pagehide', () => {
 
             const studentMap = new Map();
             studentsInSection.forEach(st => {
-                if (st.email) {
-                    studentMap.set(st.email, {
-                        name: st.name || st.email.split('@')[0],
-                        email: st.email,
-                        categories: [],
-                        hasGrades: false,
-                        ageGroup: getAgeGroupFromStudent(st)
-                    });
-                }
-            });
+    if (st.email) {
+        studentMap.set(st.email, {
+            name: st.name || st.email.split('@')[0],
+            email: st.email,
+            categories: [],
+            numericScores: [],      
+            isNonPE1: false,        
+            hasGrades: false,
+            ageGroup: getAgeGroupFromStudent(st)
+        });
+    }
+});
 
             sectionResults.forEach(r => {
-                if (studentMap.has(r.studentEmail)) {
-                    const s = studentMap.get(r.studentEmail);
-                    s.categories.push(r.category);
-                    s.hasGrades = true;
-                } else {
-                    studentMap.set(r.studentEmail, {
-                        name: r.studentName || r.studentEmail.split('@')[0],
-                        email: r.studentEmail,
-                        categories: [r.category],
-                        hasGrades: true,
-                        ageGroup: r.ageGroup || '19-22_default'
-                    });
-                }
-            });
+    if (studentMap.has(r.studentEmail)) {
+        const s = studentMap.get(r.studentEmail);
+        s.categories.push(r.category);
+        if (r.numericScore != null) s.numericScores.push(r.numericScore);
+        s.isNonPE1 = r.isNonPE1 || s.isNonPE1;
+        s.hasGrades = true;
+    } else {
+        studentMap.set(r.studentEmail, {
+            name: r.studentName || r.studentEmail.split('@')[0],
+            email: r.studentEmail,
+            categories: [r.category],
+            numericScores: r.numericScore != null ? [r.numericScore] : [],
+            isNonPE1: r.isNonPE1 || false,
+            hasGrades: true,
+            ageGroup: r.ageGroup || '19-22_default'
+        });
+    }
+});
 
            // Get total unique tests assigned to this section (same as studentgrades.html logic)
         const uniqueTestIds = [...new Set(allTestResults.filter(r => r.sectionId === sec.id).map(r => r.testId))];
@@ -1432,9 +1464,24 @@ window.addEventListener('pagehide', () => {
 
         const studentCategories = [];
         studentMap.forEach((s, email) => {
-                const overallCategory = s.categories.length ? getOverallCategory(s.categories) : 'No Results yet';
-                const categoryScore = s.categories.length ?
-                    s.categories.reduce((sum, cat) => sum + (CATEGORY_ORDER[cat] || 3), 0) / s.categories.length : 0;
+                let overallCategory = 'No Results yet';
+let categoryScore = 0;
+if (s.categories.length > 0) {
+    if (s.isNonPE1 && s.numericScores && s.numericScores.length > 0) {
+        // PE2/3/4: average exact percentages
+        const avgPct = s.numericScores.reduce((a, b) => a + b, 0) / s.numericScores.length;
+        if (avgPct >= 100) overallCategory = 'Excellent';
+        else if (avgPct >= 80) overallCategory = 'Good';
+        else if (avgPct >= 60) overallCategory = 'Average';
+        else if (avgPct >= 40) overallCategory = 'Below Average';
+        else overallCategory = 'Poor';
+        categoryScore = CATEGORY_ORDER[overallCategory] || 3;
+    } else {
+        // PE1: rank-based
+        categoryScore = s.categories.reduce((sum, cat) => sum + (CATEGORY_ORDER[cat] || 3), 0) / s.categories.length;
+        overallCategory = getOverallCategory(s.categories, [], false);
+    }
+}
 
                
                 const key = `${sec.id}_${email}`;
@@ -1465,18 +1512,44 @@ window.addEventListener('pagehide', () => {
             const studentsWithGrades = studentCategories.filter(s => s.hasGrades).length;
             const completionRate = totalStudents > 0 ? (studentsWithGrades / totalStudents) * 100 : 0;
 
-            const sectionCategoryScore = studentsWithGrades > 0
-                ? studentCategories.filter(s => s.hasGrades).reduce((sum, s) => sum + s.categoryScore, 0) / studentsWithGrades
-                : 0;
+            // Check if this is a non-PE1 section
+const isNonPE1Sec = _isNonPE1Section(sec.id);
 
-            let sectionOverallCategory = 'No data yet';
-            if (studentsWithGrades > 0) {
-                if (sectionCategoryScore >= 4.5) sectionOverallCategory = 'Excellent';
-                else if (sectionCategoryScore >= 3.5) sectionOverallCategory = 'Good';
-                else if (sectionCategoryScore >= 2.5) sectionOverallCategory = 'Average';
-                else if (sectionCategoryScore >= 1.5) sectionOverallCategory = 'Below Average';
-                else sectionOverallCategory = 'Poor';
-            }
+let sectionCategoryScore = 0;
+let sectionOverallCategory = 'No data yet';
+
+if (studentsWithGrades > 0) {
+    const gradedStudents = studentCategories.filter(s => s.hasGrades);
+
+    if (isNonPE1Sec) {
+        // PE2/3/4: collect all raw numeric scores from allTestResults for this section
+        const sectionNumericScores = allTestResults
+            .filter(r => r.sectionId === sec.id && r.numericScore != null)
+            .map(r => r.numericScore);
+
+        if (sectionNumericScores.length > 0) {
+            const avgPct = sectionNumericScores.reduce((a, b) => a + b, 0) / sectionNumericScores.length;
+            if (avgPct >= 100) sectionOverallCategory = 'Excellent';
+            else if (avgPct >= 80) sectionOverallCategory = 'Good';
+            else if (avgPct >= 60) sectionOverallCategory = 'Average';
+            else if (avgPct >= 40) sectionOverallCategory = 'Below Average';
+            else sectionOverallCategory = 'Poor';
+            // Normalize to 0–5 scale for composite score
+            sectionCategoryScore = (CATEGORY_ORDER[sectionOverallCategory] || 3);
+        } else {
+            sectionOverallCategory = 'No data yet';
+            sectionCategoryScore = 0;
+        }
+    } else {
+        // PE1: rank-based averaging (existing logic)
+        sectionCategoryScore = gradedStudents.reduce((sum, s) => sum + s.categoryScore, 0) / studentsWithGrades;
+        if (sectionCategoryScore >= 4.5) sectionOverallCategory = 'Excellent';
+        else if (sectionCategoryScore >= 3.5) sectionOverallCategory = 'Good';
+        else if (sectionCategoryScore >= 2.5) sectionOverallCategory = 'Average';
+        else if (sectionCategoryScore >= 1.5) sectionOverallCategory = 'Below Average';
+        else sectionOverallCategory = 'Poor';
+    }
+}
 
              const completionWeight = 0.4;
             const categoryWeight = 0.6;
